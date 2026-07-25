@@ -2062,6 +2062,15 @@ void MainWindow::rotationDataChanged() {
     if (m_settings.rotationShowNextSong())
         autosizeRotationCols();
     updateRotationDuration();
+    if (m_settings.requestServerEnabled())
+    {
+        std::vector<okj::RotationSinger> singersForPush;
+        auto singerCount = static_cast<int>(m_rotModel.singerCount());
+        singersForPush.reserve(singerCount);
+        for (int position = 0; position < singerCount; ++position)
+            singersForPush.push_back(m_rotModel.getSingerAtPosition(position));
+        m_songbookApi.updateRotation(singersForPush, m_rotModel.currentSinger());
+    }
     QString sep = "•";
     requestsDialog->rotationChanged();
     QString statusBarText = "Singers: ";

@@ -145,6 +145,39 @@ void OKJSongbookAPI::refreshVenues(bool blocking)
     }
 }
 
+void OKJSongbookAPI::updateRotation(const std::vector<okj::RotationSinger> &singers, int currentSingerId)
+{
+    QJsonArray singersArray;
+    for (const auto &singer : singers)
+    {
+        QJsonObject singerObject;
+        singerObject.insert("singer_id", singer.id);
+        singerObject.insert("name", singer.name);
+        singerObject.insert("position", singer.position);
+        singerObject.insert("regular", singer.regular);
+        singerObject.insert("is_current", singer.id == currentSingerId);
+        singersArray.append(singerObject);
+    }
+    if (singersArray == lastRotationSent)
+    {
+        // Rotation hasn't actually changed since the last push (e.g. a UI-only
+        // refresh triggered rotationModified()) - don't spam the server.
+        return;
+    }
+    lastRotationSent = singersArray;
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command", "updateRotation");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    mainObject.insert("system_id", m_settings.systemId());
+    mainObject.insert("singers", singersArray);
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
 void OKJSongbookAPI::clearRequests()
 {
     QJsonObject mainObject;
@@ -467,6 +500,10 @@ void OKJSongbookAPI::onNetworkReply(QNetworkReply *reply)
     {
         refreshRequests();
         refreshVenues();
+    }
+    if (command == "updateRotation")
+    {
+        m_logger->trace("{} Rotation push acknowledged by server", m_loggingPrefix);
     }
 }
 

@@ -6,7 +6,10 @@
 #include <QObject>
 #include <QUrl>
 #include <QTimer>
+#include <QJsonArray>
+#include <vector>
 #include "settings.h"
+#include "okjtypes.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
@@ -64,6 +67,7 @@ private:
     bool cancelUpdate;
     bool updateInProgress;
     Settings m_settings;
+    QJsonArray lastRotationSent;
 
 public:
     explicit OKJSongbookAPI(QObject *parent = nullptr);
@@ -75,6 +79,7 @@ public:
     void refreshVenues(bool blocking = false);
     void clearRequests();
     void updateSongDb();
+    void updateRotation(const std::vector<okj::RotationSinger> &singers, int currentSingerId);
     bool test();
     void alertCheck();
     void getEntitledSystemCount();
