@@ -24,7 +24,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt5 COMPONENTS Widgets REQUIRED)
@@ -35,12 +35,13 @@ include_directories(
 )
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
-    find_package(PkgConfig)
-    pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0 gstreamer-app-1.0 gstreamer-audio-1.0 gstreamer-pbutils-1.0 gstreamer-controller-1.0 gstreamer-video-1.0)
-    include_directories(
-            ${GSTREAMER_INCLUDE_DIRS}
-            ${GLIB_LIBRARY_DIRS}
-    )
+    find_package(PkgConfig REQUIRED)
+# ... or if manually configuring GStreamer paths for Windows MSVC:
+target_include_directories(openkj PRIVATE 
+    "${GSTREAMER_INCLUDE_DIR}"
+    "${GSTREAMER_INCLUDE_DIR}/gstreamer-1.0"
+)
+
     link_directories(
             ${GSTREAMER_LIBRARY_DIRS}
             ${GLIB_INCLUDE_DIRS}
