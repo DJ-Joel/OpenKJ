@@ -15,5 +15,5 @@ RUN dnf upgrade -y && \
 
 COPY ./ /openkj/
 WORKDIR /openkj/
-RUN cmake -DSPDLOG_USE_BUNDLED=true . -B build -G Ninja
+RUN cmake -DSPDLOG_USE_BUNDLED=true -DTAGLIB_USE_BUNDLED=true . -B build -G Ninja
 RUN ninja -C build
