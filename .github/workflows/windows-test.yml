@@ -6,29 +6,43 @@ on:
   pull_request:
     branches: [ master ]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
     name: Windows Builds
-    runs-on: windows-2025
+    runs-on: windows-2022
     strategy:
       matrix:
         include:
-          - windows-arch: 64
-            bits: 64
-            arch: x86_64
-            msvcarch: x64
-            qtarch: win64_msvc2019_64
+          - arch: x86_64
+            qt_arch: msvc2019_64
 
     steps:
-    - uses: actions/checkout@v5
+    - name: Checkout repository
+      uses: actions/checkout@v4
       with:
         submodules: recursive
 
-    - uses: seanmiddleditch/gha-setup-ninja@master
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '5.15.2'
+        arch: ${{ matrix.qt_arch }}
+
+    - name: Setup Ninja
+      uses: mechatrax/setup-ninja@v1
+
+    - name: Setup MSVC Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Create Downloads Directory
+      run: mkdir -p downloads
 
     - name: Download GST Installer
       uses: carlosperate/download-file-action@v2
@@ -46,43 +60,21 @@ jobs:
         file-name: 'gstreamer-devel.msi'
         location: './downloads'
 
-    - name: Install GST
-      shell: powershell
+    - name: Install GStreamer
+      shell: cmd
       run: |
-        start-process -wait msiexec -argumentlist '/q /i ${{ steps.download-gst.outputs.file-path }} ADDLOCAL=ALL'
-        start-sleep 10
-        start-process -wait msiexec -argumentlist '/q /i ${{ steps.download-gst-dev.outputs.file-path }} ADDLOCAL=ALL'
-        start-sleep 10
-
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v4
-      with:
-       version: '5.15.2'
-       arch: ${{ matrix.qtarch }}
-       modules: 'qtnetworkauth'
-       archives: 'qtbase qtsvg'
-
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{github.workspace}}/build
-
-    - name: Set up Visual Studio shell
-      uses: egor-tensin/vs-shell@v2
-      with:
-        arch: ${{ matrix.msvcarch }}
+        msiexec /i downloads\gstreamer.msi /quiet /norestart ADDLOCAL=ALL
+        msiexec /i downloads\gstreamer-devel.msi /quiet /norestart ADDLOCAL=ALL
 
     - name: Configure CMake
-      shell: cmd
-      working-directory: ${{github.workspace}}/build
+      env:
+        GSTREAMER_1_0_ROOT_MSVC_X86_64: 'C:\gstreamer\1.0\msvc_x86_64'
       run: |
-        cmake .. -DCMAKE_BUILD_TYPE=Release -G Ninja
+        cmake -B build -G Ninja ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_CXX_STANDARD=17 ^
+          -DSPDLOG_USE_BUNDLED=ON ^
+          -DCMAKE_PREFIX_PATH="C:\gstreamer\1.0\msvc_x86_64"
 
-    - name: Build
-      working-directory: ${{github.workspace}}/build
-      shell: bash
-      run: cmake --build .
-
-    - name: Upload executable artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: Windows ${{ matrix.arch }} binary
-        path: build/openkj.exe
+    - name: Build Project
+      run: cmake --build build --config Release
