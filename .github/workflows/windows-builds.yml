@@ -91,6 +91,7 @@ jobs:
         Get-ChildItem $expected
 
     - name: Configure CMake
+      shell: cmd
       env:
         GSTREAMER_1_0_ROOT_MSVC_X86_64: 'C:\gstreamer\1.0\msvc_x86_64'
       run: |
