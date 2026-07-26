@@ -156,6 +156,8 @@ void OKJSongbookAPI::updateRotation(const std::vector<okj::RotationSinger> &sing
         singerObject.insert("position", singer.position);
         singerObject.insert("regular", singer.regular);
         singerObject.insert("is_current", singer.id == currentSingerId);
+        singerObject.insert("next_song_artist", singer.nextSongArtist());
+        singerObject.insert("next_song_title", singer.nextSongTitle());
         singersArray.append(singerObject);
     }
     if (singersArray == lastRotationSent)
