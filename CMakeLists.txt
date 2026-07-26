@@ -110,10 +110,41 @@ list(FILTER OPENKJ_SOURCES EXCLUDE REGEX "[/\\\\]src[/\\\\]3rdparty[/\\\\]")
 # Main executable target
 add_executable(openkj ${OPENKJ_SOURCES})
 
+# taglib is vendored under src/taglib and built statically as part of this
+# target (its .cpp files are already included via OPENKJ_SOURCES above).
+# Its headers are spread across many nested subdirectories and use relative
+# includes between them, so each needs to be on the include path directly.
+target_compile_definitions(openkj PRIVATE TAGLIB_STATIC)
+
 # Include Directories
 target_include_directories(openkj PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/toolkit
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/mpeg
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/mpeg/id3v2
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/mpeg/id3v2/frames
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/mpeg/id3v1
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/mod
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/ogg
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/ogg/flac
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/ogg/opus
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/ogg/speex
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/ogg/vorbis
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/flac
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/ape
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/riff
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/riff/aiff
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/riff/wav
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/asf
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/it
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/mp4
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/mpc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/s3m
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/trueaudio
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/wavpack
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/xm
     ${GSTREAMER_INCLUDE_DIRS}
 )
 
