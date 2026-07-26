@@ -1412,6 +1412,8 @@ MainWindow::~MainWindow() {
     m_settings.saveSplitterState(ui->splitter_3);
     m_settings.saveColumnWidths(ui->tableViewDB);
     m_settings.saveColumnWidths(ui->tableViewRotation);
+    m_settings.saveColumnWidths(ui->tableViewQueue);
+    m_settings.saveColumnWidths(ui->tableViewHistory);
     m_settings.saveWindowState(requestsDialog.get());
     m_settings.saveWindowState(dlgSongShop.get());
     m_settings.saveWindowState(dbDialog.get());
