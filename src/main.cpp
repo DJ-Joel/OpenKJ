@@ -166,6 +166,20 @@ int main(int argc, char *argv[]) {
     qWarning() << qgetenv("GST_PLUGIN_SYSTEM_PATH") << endl << qgetenv("GST_PLUGIN_SCANNER") << endl << qgetenv("GTK_PATH") << endl << qgetenv("GIO_EXTRA_MODULES") << endl;
 #endif
 
+#ifdef Q_OS_WIN
+    // GStreamer's built-in Windows plugin auto-detection relies on a specific
+    // bin/../lib/gstreamer-1.0 folder layout relative to wherever it loaded
+    // gstreamer-1.0.dll from, which our flat, windeployqt-style deployment
+    // doesn't provide. Point it explicitly at a "gstreamer-1.0" folder placed
+    // directly alongside the executable instead, so plugin loading doesn't
+    // depend on that auto-detection working out.
+    QString winAppDir = QCoreApplication::applicationDirPath();
+    QString gstPluginDir = winAppDir + "/gstreamer-1.0";
+    qputenv("GST_PLUGIN_PATH", gstPluginDir.toLocal8Bit());
+    qInfo() << "Windows detected, set GST_PLUGIN_PATH to" << gstPluginDir;
+#endif
+
+
     a.installEventFilter(filter);
     qputenv("GST_DEBUG", "*:3");
     QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
