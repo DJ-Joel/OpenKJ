@@ -36,6 +36,5 @@ jobs:
         name: docker image build
         with:
           file: Dockerfile.${{ matrix.name }}
-          push: ${{ github.event_name != 'pull_request' }}
+          push: false
           tags: ghcr.io/openkj/openkj:${{ matrix.name }}-${{ env.tagdate }}
-
