@@ -138,8 +138,17 @@ file(GLOB_RECURSE OPENKJ_SOURCES
 # FetchContent, so exclude this vendored tree entirely from the build.
 list(FILTER OPENKJ_SOURCES EXCLUDE REGEX "[/\\\\]src[/\\\\]3rdparty[/\\\\]")
 
+# On Windows, compile in the app icon resource so the built exe (and its
+# taskbar/shortcut icons) show the actual OpenKJ icon instead of a blank/
+# generic one. appicon.rc pulls in src/Icons/okjicon.ico.
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    set(WINDOWS_ICON_RC "${CMAKE_CURRENT_SOURCE_DIR}/src/appicon.rc")
+else ()
+    set(WINDOWS_ICON_RC "")
+endif ()
+
 # Main executable target
-add_executable(openkj ${OPENKJ_SOURCES})
+add_executable(openkj ${OPENKJ_SOURCES} ${WINDOWS_ICON_RC})
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     # Without this, CMake defaults to the console subsystem, which pops up a
