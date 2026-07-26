@@ -2274,7 +2274,7 @@ QPushButton:default {
               </spacer>
              </item>
              <item>
-              <layout class="QHBoxLayout" name="horizontalLayout_25">
+              <layout class="QVBoxLayout" name="verticalLayout_25">
                <property name="topMargin">
                 <number>0</number>
                </property>
