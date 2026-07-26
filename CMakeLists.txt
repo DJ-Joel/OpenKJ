@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(openkj VERSION 2.0 LANGUAGES C CXX)
 
-# Force C++17 to prevent Qt 5.15 stdext errors under MSVC C++20
+# Force C++17 to prevent Qt 5.15 stdext errors under MSVC
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -23,9 +23,8 @@ find_package(Qt5 COMPONENTS
     REQUIRED
 )
 
-# GStreamer Configuration
+# GStreamer Setup
 if(WIN32)
-    # Prefer MSVC installation path set by environment variable or standard locations
     if(DEFINED ENV{GSTREAMER_1_0_ROOT_MSVC_X86_64})
         set(GSTREAMER_ROOT "$ENV{GSTREAMER_1_0_ROOT_MSVC_X86_64}")
     elseif(EXISTS "C:/gstreamer/1.0/msvc_x86_64")
@@ -41,14 +40,22 @@ if(WIN32)
         "${GSTREAMER_ROOT}/lib/glib-2.0/include"
         "${GSTREAMER_ROOT}/include/glib-2.0/gobject"
     )
-    
+
+    # Search in the root /lib directory of GStreamer
+    find_library(GST_LIB gstreamer-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GLIB_LIB glib-2.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GOBJECT_LIB gobject-2.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GST_APP_LIB gstapp-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GST_VIDEO_LIB gstvideo-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GST_AUDIO_LIB gstaudio-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+
     set(GSTREAMER_LIBRARIES
-        "${GSTREAMER_ROOT}/lib/gstreamer-1.0.lib"
-        "${GSTREAMER_ROOT}/lib/glib-2.0.lib"
-        "${GSTREAMER_ROOT}/lib/gobject-2.0.lib"
-        "${GSTREAMER_ROOT}/lib/gstapp-1.0.lib"
-        "${GSTREAMER_ROOT}/lib/gstvideo-1.0.lib"
-        "${GSTREAMER_ROOT}/lib/gstaudio-1.0.lib"
+        ${GST_LIB}
+        ${GLIB_LIB}
+        ${GOBJECT_LIB}
+        ${GST_APP_LIB}
+        ${GST_VIDEO_LIB}
+        ${GST_AUDIO_LIB}
     )
 else()
     find_package(PkgConfig REQUIRED)
@@ -62,7 +69,7 @@ else()
     )
 endif()
 
-# Fetch external dependency spdlog
+# Fetch spdlog
 include(FetchContent)
 FetchContent_Declare(
     spdlog
@@ -71,7 +78,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-# Recursively collect all source files inside src/
+# Collect all source files inside src/
 file(GLOB_RECURSE OPENKJ_SOURCES 
     "src/*.cpp" 
     "src/*.h" 
@@ -80,17 +87,17 @@ file(GLOB_RECURSE OPENKJ_SOURCES
     "src/resources.qrc"
 )
 
-# Add main executable target
+# Main executable target
 add_executable(openkj ${OPENKJ_SOURCES})
 
-# Target Include Directories
+# Include Directories
 target_include_directories(openkj PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${GSTREAMER_INCLUDE_DIRS}
 )
 
-# Target Link Libraries
+# Link Libraries
 target_link_libraries(openkj PRIVATE
     Qt5::Core
     Qt5::Gui
