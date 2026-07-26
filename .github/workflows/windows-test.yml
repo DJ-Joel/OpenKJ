@@ -64,10 +64,11 @@ jobs:
     - name: Install GStreamer
       shell: pwsh
       run: |
+        $installRoot = "C:\gstreamer"
         $installDir = "C:\gstreamer\1.0\msvc_x86_64"
 
         Write-Host "Installing GStreamer runtime..."
-        $p1 = Start-Process msiexec.exe -ArgumentList "/i", "downloads\gstreamer.msi", "/quiet", "/norestart", "ADDLOCAL=ALL", "INSTALLDIR=$installDir", "/l*v", "gst-runtime-install.log" -Wait -PassThru
+        $p1 = Start-Process msiexec.exe -ArgumentList "/i", "downloads\gstreamer.msi", "/quiet", "/norestart", "ADDLOCAL=ALL", "INSTALLDIR=$installRoot", "/l*v", "gst-runtime-install.log" -Wait -PassThru
         if ($p1.ExitCode -ne 0) {
           Write-Host "::error::GStreamer runtime install failed with exit code $($p1.ExitCode)"
           Get-Content gst-runtime-install.log -Tail 40
@@ -75,7 +76,7 @@ jobs:
         }
 
         Write-Host "Installing GStreamer devel..."
-        $p2 = Start-Process msiexec.exe -ArgumentList "/i", "downloads\gstreamer-devel.msi", "/quiet", "/norestart", "ADDLOCAL=ALL", "INSTALLDIR=$installDir", "/l*v", "gst-devel-install.log" -Wait -PassThru
+        $p2 = Start-Process msiexec.exe -ArgumentList "/i", "downloads\gstreamer-devel.msi", "/quiet", "/norestart", "ADDLOCAL=ALL", "INSTALLDIR=$installRoot", "/l*v", "gst-devel-install.log" -Wait -PassThru
         if ($p2.ExitCode -ne 0) {
           Write-Host "::error::GStreamer devel install failed with exit code $($p2.ExitCode)"
           Get-Content gst-devel-install.log -Tail 40
