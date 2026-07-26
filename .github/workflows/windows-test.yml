@@ -14,7 +14,7 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            qt_arch: msvc2019_64
+            qt_arch: win64_msvc2019_64
 
     steps:
     - name: Checkout repository
