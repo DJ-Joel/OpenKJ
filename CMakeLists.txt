@@ -91,6 +91,12 @@ else()
         glib-2.0 
         gobject-2.0
     )
+    # pkg_check_modules gives us library names via GSTREAMER_LIBRARIES, but
+    # not where to find them. On Linux this is usually a no-op since system
+    # packages land in default linker search paths, but Homebrew on macOS
+    # installs to a non-standard prefix (e.g. /opt/homebrew/lib) that the
+    # linker won't search unless told to explicitly.
+    link_directories(${GSTREAMER_LIBRARY_DIRS})
 endif()
 
 # Fetch spdlog
