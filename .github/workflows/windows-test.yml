@@ -62,10 +62,34 @@ jobs:
         location: './downloads'
 
     - name: Install GStreamer
-      shell: cmd
+      shell: pwsh
       run: |
-        msiexec /i downloads\gstreamer.msi /quiet /norestart ADDLOCAL=ALL
-        msiexec /i downloads\gstreamer-devel.msi /quiet /norestart ADDLOCAL=ALL
+        Write-Host "Installing GStreamer runtime..."
+        $p1 = Start-Process msiexec.exe -ArgumentList "/i", "downloads\gstreamer.msi", "/quiet", "/norestart", "ADDLOCAL=ALL", "/l*v", "gst-runtime-install.log" -Wait -PassThru
+        if ($p1.ExitCode -ne 0) {
+          Write-Host "::error::GStreamer runtime install failed with exit code $($p1.ExitCode)"
+          Get-Content gst-runtime-install.log -Tail 40
+          exit 1
+        }
+
+        Write-Host "Installing GStreamer devel..."
+        $p2 = Start-Process msiexec.exe -ArgumentList "/i", "downloads\gstreamer-devel.msi", "/quiet", "/norestart", "ADDLOCAL=ALL", "/l*v", "gst-devel-install.log" -Wait -PassThru
+        if ($p2.ExitCode -ne 0) {
+          Write-Host "::error::GStreamer devel install failed with exit code $($p2.ExitCode)"
+          Get-Content gst-devel-install.log -Tail 40
+          exit 1
+        }
+
+        Write-Host "Verifying install..."
+        $expected = "C:\gstreamer\1.0\msvc_x86_64"
+        if (-not (Test-Path $expected)) {
+          Write-Host "::error::Expected GStreamer directory not found at $expected"
+          Write-Host "Contents of C:\gstreamer (if it exists):"
+          Get-ChildItem -Path "C:\gstreamer" -Recurse -Depth 2 -ErrorAction SilentlyContinue
+          exit 1
+        }
+        Write-Host "GStreamer found at $expected"
+        Get-ChildItem $expected
 
     - name: Configure CMake
       env:
