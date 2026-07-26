@@ -3605,8 +3605,8 @@ void MainWindow::tableViewRotationCurrentChanged(const QModelIndex &cur, const Q
         ui->tabWidgetQueue->setVisible(true);
         ui->labelNoSinger->setVisible(false);
         QApplication::processEvents();
-        autosizeQueueCols();
-        m_settings.restoreColumnWidths(ui->tableViewQueue);
+        if (!m_settings.restoreColumnWidths(ui->tableViewQueue))
+            autosizeQueueCols();
     }
 }
 
