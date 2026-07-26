@@ -109,3 +109,98 @@ jobs:
 
     - name: Build Project
       run: cmake --build build --config Release
+
+    - name: Create output dir and copy exe
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Path output | Out-Null
+        Copy-Item build\openkj.exe output\
+
+    - name: Run windeployqt
+      shell: cmd
+      run: |
+        windeployqt --release --compiler-runtime output\openkj.exe
+        dir output
+
+    - name: Copy in GStreamer runtime dependencies
+      shell: pwsh
+      run: |
+        $gstDir = "C:\gstreamer\1.0\msvc_x86_64"
+        Copy-Item -Path "$gstDir\bin\*.dll" -Destination output\ -Force
+        Write-Host "Copied GStreamer runtime DLLs into output\"
+
+    - name: Download Roboto Bold
+      uses: carlosperate/download-file-action@v2
+      id: download-roboto-bold
+      with:
+        file-url: 'https://storage.googleapis.com/okj-installer-deps/Roboto-Bold.ttf'
+        file-name: 'Roboto-Bold.ttf'
+        location: './downloads'
+
+    - name: Download Roboto Medium
+      uses: carlosperate/download-file-action@v2
+      id: download-roboto-medium
+      with:
+        file-url: 'https://storage.googleapis.com/okj-installer-deps/Roboto-Medium.ttf'
+        file-name: 'Roboto-Medium.ttf'
+        location: './downloads'
+
+    - name: Download Roboto Regular
+      uses: carlosperate/download-file-action@v2
+      id: download-roboto-regular
+      with:
+        file-url: 'https://storage.googleapis.com/okj-installer-deps/Roboto-Regular.ttf'
+        file-name: 'Roboto-Regular.ttf'
+        location: './downloads'
+
+    - name: Download Source Code Pro Medium
+      uses: carlosperate/download-file-action@v2
+      id: download-source-code-pro-medium
+      with:
+        file-url: 'https://storage.googleapis.com/okj-installer-deps/SourceCodePro-Medium.ttf'
+        file-name: 'SourceCodePro-Medium.ttf'
+        location: './downloads'
+
+    - name: Download OpenSSL dll files
+      uses: carlosperate/download-file-action@v2
+      id: download-openssl
+      with:
+        file-url: 'https://storage.googleapis.com/okj-installer-deps/ssl-x86_64-1.1.1.zip'
+        file-name: 'openssl.zip'
+        location: './downloads'
+
+    - name: Download VC++ Redistributable
+      uses: carlosperate/download-file-action@v2
+      id: download-vcredist
+      with:
+        file-url: 'https://aka.ms/vs/17/release/vc_redist.x64.exe'
+        file-name: 'vc_redist.x64.exe'
+        location: './downloads'
+
+    - name: Copy in other dependencies
+      shell: pwsh
+      run: |
+        Copy-Item LICENSE output\LICENSE.txt
+        Copy-Item downloads\Roboto-Bold.ttf output\
+        Copy-Item downloads\Roboto-Medium.ttf output\
+        Copy-Item downloads\Roboto-Regular.ttf output\
+        Copy-Item downloads\SourceCodePro-Medium.ttf output\
+        Copy-Item downloads\vc_redist.x64.exe output\
+        & "C:\Program Files\7-Zip\7z.exe" e -bb3 -y downloads\openssl.zip -o"output\"
+        Write-Host "output\ contents:"
+        Get-ChildItem output
+
+    - name: Create Installer
+      shell: cmd
+      run: |
+        curl.exe -sLO https://files.jrsoftware.org/is/6/innosetup-6.4.3.exe
+        .\innosetup-6.4.3.exe /silent
+        copy cd\openkj64.iss inst.iss
+        mkdir installer
+        "%programfiles(x86)%\Inno Setup 6\iscc.exe" inst.iss /Oinstaller\
+
+    - name: Upload installer artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenKJ-Windows-Installer
+        path: installer\*.exe
