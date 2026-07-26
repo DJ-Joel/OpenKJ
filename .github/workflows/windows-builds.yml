@@ -28,4 +28,77 @@ jobs:
         python-version: '3.12'
 
     - name: Install Qt
-      uses:
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '5.15.2'
+        arch: ${{ matrix.qt_arch }}
+
+    - name: Setup Ninja
+      uses: ashutoshvarma/setup-ninja@v1.1
+
+    - name: Setup MSVC Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Create Downloads Directory
+      run: mkdir -p downloads
+
+    - name: Download GST Installer
+      uses: carlosperate/download-file-action@v2
+      id: download-gst
+      with:
+        file-url: 'https://gstreamer.freedesktop.org/data/pkg/windows/1.24.13/msvc/gstreamer-1.0-msvc-x86_64-1.24.13.msi'
+        file-name: 'gstreamer.msi'
+        location: './downloads'
+
+    - name: Download GST-Dev Installer
+      uses: carlosperate/download-file-action@v2
+      id: download-gst-dev
+      with:
+        file-url: 'https://gstreamer.freedesktop.org/data/pkg/windows/1.24.13/msvc/gstreamer-1.0-devel-msvc-x86_64-1.24.13.msi'
+        file-name: 'gstreamer-devel.msi'
+        location: './downloads'
+
+    - name: Install GStreamer
+      shell: pwsh
+      run: |
+        Write-Host "Installing GStreamer runtime..."
+        $p1 = Start-Process msiexec.exe -ArgumentList "/i", "downloads\gstreamer.msi", "/quiet", "/norestart", "ADDLOCAL=ALL", "/l*v", "gst-runtime-install.log" -Wait -PassThru
+        if ($p1.ExitCode -ne 0) {
+          Write-Host "::error::GStreamer runtime install failed with exit code $($p1.ExitCode)"
+          Get-Content gst-runtime-install.log -Tail 40
+          exit 1
+        }
+
+        Write-Host "Installing GStreamer devel..."
+        $p2 = Start-Process msiexec.exe -ArgumentList "/i", "downloads\gstreamer-devel.msi", "/quiet", "/norestart", "ADDLOCAL=ALL", "/l*v", "gst-devel-install.log" -Wait -PassThru
+        if ($p2.ExitCode -ne 0) {
+          Write-Host "::error::GStreamer devel install failed with exit code $($p2.ExitCode)"
+          Get-Content gst-devel-install.log -Tail 40
+          exit 1
+        }
+
+        Write-Host "Verifying install..."
+        $expected = "C:\gstreamer\1.0\msvc_x86_64"
+        if (-not (Test-Path $expected)) {
+          Write-Host "::error::Expected GStreamer directory not found at $expected"
+          Write-Host "Contents of C:\gstreamer (if it exists):"
+          Get-ChildItem -Path "C:\gstreamer" -Recurse -Depth 2 -ErrorAction SilentlyContinue
+          exit 1
+        }
+        Write-Host "GStreamer found at $expected"
+        Get-ChildItem $expected
+
+    - name: Configure CMake
+      env:
+        GSTREAMER_1_0_ROOT_MSVC_X86_64: 'C:\gstreamer\1.0\msvc_x86_64'
+      run: |
+        cmake -B build -G Ninja ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_CXX_STANDARD=17 ^
+          -DSPDLOG_USE_BUNDLED=ON ^
+          -DCMAKE_PREFIX_PATH="C:\gstreamer\1.0\msvc_x86_64"
+
+    - name: Build Project
+      run: cmake --build build --config Release
