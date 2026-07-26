@@ -90,7 +90,11 @@ jobs:
           exit 1
         }
         Write-Host "GStreamer found at $installDir"
+        Write-Host "Top-level contents:"
         Get-ChildItem $installDir
+        Write-Host ""
+        Write-Host "Full recursive listing (depth 2):"
+        Get-ChildItem -Path $installDir -Recurse -Depth 2 | Select-Object FullName
 
     - name: Configure CMake
       env:
