@@ -25,13 +25,27 @@ find_package(Qt5 COMPONENTS
 
 # GStreamer Setup
 if(WIN32)
-    if(DEFINED ENV{GSTREAMER_1_0_ROOT_MSVC_X86_64})
-        set(GSTREAMER_ROOT "$ENV{GSTREAMER_1_0_ROOT_MSVC_X86_64}")
-    elseif(EXISTS "C:/gstreamer/1.0/msvc_x86_64")
-        set(GSTREAMER_ROOT "C:/gstreamer/1.0/msvc_x86_64")
-    else()
-        set(GSTREAMER_ROOT "C:/Program Files/gstreamer/1.0/msvc_x86_64")
+    # Collect candidate root paths for GStreamer on Windows
+    set(GST_POSSIBLE_ROOTS
+        "$ENV{GSTREAMER_1_0_ROOT_MSVC_X86_64}"
+        "C:/gstreamer/1.0/msvc_x86_64"
+        "C:/Program Files/gstreamer/1.0/msvc_x86_64"
+        "C:/Program Files (x86)/gstreamer/1.0/msvc_x86_64"
+    )
+
+    set(GSTREAMER_ROOT "")
+    foreach(candidate ${GST_POSSIBLE_ROOTS})
+        if(EXISTS "${candidate}")
+            set(GSTREAMER_ROOT "${candidate}")
+            break()
+        endif()
+    endforeach()
+
+    if(NOT GSTREAMER_ROOT)
+        message(FATAL_ERROR "GStreamer installation directory not found! Check your MSI installation path.")
     endif()
+
+    message(STATUS "Found GStreamer root at: ${GSTREAMER_ROOT}")
 
     set(GSTREAMER_INCLUDE_DIRS
         "${GSTREAMER_ROOT}/include/gstreamer-1.0"
@@ -41,13 +55,13 @@ if(WIN32)
         "${GSTREAMER_ROOT}/include/glib-2.0/gobject"
     )
 
-    # Search in the root /lib directory of GStreamer
-    find_library(GST_LIB gstreamer-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
-    find_library(GLIB_LIB glib-2.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
-    find_library(GOBJECT_LIB gobject-2.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
-    find_library(GST_APP_LIB gstapp-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
-    find_library(GST_VIDEO_LIB gstvideo-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
-    find_library(GST_AUDIO_LIB gstaudio-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    # Search in both /lib and /lib/gstreamer-1.0
+    find_library(GST_LIB NAMES gstreamer-1.0 PATHS "${GSTREAMER_ROOT}/lib" "${GSTREAMER_ROOT}/lib/gstreamer-1.0" REQUIRED)
+    find_library(GLIB_LIB NAMES glib-2.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GOBJECT_LIB NAMES gobject-2.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GST_APP_LIB NAMES gstapp-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GST_VIDEO_LIB NAMES gstvideo-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GST_AUDIO_LIB NAMES gstaudio-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
 
     set(GSTREAMER_LIBRARIES
         ${GST_LIB}
