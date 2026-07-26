@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(openkj VERSION 2.0 LANGUAGES C CXX)
 
-# Force C++17 to prevent Qt 5.15 stdext errors under MSVC
+# Force C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -25,17 +25,18 @@ find_package(Qt5 COMPONENTS
 
 # GStreamer Setup
 if(WIN32)
-    # Collect candidate root paths for GStreamer on Windows
     set(GST_POSSIBLE_ROOTS
-        "$ENV{GSTREAMER_1_0_ROOT_MSVC_X86_64}"
         "C:/gstreamer/1.0/msvc_x86_64"
+        "C:/gstreamer/1.0/x86_64"
+        "$ENV{GSTREAMER_1_0_ROOT_MSVC_X86_64}"
+        "$ENV{GSTREAMER_1_0_ROOT_X86_64}"
         "C:/Program Files/gstreamer/1.0/msvc_x86_64"
-        "C:/Program Files (x86)/gstreamer/1.0/msvc_x86_64"
+        "C:/Program Files/gstreamer/1.0/x86_64"
     )
 
     set(GSTREAMER_ROOT "")
     foreach(candidate ${GST_POSSIBLE_ROOTS})
-        if(EXISTS "${candidate}")
+        if(candidate AND EXISTS "${candidate}")
             set(GSTREAMER_ROOT "${candidate}")
             break()
         endif()
@@ -55,7 +56,6 @@ if(WIN32)
         "${GSTREAMER_ROOT}/include/glib-2.0/gobject"
     )
 
-    # Search in both /lib and /lib/gstreamer-1.0
     find_library(GST_LIB NAMES gstreamer-1.0 PATHS "${GSTREAMER_ROOT}/lib" "${GSTREAMER_ROOT}/lib/gstreamer-1.0" REQUIRED)
     find_library(GLIB_LIB NAMES glib-2.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
     find_library(GOBJECT_LIB NAMES gobject-2.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
