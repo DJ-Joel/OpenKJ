@@ -101,6 +101,12 @@ file(GLOB_RECURSE OPENKJ_SOURCES
     "src/resources.qrc"
 )
 
+# src/3rdparty contains a vendored copy of spdlog (including its own bench/,
+# example/, and tests/ programs with their own main() functions and external
+# dependencies like Google Benchmark). spdlog itself is supplied above via
+# FetchContent, so exclude this vendored tree entirely from the build.
+list(FILTER OPENKJ_SOURCES EXCLUDE REGEX "[/\\\\]src[/\\\\]3rdparty[/\\\\]")
+
 # Main executable target
 add_executable(openkj ${OPENKJ_SOURCES})
 
