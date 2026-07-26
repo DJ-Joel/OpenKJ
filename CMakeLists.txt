@@ -62,6 +62,9 @@ if(WIN32)
     find_library(GST_APP_LIB NAMES gstapp-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
     find_library(GST_VIDEO_LIB NAMES gstvideo-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
     find_library(GST_AUDIO_LIB NAMES gstaudio-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GST_BASE_LIB NAMES gstbase-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GST_CONTROLLER_LIB NAMES gstcontroller-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
+    find_library(GST_PBUTILS_LIB NAMES gstpbutils-1.0 PATHS "${GSTREAMER_ROOT}/lib" REQUIRED)
 
     set(GSTREAMER_LIBRARIES
         ${GST_LIB}
@@ -70,6 +73,10 @@ if(WIN32)
         ${GST_APP_LIB}
         ${GST_VIDEO_LIB}
         ${GST_AUDIO_LIB}
+        ${GST_BASE_LIB}
+        ${GST_CONTROLLER_LIB}
+        ${GST_PBUTILS_LIB}
+        winmm
     )
 else()
     find_package(PkgConfig REQUIRED)
@@ -95,6 +102,7 @@ FetchContent_MakeAvailable(spdlog)
 # Collect all source files inside src/
 file(GLOB_RECURSE OPENKJ_SOURCES 
     "src/*.cpp" 
+    "src/*.c" 
     "src/*.h" 
     "src/*.hpp" 
     "src/*.ui" 
