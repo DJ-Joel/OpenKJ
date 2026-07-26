@@ -102,6 +102,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
+if (APPLE)
+    # Recent Xcode/AppleClang releases (Clang 21, Xcode 26.4+) tightened
+    # consteval validation in a way that breaks spdlog's bundled fmt library's
+    # compile-time format string checking (FMT_STRING/FMT_COMPILE machinery),
+    # even on fairly recent spdlog/fmt releases. Disabling it falls back to
+    # runtime format string validation instead - functionally harmless.
+    target_compile_definitions(spdlog PRIVATE FMT_USE_CONSTEVAL=0)
+endif ()
+
 # Collect all source files inside src/
 file(GLOB_RECURSE OPENKJ_SOURCES 
     "src/*.cpp" 
@@ -135,6 +144,13 @@ endif ()
 # Its headers are spread across many nested subdirectories and use relative
 # includes between them, so each needs to be on the include path directly.
 target_compile_definitions(openkj PRIVATE TAGLIB_STATIC)
+
+if (APPLE)
+    # See the matching note above, near the spdlog FetchContent block - this
+    # target also calls spdlog's templated logging macros directly, which
+    # re-instantiates the same problematic fmt consteval code path here too.
+    target_compile_definitions(openkj PRIVATE FMT_USE_CONSTEVAL=0)
+endif ()
 
 # Include Directories
 target_include_directories(openkj PRIVATE
