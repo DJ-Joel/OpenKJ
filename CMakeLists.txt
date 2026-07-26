@@ -85,6 +85,9 @@ else()
         gstreamer-app-1.0 
         gstreamer-video-1.0 
         gstreamer-audio-1.0 
+        gstreamer-base-1.0
+        gstreamer-controller-1.0
+        gstreamer-pbutils-1.0
         glib-2.0 
         gobject-2.0
     )
@@ -117,6 +120,15 @@ list(FILTER OPENKJ_SOURCES EXCLUDE REGEX "[/\\\\]src[/\\\\]3rdparty[/\\\\]")
 
 # Main executable target
 add_executable(openkj ${OPENKJ_SOURCES})
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    # Without this, CMake defaults to the console subsystem, which pops up a
+    # terminal window alongside the GUI on every launch.
+    set_property(
+        TARGET openkj
+        PROPERTY WIN32_EXECUTABLE TRUE
+    )
+endif ()
 
 # taglib is vendored under src/taglib and built statically as part of this
 # target (its .cpp files are already included via OPENKJ_SOURCES above).
