@@ -129,6 +129,11 @@ jobs:
         Copy-Item -Path "$gstDir\bin\*.dll" -Destination output\ -Force
         Write-Host "Copied GStreamer runtime DLLs into output\"
 
+        New-Item -ItemType Directory -Path "output\gstreamer-1.0" -Force | Out-Null
+        Copy-Item -Path "$gstDir\lib\gstreamer-1.0\*" -Destination "output\gstreamer-1.0\" -Recurse -Force
+        Write-Host "Copied GStreamer plugins into output\gstreamer-1.0\"
+        Get-ChildItem "output\gstreamer-1.0" | Measure-Object | Select-Object -ExpandProperty Count
+
     - name: Download Roboto Bold
       uses: carlosperate/download-file-action@v2
       id: download-roboto-bold
