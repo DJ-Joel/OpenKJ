@@ -104,11 +104,16 @@ FetchContent_MakeAvailable(spdlog)
 
 if (APPLE)
     # Recent Xcode/AppleClang releases (Clang 21, Xcode 26.4+) tightened
-    # consteval validation in a way that breaks spdlog's bundled fmt library's
-    # compile-time format string checking (FMT_STRING/FMT_COMPILE machinery),
-    # even on fairly recent spdlog/fmt releases. Disabling it falls back to
-    # runtime format string validation instead - functionally harmless.
-    target_compile_definitions(spdlog PRIVATE FMT_USE_CONSTEVAL=0)
+    # consteval validation in a way that breaks compile-time format string
+    # checking in the old fmt library bundled inside spdlog 1.12.0. That old
+    # fmt predates the FMT_USE_CONSTEVAL escape hatch entirely - its
+    # FMT_CONSTEVAL detection logic has a genuine bug where an Apple Clang
+    # exclusion only covers one of its two OR'd conditions, so modern Apple
+    # Clang (which defines __cpp_consteval) slips through the other branch
+    # anyway. Pre-defining FMT_CONSTEVAL as empty short-circuits that whole
+    # detection block via its #ifndef guard, falling back to runtime format
+    # string validation instead - functionally harmless.
+    target_compile_definitions(spdlog PRIVATE "FMT_CONSTEVAL=")
 endif ()
 
 # Collect all source files inside src/
@@ -148,8 +153,8 @@ target_compile_definitions(openkj PRIVATE TAGLIB_STATIC)
 if (APPLE)
     # See the matching note above, near the spdlog FetchContent block - this
     # target also calls spdlog's templated logging macros directly, which
-    # re-instantiates the same problematic fmt consteval code path here too.
-    target_compile_definitions(openkj PRIVATE FMT_USE_CONSTEVAL=0)
+    # re-instantiates the same problematic fmt code path here too.
+    target_compile_definitions(openkj PRIVATE "FMT_CONSTEVAL=")
 endif ()
 
 # Include Directories
