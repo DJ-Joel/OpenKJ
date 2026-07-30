@@ -1506,21 +1506,29 @@ void MainWindow::streamButtonClicked() {
         return;
     url = url.trimmed();
 
-    if (MediaBackend::isNetworkStreamUri(url)) {
-        playStreamUrl(url);
+    QString ytDlpPath = m_settings.ytDlpPath();
+
+    if (ytDlpPath.trimmed().isEmpty()) {
+        // No yt-dlp configured - the URL scheme is the only signal we have to
+        // work with, so fall back to the direct-play heuristic. This can't
+        // distinguish an ordinary webpage from a real media stream (both are
+        // just "https"), so it only really works for URLs that are already
+        // resolved, direct stream links.
+        if (MediaBackend::isNetworkStreamUri(url)) {
+            playStreamUrl(url);
+        } else {
+            QMessageBox::warning(this, tr("Invalid stream URL"),
+                                  tr("That doesn't look like a directly playable stream URL, and no "
+                                     "yt-dlp path is configured to resolve page links (such as YouTube "
+                                     "URLs) into one.\n\nYou can set a yt-dlp path in Settings -> "
+                                     "External, or paste a direct stream URL instead."));
+        }
         return;
     }
 
-    // Not a directly playable stream URL - try to resolve it via yt-dlp if configured.
-    QString ytDlpPath = m_settings.ytDlpPath();
-    if (ytDlpPath.trimmed().isEmpty()) {
-        QMessageBox::warning(this, tr("Invalid stream URL"),
-                              tr("That doesn't look like a directly playable stream URL, and no "
-                                 "yt-dlp path is configured to resolve page links (such as YouTube "
-                                 "URLs) into one.\n\nYou can set a yt-dlp path in Settings -> "
-                                 "External, or paste a direct stream URL instead."));
-        return;
-    }
+    // yt-dlp is configured - always resolve through it rather than guessing.
+    // yt-dlp's own site detection is far more reliable than a URL-scheme
+    // check, and it correctly passes through already-direct stream URLs too.
 
     if (m_ytDlpProgressDialog)
         return; // a resolve is already in progress
