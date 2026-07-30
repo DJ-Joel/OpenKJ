@@ -86,6 +86,7 @@ public:
     bool progressiveSearchEnabled();
     QString storeDownloadDir();
     QString logDir();
+    QString ytDlpPath();
     bool logShow();
     bool logEnabled();
     void setPassword(QString password);
@@ -376,6 +377,7 @@ public slots:
     void setLogEnabled(bool enabled);
     void setLogVisible(bool visible);
     void setLogDir(QString path);
+    void setYtDlpPath(QString path);
     void setCurrentRotationPosition(int position);
     void dbSetDirectoryWatchEnabled(bool val);
     void setSystemId(int id);

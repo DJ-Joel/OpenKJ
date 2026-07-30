@@ -1049,6 +1049,10 @@ void MainWindow::setupConnections() {
     connect(ui->pushButtonIncomingRequests, &QPushButton::clicked, requestsDialog.get(), &DlgRequests::show);
     connect(ui->pushButtonShop, &QPushButton::clicked, dlgSongShop.get(), &DlgSongShop::show);
     connect(ui->pushButtonStream, &QPushButton::clicked, this, &MainWindow::streamButtonClicked);
+    connect(&m_ytDlpResolver, &YtDlpResolver::resolved, this, &MainWindow::ytDlpResolveSucceeded);
+    connect(&m_ytDlpResolver, &YtDlpResolver::failed, this, &MainWindow::ytDlpResolveFailed);
+    m_ytDlpTimeoutTimer.setSingleShot(true);
+    connect(&m_ytDlpTimeoutTimer, &QTimer::timeout, this, &MainWindow::ytDlpResolveTimedOut);
     connect(ui->actionSong_Shop, &QAction::triggered, dlgSongShop.get(), &DlgSongShop::show);
     connect(ui->tabWidget, &QTabWidget::currentChanged, this, &MainWindow::tabWidgetCurrentChanged);
     connect(ui->sliderBmPosition, &QSlider::sliderPressed, this, &MainWindow::sliderBmPositionPressed);
@@ -1494,32 +1498,82 @@ void MainWindow::buttonStopClicked() {
 void MainWindow::streamButtonClicked() {
     bool ok;
     QString url = QInputDialog::getText(this, tr("Play Stream"),
-                                         tr("Enter a stream URL (a direct video/audio stream link, "
-                                            "e.g. an HLS .m3u8 playlist or direct media URL):"),
+                                         tr("Enter a stream URL - either a direct video/audio stream "
+                                            "link, or a page link such as a YouTube URL if yt-dlp is "
+                                            "configured in Settings -> External:"),
                                          QLineEdit::Normal, QString(), &ok);
     if (!ok || url.trimmed().isEmpty())
         return;
     url = url.trimmed();
 
-    if (!MediaBackend::isNetworkStreamUri(url)) {
-        QMessageBox::warning(this, tr("Invalid stream URL"),
-                              tr("That doesn't look like a playable stream URL. It needs to start "
-                                 "with http://, https://, rtmp://, or a similar streaming protocol, "
-                                 "and point directly to a media stream rather than a web page."));
+    if (MediaBackend::isNetworkStreamUri(url)) {
+        playStreamUrl(url);
         return;
     }
 
-    QUrl parsedUrl(url);
-    if (parsedUrl.host().contains("youtube.com") || parsedUrl.host().contains("youtu.be")) {
-        auto result = QMessageBox::warning(this, tr("YouTube link detected"),
-                              tr("This looks like a YouTube page link. OpenKJ can't play those "
-                                 "directly - it needs a direct, already-resolved media stream URL "
-                                 "instead.\n\nContinue anyway?"),
-                              QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-        if (result != QMessageBox::Yes)
-            return;
+    // Not a directly playable stream URL - try to resolve it via yt-dlp if configured.
+    QString ytDlpPath = m_settings.ytDlpPath();
+    if (ytDlpPath.trimmed().isEmpty()) {
+        QMessageBox::warning(this, tr("Invalid stream URL"),
+                              tr("That doesn't look like a directly playable stream URL, and no "
+                                 "yt-dlp path is configured to resolve page links (such as YouTube "
+                                 "URLs) into one.\n\nYou can set a yt-dlp path in Settings -> "
+                                 "External, or paste a direct stream URL instead."));
+        return;
     }
 
+    if (m_ytDlpProgressDialog)
+        return; // a resolve is already in progress
+
+    m_ytDlpProgressDialog = new QProgressDialog(tr("Resolving stream via yt-dlp..."), tr("Cancel"), 0, 0, this);
+    m_ytDlpProgressDialog->setWindowModality(Qt::WindowModal);
+    m_ytDlpProgressDialog->setMinimumDuration(0);
+    m_ytDlpProgressDialog->setAutoClose(false);
+    m_ytDlpProgressDialog->setAutoReset(false);
+    connect(m_ytDlpProgressDialog, &QProgressDialog::canceled, this, [this]() {
+        m_ytDlpResolver.cancel();
+        m_ytDlpTimeoutTimer.stop();
+        if (m_ytDlpProgressDialog) {
+            m_ytDlpProgressDialog->deleteLater();
+            m_ytDlpProgressDialog = nullptr;
+        }
+    });
+    m_ytDlpProgressDialog->show();
+
+    m_ytDlpTimeoutTimer.start(30000);
+    m_ytDlpResolver.resolve(ytDlpPath, url);
+}
+
+void MainWindow::ytDlpResolveSucceeded(QString streamUrl) {
+    m_ytDlpTimeoutTimer.stop();
+    if (m_ytDlpProgressDialog) {
+        m_ytDlpProgressDialog->deleteLater();
+        m_ytDlpProgressDialog = nullptr;
+    }
+    playStreamUrl(streamUrl);
+}
+
+void MainWindow::ytDlpResolveFailed(QString errorMessage) {
+    m_ytDlpTimeoutTimer.stop();
+    if (m_ytDlpProgressDialog) {
+        m_ytDlpProgressDialog->deleteLater();
+        m_ytDlpProgressDialog = nullptr;
+    }
+    QMessageBox::warning(this, tr("Stream resolve failed"),
+                          tr("yt-dlp was unable to resolve that URL into a playable stream:\n\n") + errorMessage);
+}
+
+void MainWindow::ytDlpResolveTimedOut() {
+    m_ytDlpResolver.cancel();
+    if (m_ytDlpProgressDialog) {
+        m_ytDlpProgressDialog->deleteLater();
+        m_ytDlpProgressDialog = nullptr;
+    }
+    QMessageBox::warning(this, tr("Stream resolve timed out"),
+                          tr("yt-dlp took too long to respond and was cancelled."));
+}
+
+void MainWindow::playStreamUrl(const QString &url) {
     m_mediaBackendBm.fadeOut();
     m_mediaBackendKar.setMedia(url);
     m_mediaBackendKar.play();

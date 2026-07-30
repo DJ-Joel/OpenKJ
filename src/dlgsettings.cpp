@@ -25,6 +25,7 @@
 #include <QFontDialog>
 #include <QColorDialog>
 #include <QFileDialog>
+#include <QProcess>
 #include <QStandardPaths>
 #include <QMessageBox>
 #include <QSqlQuery>
@@ -219,6 +220,7 @@ DlgSettings::DlgSettings(MediaBackend &AudioBackend, MediaBackend &BmAudioBacken
     ui->comboBoxUpdateBranch->setCurrentIndex(m_settings.updatesBranch());
     ui->lineEditDownloadsDir->setText(m_settings.storeDownloadDir());
     ui->lineEditLogDir->setText(m_settings.logDir());
+    ui->lineEditYtDlpPath->setText(m_settings.ytDlpPath());
     ui->checkBoxEnforceAspectRatio->setChecked(m_settings.enforceAspectRatio());
     ui->checkBoxTreatAllSingersAsRegs->setChecked(m_settings.treatAllSingersAsRegs());
     ui->cbxCrossFade->setChecked(m_settings.bmKCrossFade());
@@ -940,6 +942,63 @@ void DlgSettings::on_btnLogDirBrowse_clicked() {
         m_settings.setLogDir(fileName + QDir::separator());
         ui->lineEditLogDir->setText(fileName + QDir::separator());
     }
+}
+
+void DlgSettings::on_btnYtDlpBrowse_clicked() {
+#ifdef Q_OS_WIN
+    QString filter = "Executable Files (*.exe);;All Files (*)";
+#else
+    QString filter = "All Files (*)";
+#endif
+    QString fileName = QFileDialog::getOpenFileName(
+            this,
+            "Select yt-dlp executable",
+            ui->lineEditYtDlpPath->text(),
+            filter
+    );
+    if (fileName != "") {
+        QFileInfo fi(fileName);
+        if (!fi.isExecutable()) {
+            QMessageBox msgBox;
+            msgBox.setWindowTitle("Not executable");
+            msgBox.setText("The selected file does not appear to be executable. Selecting it anyway - "
+                            "use the Test button to confirm it actually works.");
+            msgBox.exec();
+        }
+        m_settings.setYtDlpPath(fileName);
+        ui->lineEditYtDlpPath->setText(fileName);
+        ui->labelYtDlpTestResult->setText("");
+    }
+}
+
+void DlgSettings::on_btnYtDlpTest_clicked() {
+    QString path = ui->lineEditYtDlpPath->text();
+    if (path.trimmed().isEmpty()) {
+        ui->labelYtDlpTestResult->setText("No path set.");
+        return;
+    }
+    if (!QFileInfo::exists(path)) {
+        ui->labelYtDlpTestResult->setText("File does not exist.");
+        return;
+    }
+    ui->labelYtDlpTestResult->setText("Testing...");
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    QApplication::processEvents();
+    QProcess process;
+    process.start(path, QStringList() << "--version");
+    bool finished = process.waitForFinished(10000);
+    QApplication::restoreOverrideCursor();
+    if (!finished) {
+        process.kill();
+        ui->labelYtDlpTestResult->setText("Timed out waiting for a response.");
+        return;
+    }
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+        ui->labelYtDlpTestResult->setText("Failed to run - check the path is correct.");
+        return;
+    }
+    QString version = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
+    ui->labelYtDlpTestResult->setText("OK - yt-dlp version " + version);
 }
 
 void DlgSettings::on_checkBoxProgressiveSearch_toggled(bool checked) {

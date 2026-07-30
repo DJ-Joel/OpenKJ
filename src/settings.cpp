@@ -145,6 +145,11 @@ QString Settings::logDir()
     return settings->value("logDir", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QDir::separator() + "OpenKJ_Logs" + QDir::separator()).toString();
 }
 
+QString Settings::ytDlpPath()
+{
+    return settings->value("ytDlpPath", "").toString();
+}
+
 bool Settings::logShow()
 {
     return settings->value("logVisible", false).toBool();
@@ -173,6 +178,11 @@ void Settings::setLogVisible(bool visible)
 void Settings::setLogDir(QString path)
 {
     settings->setValue("logDir", path);
+}
+
+void Settings::setYtDlpPath(QString path)
+{
+    settings->setValue("ytDlpPath", path);
 }
 
 void Settings::setCurrentRotationPosition(int position)

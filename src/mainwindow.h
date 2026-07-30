@@ -56,6 +56,9 @@
 #include "songshop.h"
 #include "durationlazyupdater.h"
 #include "dlgvideopreview.h"
+#include "ytdlpresolver.h"
+#include <QTimer>
+#include <QProgressDialog>
 #include "src/models/tablemodelhistorysongs.h"
 #include "src/models/tablemodelplaylistsongs.h"
 #include "src/models/tablemodelqueuesongs.h"
@@ -120,6 +123,9 @@ private:
     MediaBackend m_mediaBackendKar{this, "KAR", MediaBackend::Karaoke};
     MediaBackend m_mediaBackendSfx{this, "SFX", MediaBackend::SFX};
     MediaBackend m_mediaBackendBm{this, "BM", MediaBackend::BackgroundMusic};
+    YtDlpResolver m_ytDlpResolver;
+    QProgressDialog *m_ytDlpProgressDialog{nullptr};
+    QTimer m_ytDlpTimeoutTimer;
     AudioRecorder audioRecorder;
     QLabel m_labelSingerCount;
     QLabel m_labelRotationDuration;
@@ -183,6 +189,9 @@ private slots:
     void buttonStopClicked();
     void buttonPauseClicked();
     void streamButtonClicked();
+    void ytDlpResolveSucceeded(QString streamUrl);
+    void ytDlpResolveFailed(QString errorMessage);
+    void ytDlpResolveTimedOut();
     void tableViewDbDoubleClicked(const QModelIndex &index);
     void tableViewRotationDoubleClicked(const QModelIndex &index);
     void tableViewRotationClicked(const QModelIndex &index);
@@ -221,6 +230,7 @@ private slots:
     void timerButtonFlashTimeout();
     void autosizeViews();
     void autosizeQueueCols();
+    void playStreamUrl(const QString &url);
     void autosizeBmViews();
     void autosizeHistoryCols();
     void bmDbUpdated();
