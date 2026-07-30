@@ -182,6 +182,7 @@ private slots:
     void databaseCleared();
     void buttonStopClicked();
     void buttonPauseClicked();
+    void streamButtonClicked();
     void tableViewDbDoubleClicked(const QModelIndex &index);
     void tableViewRotationDoubleClicked(const QModelIndex &index);
     void tableViewRotationClicked(const QModelIndex &index);

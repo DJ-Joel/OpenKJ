@@ -35,6 +35,7 @@
 #include <QThread>
 #include <QMutex>
 #include <QImage>
+#include <QUrl>
 #include "audiofader.h"
 #include "softwarerendervideosink.h"
 #include <QPointer>
@@ -94,6 +95,10 @@ public:
     static bool canChangeTempo() { return true; }
     static bool canFade() { return true; }
     static bool canPitchShift() { return true; }
+    // Distinguishes an already-resolved network stream URI (http(s), rtmp,
+    // etc.) from a local file path, so play() knows to skip the local-file
+    // existence check and file://-URI conversion for streams.
+    static bool isNetworkStreamUri(const QString &str);
     bool hasVideo() { return m_hasVideo; }
     bool isSilent();
     void setAccelType(const accel &type=accel::XVideo) { m_accelMode = type; }

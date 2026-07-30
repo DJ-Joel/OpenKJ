@@ -272,7 +272,9 @@ void MediaBackend::play()
         gst_element_link(m_queueMainVideo, m_videoTee);
     }
 
-    if (!QFile::exists(m_filename))
+    bool isStream = isNetworkStreamUri(m_filename);
+
+    if (!isStream && !QFile::exists(m_filename))
     {
         if (!allowMissingAudio)
         {
@@ -286,10 +288,18 @@ void MediaBackend::play()
     else
     {
         gst_bin_add(reinterpret_cast<GstBin*>(m_pipeline), m_decoder);
-        m_logger->info("{} Playing media file: {}", m_loggingPrefix, m_filename.toStdString());
-        auto uri = gst_filename_to_uri(m_filename.toLocal8Bit(), nullptr);
-        g_object_set(m_decoder, "uri", uri, nullptr);
-        g_free(uri);
+        if (isStream)
+        {
+            m_logger->info("{} Playing network stream: {}", m_loggingPrefix, m_filename.toStdString());
+            g_object_set(m_decoder, "uri", m_filename.toUtf8().constData(), nullptr);
+        }
+        else
+        {
+            m_logger->info("{} Playing media file: {}", m_loggingPrefix, m_filename.toStdString());
+            auto uri = gst_filename_to_uri(m_filename.toLocal8Bit(), nullptr);
+            g_object_set(m_decoder, "uri", uri, nullptr);
+            g_free(uri);
+        }
     }
 
     resetVideoSinks();
@@ -383,6 +393,16 @@ void MediaBackend::setMedia(const QString &filename)
 {
     m_cdgMode = false;
     m_filename = filename;
+}
+
+bool MediaBackend::isNetworkStreamUri(const QString &str)
+{
+    // Explicit allowlist rather than "does QUrl find any scheme at all" -
+    // avoids any ambiguity with Windows drive-letter paths like "C:\...".
+    static const QStringList streamSchemes = {
+        "http", "https", "rtmp", "rtmps", "rtsp", "mms", "mmsh", "udp", "srt"
+    };
+    return streamSchemes.contains(QUrl(str).scheme(), Qt::CaseInsensitive);
 }
 
 void MediaBackend::setMediaCdg(const QString &cdgFilename, const QString &audioFilename)

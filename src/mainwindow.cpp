@@ -25,6 +25,7 @@
 #include <QDesktopWidget>
 #include <QMenu>
 #include <QInputDialog>
+#include <QUrl>
 #include <QFileDialog>
 #include <QImageReader>
 #include <QDesktopServices>
@@ -1047,6 +1048,7 @@ void MainWindow::setupConnections() {
     });
     connect(ui->pushButtonIncomingRequests, &QPushButton::clicked, requestsDialog.get(), &DlgRequests::show);
     connect(ui->pushButtonShop, &QPushButton::clicked, dlgSongShop.get(), &DlgSongShop::show);
+    connect(ui->pushButtonStream, &QPushButton::clicked, this, &MainWindow::streamButtonClicked);
     connect(ui->actionSong_Shop, &QAction::triggered, dlgSongShop.get(), &DlgSongShop::show);
     connect(ui->tabWidget, &QTabWidget::currentChanged, this, &MainWindow::tabWidgetCurrentChanged);
     connect(ui->sliderBmPosition, &QSlider::sliderPressed, this, &MainWindow::sliderBmPositionPressed);
@@ -1487,6 +1489,41 @@ void MainWindow::buttonStopClicked() {
         m_mediaBackendKar.stop();
         m_mediaBackendBm.fadeIn();
     }
+}
+
+void MainWindow::streamButtonClicked() {
+    bool ok;
+    QString url = QInputDialog::getText(this, tr("Play Stream"),
+                                         tr("Enter a stream URL (a direct video/audio stream link, "
+                                            "e.g. an HLS .m3u8 playlist or direct media URL):"),
+                                         QLineEdit::Normal, QString(), &ok);
+    if (!ok || url.trimmed().isEmpty())
+        return;
+    url = url.trimmed();
+
+    if (!MediaBackend::isNetworkStreamUri(url)) {
+        QMessageBox::warning(this, tr("Invalid stream URL"),
+                              tr("That doesn't look like a playable stream URL. It needs to start "
+                                 "with http://, https://, rtmp://, or a similar streaming protocol, "
+                                 "and point directly to a media stream rather than a web page."));
+        return;
+    }
+
+    QUrl parsedUrl(url);
+    if (parsedUrl.host().contains("youtube.com") || parsedUrl.host().contains("youtu.be")) {
+        auto result = QMessageBox::warning(this, tr("YouTube link detected"),
+                              tr("This looks like a YouTube page link. OpenKJ can't play those "
+                                 "directly - it needs a direct, already-resolved media stream URL "
+                                 "instead.\n\nContinue anyway?"),
+                              QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        if (result != QMessageBox::Yes)
+            return;
+    }
+
+    m_mediaBackendBm.fadeOut();
+    m_mediaBackendKar.setMedia(url);
+    m_mediaBackendKar.play();
+    m_mediaBackendKar.fadeInImmediate();
 }
 
 void MainWindow::buttonPauseClicked() {
