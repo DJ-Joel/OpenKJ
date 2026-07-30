@@ -177,6 +177,16 @@ int main(int argc, char *argv[]) {
     QString gstPluginDir = winAppDir + "/gstreamer-1.0";
     qputenv("GST_PLUGIN_PATH", gstPluginDir.toLocal8Bit());
     qInfo() << "Windows detected, set GST_PLUGIN_PATH to" << gstPluginDir;
+
+    // souphttpsrc (used for http/https network streams, e.g. the Stream
+    // button) needs a GIO TLS backend module to perform the TLS handshake
+    // for https:// URLs. Without it, GStreamer fails with "Secure
+    // connection setup failed. / TLS/SSL support not available; install
+    // glib-networking". Point GIO at a bundled copy of that module rather
+    // than relying on it being found automatically.
+    QString gioModuleDir = winAppDir + "/gio-modules";
+    qputenv("GIO_EXTRA_MODULES", gioModuleDir.toLocal8Bit());
+    qInfo() << "Windows detected, set GIO_EXTRA_MODULES to" << gioModuleDir;
 #endif
 
 
