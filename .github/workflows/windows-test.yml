@@ -134,6 +134,19 @@ jobs:
         Write-Host "Copied GStreamer plugins into output\gstreamer-1.0\"
         Get-ChildItem "output\gstreamer-1.0" | Measure-Object | Select-Object -ExpandProperty Count
 
+        # souphttpsrc needs a GIO TLS backend module to handle https:// URLs
+        # (e.g. the Stream feature) - without it, HTTPS streams fail with
+        # "Secure connection setup failed. / TLS/SSL support not available".
+        $gioModulesSrc = "$gstDir\lib\gio\modules"
+        if (Test-Path $gioModulesSrc) {
+          New-Item -ItemType Directory -Path "output\gio-modules" -Force | Out-Null
+          Copy-Item -Path "$gioModulesSrc\*" -Destination "output\gio-modules\" -Recurse -Force
+          Write-Host "Copied GIO TLS modules into output\gio-modules\"
+          Get-ChildItem "output\gio-modules"
+        } else {
+          Write-Host "::warning::Expected GIO modules directory not found at $gioModulesSrc - HTTPS streaming may not work in this build. Check whether the GStreamer MSI's module layout has changed."
+        }
+
     - name: Download Roboto Bold
       uses: carlosperate/download-file-action@v2
       id: download-roboto-bold
