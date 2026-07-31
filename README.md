@@ -23,4 +23,4 @@ Database entries for the songs are based on the file naming scheme.  Common nami
 
 See current RELEASES for installation file
 
-Must be used in conjunction with https://github.com/DJ-Joel/StandaloneRequestServer for the singer device/web features.
+**Must be used in conjunction with https://github.com/DJ-Joel/StandaloneRequestServer for the singer device/web features.**
