@@ -20,14 +20,16 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={pf}\{#MyAppName}
+ArchitecturesAllowed=x64
+ArchitecturesInstallIn64BitMode=x64
+DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 LicenseFile=output\LICENSE.txt
 OutputBaseFilename=OpenKJ
 Compression=lzma
 SolidCompression=yes
 UninstallDisplayName=OpenKJ
-UninstallDisplayIcon={uninstallexe}
+UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

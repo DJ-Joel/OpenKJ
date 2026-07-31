@@ -26,7 +26,7 @@ OutputBaseFilename=OpenKJ
 Compression=lzma
 SolidCompression=yes
 UninstallDisplayName=OpenKJ
-UninstallDisplayIcon={uninstallexe}
+UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
