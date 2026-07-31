@@ -5,9 +5,16 @@ on:
 
 env:
   # Single source of truth for the bundled GStreamer version - bump this one
-  # value to upgrade. Latest releases are listed at:
-  # https://gstreamer.freedesktop.org/download/
-  GSTREAMER_VERSION: '1.28.5'
+  # value to upgrade. Available versions:
+  # https://gstreamer.freedesktop.org/data/pkg/windows/
+  #
+  # IMPORTANT: stay on the 1.26.x series for now. From 1.28.0 onward GStreamer
+  # switched Windows packaging to a single combined .exe installer and dropped
+  # the .msi packages entirely (there is no separate -devel- package any more).
+  # The install step below downloads two .msi files and drives them with
+  # msiexec, so moving to 1.28+ requires rewriting that step, not just changing
+  # this version number.
+  GSTREAMER_VERSION: '1.26.11'
 
 jobs:
   build:
