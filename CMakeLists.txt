@@ -147,8 +147,18 @@ else ()
     set(WINDOWS_ICON_RC "")
 endif ()
 
+# On macOS, build a proper .app bundle rather than a bare executable, and
+# embed the existing .icns app icon into it. src/Icons/OpenKJ.icns has to be
+# listed as a source so CMake copies it into the bundle's Resources folder.
+if (APPLE)
+    set(MACOSX_ICON_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/Icons/OpenKJ.icns")
+    set_source_files_properties(${MACOSX_ICON_FILE} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+else ()
+    set(MACOSX_ICON_FILE "")
+endif ()
+
 # Main executable target
-add_executable(openkj ${OPENKJ_SOURCES} ${WINDOWS_ICON_RC})
+add_executable(openkj ${OPENKJ_SOURCES} ${WINDOWS_ICON_RC} ${MACOSX_ICON_FILE})
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     # Without this, CMake defaults to the console subsystem, which pops up a
@@ -156,6 +166,29 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set_property(
         TARGET openkj
         PROPERTY WIN32_EXECUTABLE TRUE
+    )
+endif ()
+
+if (APPLE)
+    # Read the real version out of okjversion.h rather than hardcoding it here,
+    # so the bundle metadata can't drift out of sync with the app's own idea of
+    # its version (which is what the release tooling updates).
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/okjversion.h" OKJVERSION_H_CONTENTS)
+    string(REGEX MATCH "OKJ_VERSION_STRING[ \t]+\"([0-9.]+)\"" _ "${OKJVERSION_H_CONTENTS}")
+    set(OKJ_BUNDLE_VERSION "${CMAKE_MATCH_1}")
+    if (NOT OKJ_BUNDLE_VERSION)
+        message(WARNING "Could not parse OKJ_VERSION_STRING from src/okjversion.h - falling back to 0.0.0 for bundle metadata")
+        set(OKJ_BUNDLE_VERSION "0.0.0")
+    endif ()
+    message(STATUS "macOS bundle version: ${OKJ_BUNDLE_VERSION}")
+
+    set_target_properties(openkj PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_BUNDLE_NAME "OpenKJ"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "org.openkj.openkj"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${OKJ_BUNDLE_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${OKJ_BUNDLE_VERSION}"
+        MACOSX_BUNDLE_ICON_FILE "OpenKJ.icns"
     )
 endif ()
 
