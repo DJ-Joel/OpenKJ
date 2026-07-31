@@ -11,6 +11,7 @@ A few features:
 * Option to use a custom background or display a rotating slide show on the CDG output dialog while idle
 * Fades break music in and out automatically when karaoke tracks start/end
 * Remote request server integration allowing singers to look up and submit songs, **request key changes, creat an account to save favorite songs, view singer queue** via the web or mobile apps
+* **YouTube video integration**
 * Automatic performance recording
 * Autoplay karaoke mode
 * Lots of other little things
@@ -21,4 +22,5 @@ Database entries for the songs are based on the file naming scheme.  Common nami
 
 
 See current RELEASES for installation file
+
 Must be used in conjunction with https://github.com/DJ-Joel/StandaloneRequestServer for the singer device/web features.
