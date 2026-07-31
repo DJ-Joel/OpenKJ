@@ -12,10 +12,7 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  workflow_dispatch:
   schedule:
     - cron: '34 16 3 * *'
 
@@ -27,6 +24,11 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+
+    permissions:
+      # Required for CodeQL to upload its findings to the Security tab.
+      security-events: write
+      contents: read
 
     strategy:
       fail-fast: false
@@ -42,7 +44,7 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get -qq -y install cmake qtbase5-dev libqt5svg5-dev qtmultimedia5-dev libgstreamer1.0-dev libtagc0-dev libspdlog-dev libgstreamer-plugins-base1.0-dev
+        sudo apt-get -qq -y install cmake ninja-build git qtbase5-dev libqt5svg5-dev qtmultimedia5-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
@@ -50,7 +52,12 @@ jobs:
         languages: ${{ matrix.language }}
 
     - name: Build
-      run: cmake -DCMAKE_BUILD_TYPE=Debug . -B build
+      # CodeQL builds its C++ database by observing an actual compilation, so
+      # this has to genuinely compile - a configure step alone leaves it with
+      # no source code to analyze and the run fails.
+      run: |
+        cmake -DCMAKE_BUILD_TYPE=Debug . -B build -G Ninja
+        cmake --build build
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3

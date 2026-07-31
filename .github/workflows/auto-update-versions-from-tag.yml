@@ -9,6 +9,11 @@ jobs:
   update-build-files:
     runs-on: ubuntu-latest
 
+    permissions:
+      # Required so the commit-back step can push the updated version files.
+      # The default GITHUB_TOKEN is read-only, which made this workflow fail.
+      contents: write
+
     steps:
       - uses: actions/checkout@v5
         with:
