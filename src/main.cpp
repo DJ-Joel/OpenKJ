@@ -191,7 +191,14 @@ int main(int argc, char *argv[]) {
 
 
     a.installEventFilter(filter);
-    qputenv("GST_DEBUG", "*:3");
+    // Only set a default if the user/environment hasn't already set one -
+    // e.g. someone deliberately running with GST_DEBUG=*:7 set externally
+    // to debug an issue should still get that, not have it overridden.
+    // Level 3 (FIXME) was needlessly noisy and added real overhead to every
+    // pipeline operation on every run; level 1 (ERROR only) is enough for
+    // normal use while still surfacing genuine problems in the log.
+    if (qEnvironmentVariableIsEmpty("GST_DEBUG"))
+        qputenv("GST_DEBUG", "*:1");
     QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
     if (settings.theme() == 1) {
         QPalette palette;

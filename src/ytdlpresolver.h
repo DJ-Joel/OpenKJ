@@ -20,6 +20,7 @@ class YtDlpResolver : public QObject
     Q_OBJECT
 private:
     std::unique_ptr<QProcess> m_process;
+    bool m_cancelled{false};
     std::string m_loggingPrefix{"[YtDlpResolver]"};
     std::shared_ptr<spdlog::logger> m_logger;
 

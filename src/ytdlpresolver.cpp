@@ -22,6 +22,7 @@ void YtDlpResolver::cancel()
     if (m_process && m_process->state() != QProcess::NotRunning)
     {
         m_logger->info("{} Cancelling in-progress yt-dlp resolve", m_loggingPrefix);
+        m_cancelled = true;
         m_process->kill();
         m_process->waitForFinished(3000);
     }
@@ -43,12 +44,13 @@ void YtDlpResolver::resolve(const QString &ytDlpPath, const QString &url)
         return;
     }
 
+    m_cancelled = false;
     m_process = std::make_unique<QProcess>();
     connect(m_process.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, &YtDlpResolver::processFinished);
     connect(m_process.get(), &QProcess::errorOccurred, this, &YtDlpResolver::processErrorOccurred);
 
-    QStringList args { "-f", "best[ext=mp4]", "-g", url };
+    QStringList args { "--no-playlist", "-f", "best[ext=mp4]/best", "-g", url };
     m_logger->info("{} Resolving stream URL via yt-dlp: {}", m_loggingPrefix, url.toStdString());
     m_process->start(ytDlpPath, args);
 }
@@ -56,6 +58,8 @@ void YtDlpResolver::resolve(const QString &ytDlpPath, const QString &url)
 void YtDlpResolver::processErrorOccurred(QProcess::ProcessError error)
 {
     Q_UNUSED(error)
+    if (m_cancelled)
+        return;
     QString errStr = m_process ? m_process->errorString() : QString("unknown error");
     m_logger->error("{} yt-dlp process error: {}", m_loggingPrefix, errStr.toStdString());
     emit failed("Failed to launch yt-dlp: " + errStr);
@@ -65,6 +69,12 @@ void YtDlpResolver::processFinished(int exitCode, QProcess::ExitStatus exitStatu
 {
     if (!m_process)
         return;
+
+    if (m_cancelled)
+    {
+        m_logger->info("{} yt-dlp process finished after being cancelled - not reporting as a failure", m_loggingPrefix);
+        return;
+    }
 
     QString stdOut = QString::fromUtf8(m_process->readAllStandardOutput());
     QString stdErr = QString::fromUtf8(m_process->readAllStandardError());
