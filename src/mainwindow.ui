@@ -2279,6 +2279,22 @@ QPushButton:default {
                 <number>0</number>
                </property>
                <item>
+                <widget class="QPushButton" name="pushButtonChat">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string>View and reply to messages from singers</string>
+                 </property>
+                 <property name="text">
+                  <string>Chat</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <widget class="QPushButton" name="pushButtonStream">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">

@@ -651,6 +651,7 @@ MainWindow::MainWindow(QWidget *parent) :
     requestsDialog = std::make_unique<DlgRequests>(m_rotModel, m_songbookApi);
     requestsDialog->setModal(false);
     dlgSongShop = std::make_unique<DlgSongShop>(m_songShop);
+    dlgChat = std::make_unique<DlgChat>(m_songbookApi);
     dlgSongShop->setModal(false);
     ui->tableViewDB->setModel(&m_karaokeSongsModel);
     ui->tableViewDB->viewport()->installEventFilter(new TableViewToolTipFilter(ui->tableViewDB));
@@ -1049,6 +1050,8 @@ void MainWindow::setupConnections() {
     connect(ui->pushButtonIncomingRequests, &QPushButton::clicked, requestsDialog.get(), &DlgRequests::show);
     connect(ui->pushButtonShop, &QPushButton::clicked, dlgSongShop.get(), &DlgSongShop::show);
     connect(ui->pushButtonStream, &QPushButton::clicked, this, &MainWindow::streamButtonClicked);
+    connect(ui->pushButtonChat, &QPushButton::clicked, this, &MainWindow::chatButtonClicked);
+    connect(&m_songbookApi, &OKJSongbookAPI::chatMessagesChanged, this, &MainWindow::chatMessagesChanged);
     connect(&m_ytDlpResolver, &YtDlpResolver::resolved, this, &MainWindow::ytDlpResolveSucceeded);
     connect(&m_ytDlpResolver, &YtDlpResolver::failed, this, &MainWindow::ytDlpResolveFailed);
     m_ytDlpTimeoutTimer.setSingleShot(true);
@@ -1493,6 +1496,39 @@ void MainWindow::buttonStopClicked() {
         m_mediaBackendKar.stop();
         m_mediaBackendBm.fadeIn();
     }
+}
+
+void MainWindow::chatButtonClicked() {
+    // Opening the window means everything currently there has been seen.
+    m_chatMessagesSeen = m_songbookApi.getChatMessages().size();
+    ui->pushButtonChat->setText("Chat");
+    dlgChat->show();
+    dlgChat->raise();
+    dlgChat->activateWindow();
+}
+
+void MainWindow::chatMessagesChanged(OkjsChatMessages messages) {
+    // Only count singer-sent messages as "unread" - the KJ's own replies
+    // coming back from the server shouldn't light up their own badge.
+    int unread = 0;
+    for (int i = m_chatMessagesSeen; i < messages.size(); i++) {
+        if (!messages.at(i).fromKj)
+            unread++;
+    }
+    if (dlgChat && dlgChat->isVisible()) {
+        // Window is open, so they're seeing them as they arrive.
+        m_chatMessagesSeen = messages.size();
+        unread = 0;
+    }
+    if (messages.size() < m_chatMessagesSeen) {
+        // Chat was cleared out from under us - reset the baseline.
+        m_chatMessagesSeen = messages.size();
+        unread = 0;
+    }
+    if (unread > 0)
+        ui->pushButtonChat->setText(QString("Chat (%1)").arg(unread));
+    else
+        ui->pushButtonChat->setText("Chat");
 }
 
 void MainWindow::streamButtonClicked() {

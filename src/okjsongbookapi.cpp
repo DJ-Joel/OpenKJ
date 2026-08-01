@@ -193,6 +193,90 @@ void OKJSongbookAPI::clearRequests()
     manager->post(request, jsonDocument.toJson());
 }
 
+void OKJSongbookAPI::refreshChat()
+{
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command","getChatOverview");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
+void OKJSongbookAPI::getChatSerial()
+{
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command","getChatSerial");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
+void OKJSongbookAPI::sendChatReply(int singerId, const QString &message)
+{
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command","sendChatReply");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    mainObject.insert("singerId", singerId);
+    mainObject.insert("message", message);
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
+void OKJSongbookAPI::setChatMessageHidden(int messageId, bool hidden)
+{
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command","setChatMessageHidden");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    mainObject.insert("messageId", messageId);
+    mainObject.insert("hidden", hidden);
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
+void OKJSongbookAPI::setSingerMuted(int singerId, bool muted)
+{
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command","setSingerMuted");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    mainObject.insert("singerId", singerId);
+    mainObject.insert("muted", muted);
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
+void OKJSongbookAPI::clearChat()
+{
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command","clearChat");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
 void OKJSongbookAPI::updateSongDb()
 {
     cancelUpdate = false;
@@ -324,6 +408,50 @@ bool OKJSongbookAPI::test()
         m_logger->warn("{} Got error reply: {}", m_loggingPrefix, json.object().value("errorString").toString());
         emit testFailed(json.object().value("errorString").toString());
         return false;
+    }
+    if (command == "getChatSerial")
+    {
+        int newChatSerial = json.object().value("serial").toInt();
+        if (newChatSerial != chatSerial)
+        {
+            chatSerial = newChatSerial;
+            refreshChat();
+        }
+    }
+    if (command == "getChatOverview")
+    {
+        chatSerial = json.object().value("serial").toInt();
+        OkjsChatMessages messages;
+        QJsonArray msgArray = json.object().value("messages").toArray();
+        for (const auto &val : msgArray)
+        {
+            QJsonObject obj = val.toObject();
+            OkjsChatMessage msg;
+            msg.messageId = obj.value("message_id").toInt();
+            msg.singerId = obj.value("singer_id").toInt();
+            msg.username = obj.value("username").toString();
+            msg.fromKj = obj.value("from_kj").toBool();
+            msg.messageText = obj.value("message_text").toString();
+            msg.hidden = obj.value("hidden").toBool();
+            msg.muted = obj.value("muted").toBool();
+            msg.time = obj.value("sent_time").toInt();
+            messages.append(msg);
+        }
+        if (messages != chatMessages)
+        {
+            chatMessages = messages;
+            emit chatMessagesChanged(chatMessages);
+        }
+    }
+    if (command == "sendChatReply" || command == "setChatMessageHidden" || command == "clearChat")
+    {
+        // These change server-side chat state, so pull the updated view back.
+        refreshChat();
+    }
+    if (command == "setSingerMuted")
+    {
+        // Mute state rides along on chat messages, so refresh to pick it up.
+        refreshChat();
     }
     if (command == "getSerial")
     {
@@ -530,6 +658,7 @@ void OKJSongbookAPI::timerTimeout()
             delayErrorEmitted = false;
         }
         getSerial();
+        getChatSerial();
     }
 }
 
@@ -589,6 +718,27 @@ void OKJSongbookAPI::dbUpdateCanceled()
             updateInProgress = false;
         }
     }
+}
+
+bool OkjsChatMessage::operator ==(const OkjsChatMessage &m) const
+{
+    if (messageId != m.messageId)
+        return false;
+    if (singerId != m.singerId)
+        return false;
+    if (username != m.username)
+        return false;
+    if (fromKj != m.fromKj)
+        return false;
+    if (messageText != m.messageText)
+        return false;
+    if (hidden != m.hidden)
+        return false;
+    if (muted != m.muted)
+        return false;
+    if (time != m.time)
+        return false;
+    return true;
 }
 
 bool OkjsVenue::operator ==(const OkjsVenue &v) const

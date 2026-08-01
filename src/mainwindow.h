@@ -56,6 +56,7 @@
 #include "songshop.h"
 #include "durationlazyupdater.h"
 #include "dlgvideopreview.h"
+#include "dlgchat.h"
 #include "ytdlpresolver.h"
 #include <QTimer>
 #include <QProgressDialog>
@@ -118,6 +119,10 @@ private:
     std::unique_ptr<DlgKeyChange> dlgKeyChange;
     std::unique_ptr<DlgRequests> requestsDialog;
     std::unique_ptr<DlgSongShop> dlgSongShop;
+    std::unique_ptr<DlgChat> dlgChat;
+    // Count of chat messages already seen, so the button badge can show how
+    // many arrived while the chat window wasn't open.
+    int m_chatMessagesSeen{0};
     std::unique_ptr<BmDbDialog> bmDbDialog;
     DlgRegularSingers m_dlgRegularSingers{&m_rotModel, this};
     MediaBackend m_mediaBackendKar{this, "KAR", MediaBackend::Karaoke};
@@ -189,6 +194,8 @@ private slots:
     void buttonStopClicked();
     void buttonPauseClicked();
     void streamButtonClicked();
+    void chatButtonClicked();
+    void chatMessagesChanged(OkjsChatMessages messages);
     void ytDlpResolveSucceeded(QString streamUrl);
     void ytDlpResolveFailed(QString errorMessage);
     void ytDlpResolveTimedOut();
