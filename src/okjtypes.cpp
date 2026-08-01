@@ -19,6 +19,7 @@
 */
 
 #include "okjtypes.h"
+#include "src/models/tablemodelstreamsongs.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <utility>
@@ -50,7 +51,9 @@ namespace okj {
                             lastError.text().toStdString());
         if (query.first())
             return query.value(0).toString();
-        return {};
+        // No unplayed queue song - fall back to a saved stream entry.
+        // The URL is returned as-is; callers resolve it via yt-dlp before play.
+        return TableModelStreamSongs::nextUnplayedForSinger(name).url;
     }
 
     QString RotationSinger::nextSongArtist() const {
@@ -64,7 +67,7 @@ namespace okj {
                             lastError.text().toStdString());
         if (query.first())
             return query.value(0).toString();
-        return {};
+        return TableModelStreamSongs::nextUnplayedForSinger(name).artist;
     }
 
     QString RotationSinger::nextSongTitle() const {
@@ -78,7 +81,7 @@ namespace okj {
                             lastError.text().toStdString());
         if (query.first())
             return query.value(0).toString();
-        return {};
+        return TableModelStreamSongs::nextUnplayedForSinger(name).title;
     }
 
     QString RotationSinger::nextSongArtistTitle() const {
@@ -92,6 +95,8 @@ namespace okj {
                             lastError.text().toStdString());
         if (query.first())
             return query.value(0).toString() + " - " + query.value(1).toString();
+        if (auto stream = TableModelStreamSongs::nextUnplayedForSinger(name); stream.id != 0)
+            return stream.artist + " - " + stream.title;
         return " - empty - ";
     }
 
@@ -120,7 +125,15 @@ namespace okj {
                             lastError.text().toStdString());
         if (query.first())
             return (query.value(0).toInt() / 1000) + m_settings->estimationSingerPad();
-        else if (!m_settings->estimationSkipEmptySingers())
+        // Fall back to a stream entry. Its duration is fetched via yt-dlp when
+        // the entry is added, so rotation estimates stay meaningful. If we
+        // never got one, treat it like an empty singer rather than zero.
+        if (auto stream = TableModelStreamSongs::nextUnplayedForSinger(name); stream.id != 0) {
+            if (stream.duration > 0)
+                return stream.duration + m_settings->estimationSingerPad();
+            return m_settings->estimationEmptySongLength() + m_settings->estimationSingerPad();
+        }
+        if (!m_settings->estimationSkipEmptySingers())
             return m_settings->estimationEmptySongLength() + m_settings->estimationSingerPad();
         return 0;
     }
@@ -174,9 +187,12 @@ namespace okj {
         if (auto lastError = query.lastError(); lastError.type() != QSqlError::NoError)
             m_logger->error("{} DB error! Error while querying the db on disk! Error: {}", loggingPrefix(),
                             lastError.text().toStdString());
+        // Unplayed stream entries count too - otherwise a singer whose only
+        // pending song is a stream link looks like they have nothing queued.
+        int streamUnsung = TableModelStreamSongs::unplayedCountForSinger(name);
         if (query.first())
-            return query.value(0).toInt();
-        return -1;
+            return query.value(0).toInt() + streamUnsung;
+        return (streamUnsung > 0) ? streamUnsung : -1;
     }
 
     RotationSinger::RotationSinger() {
