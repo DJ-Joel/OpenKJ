@@ -123,6 +123,9 @@ private:
     // Count of chat messages already seen, so the button badge can show how
     // many arrived while the chat window wasn't open.
     int m_chatMessagesSeen{0};
+    // Unread count driving the chat button's flashing, mirroring how the
+    // requests button behaves.
+    int m_chatUnread{0};
     std::unique_ptr<BmDbDialog> bmDbDialog;
     DlgRegularSingers m_dlgRegularSingers{&m_rotModel, this};
     MediaBackend m_mediaBackendKar{this, "KAR", MediaBackend::Karaoke};

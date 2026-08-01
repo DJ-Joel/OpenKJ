@@ -1501,7 +1501,7 @@ void MainWindow::buttonStopClicked() {
 void MainWindow::chatButtonClicked() {
     // Opening the window means everything currently there has been seen.
     m_chatMessagesSeen = m_songbookApi.getChatMessages().size();
-    ui->pushButtonChat->setText("Chat");
+    m_chatUnread = 0;
     dlgChat->show();
     dlgChat->raise();
     dlgChat->activateWindow();
@@ -1525,10 +1525,9 @@ void MainWindow::chatMessagesChanged(OkjsChatMessages messages) {
         m_chatMessagesSeen = messages.size();
         unread = 0;
     }
-    if (unread > 0)
-        ui->pushButtonChat->setText(QString("Chat (%1)").arg(unread));
-    else
-        ui->pushButtonChat->setText("Chat");
+    // The flash timer picks this up and handles the button's text/appearance,
+    // so the chat button behaves exactly like the requests button.
+    m_chatUnread = unread;
 }
 
 void MainWindow::streamButtonClicked() {
@@ -2825,6 +2824,39 @@ void MainWindow::timerButtonFlashTimeout() {
         } else {
             ui->pushButtonIncomingRequests->setStyleSheet(normalSS);
             ui->pushButtonIncomingRequests->setText(" Requests ");
+        }
+        update();
+    }
+
+    // Same treatment for the chat button - flash while there are unread
+    // messages from singers, using the same styling as the requests button
+    // so the two read as one consistent "needs your attention" signal.
+    if (m_chatUnread > 0) {
+        static bool chatFlashed = false;
+        if (m_settings.theme() != 0) {
+            auto normal = this->palette().button().color();
+            auto blink = QColor("yellow");
+            auto blinkTxt = QColor("black");
+            auto normalTxt = this->palette().buttonText().color();
+            auto palette = QPalette(ui->pushButtonChat->palette());
+            palette.setColor(QPalette::Button, (chatFlashed) ? normal : blink);
+            palette.setColor(QPalette::ButtonText, (chatFlashed) ? normalTxt : blinkTxt);
+            ui->pushButtonChat->setPalette(palette);
+            ui->pushButtonChat->setText(" Chat (" + QString::number(m_chatUnread) + ") ");
+            chatFlashed = !chatFlashed;
+        } else {
+            ui->pushButtonChat->setText(" Chat (" + QString::number(m_chatUnread) + ") ");
+            ui->pushButtonChat->setStyleSheet((chatFlashed) ? normalSS : blinkSS);
+            chatFlashed = !chatFlashed;
+        }
+        update();
+    } else if (ui->pushButtonChat->text().trimmed() != "Chat") {
+        if (m_settings.theme() != 0) {
+            ui->pushButtonChat->setPalette(this->palette());
+            ui->pushButtonChat->setText("Chat");
+        } else {
+            ui->pushButtonChat->setStyleSheet(normalSS);
+            ui->pushButtonChat->setText(" Chat ");
         }
         update();
     }
