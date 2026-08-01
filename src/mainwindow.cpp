@@ -1057,6 +1057,8 @@ void MainWindow::setupConnections() {
     connect(ui->pushButtonChat, &QPushButton::clicked, this, &MainWindow::chatButtonClicked);
     connect(&m_songbookApi, &OKJSongbookAPI::chatMessagesChanged, this, &MainWindow::chatMessagesChanged);
     connect(ui->tableViewStream, &QTableView::doubleClicked, this, &MainWindow::tableViewStreamDoubleClicked);
+    connect(ui->tableViewStream, &QTableView::customContextMenuRequested, this,
+            &MainWindow::tableViewStreamContextMenuRequested);
     connect(ui->btnStreamAdd, &QPushButton::clicked, this, &MainWindow::btnStreamAddClicked);
     connect(ui->btnStreamRemove, &QPushButton::clicked, this, &MainWindow::btnStreamRemoveClicked);
     connect(&m_streamSongResolver, &YtDlpResolver::resolved, this, &MainWindow::streamResolveSucceeded);
@@ -1547,19 +1549,44 @@ void MainWindow::btnStreamAddClicked() {
     m_rotModel.layoutChanged();
 }
 
+void MainWindow::tableViewStreamContextMenuRequested(const QPoint &pos) {
+    QModelIndex index = ui->tableViewStream->indexAt(pos);
+    if (!index.isValid())
+        return;
+    auto song = qvariant_cast<okj::StreamSong>(index.data(Qt::UserRole));
+    QMenu contextMenu(this);
+    contextMenu.addAction(song.played ? "Set unplayed" : "Set played", [this, song]() {
+        m_streamSongsModel.setPlayed(song.id, !song.played);
+        updateRotationDuration();
+        m_rotModel.layoutChanged();
+    });
+    contextMenu.addSeparator();
+    contextMenu.addAction("Delete", [this, song]() {
+        removeStreamSong(song);
+    });
+    contextMenu.exec(QCursor::pos());
+}
+
+void MainWindow::removeStreamSong(const okj::StreamSong &song) {
+    // Only warn for songs that haven't been sung yet, matching how the queue
+    // treats removal of unplayed songs.
+    if (!song.played) {
+        auto result = QMessageBox::question(this, "Remove stream song",
+                            "Remove \"" + song.title + "\" from this singer's stream list?",
+                            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        if (result != QMessageBox::Yes)
+            return;
+    }
+    m_streamSongsModel.deleteSong(song.id);
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
+}
+
 void MainWindow::btnStreamRemoveClicked() {
     auto selRows = ui->tableViewStream->selectionModel()->selectedRows();
     if (selRows.isEmpty())
         return;
-    auto song = qvariant_cast<okj::StreamSong>(selRows.at(0).data(Qt::UserRole));
-    auto result = QMessageBox::question(this, "Remove stream song",
-                        "Remove \"" + song.title + "\" from this singer's stream list?",
-                        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-    if (result != QMessageBox::Yes)
-        return;
-    m_streamSongsModel.deleteSong(song.id);
-    updateRotationDuration();
-    m_rotModel.layoutChanged();
+    removeStreamSong(qvariant_cast<okj::StreamSong>(selRows.at(0).data(Qt::UserRole)));
 }
 
 void MainWindow::tableViewStreamDoubleClicked(const QModelIndex &index) {
@@ -1651,6 +1678,18 @@ void MainWindow::streamResolveSucceeded(QString streamUrl) {
     if (singerId != -1) {
         m_rotDelegate.setCurrentSinger(singerId);
         m_rotModel.setCurrentSinger(singerId);
+        // Move the singer to the top of the rotation, exactly as starting a
+        // regular karaoke song does. Without this the singer keeps playing but
+        // stays where they were in the rotation order.
+        if (m_settings.rotationAltSortOrder()) {
+            auto curSingerPos = m_rotModel.getSinger(singerId).position;
+            m_curSingerOriginalPosition = curSingerPos;
+            if (curSingerPos != 0) {
+                m_rotModel.singerMove(curSingerPos, 0);
+                ui->tableViewRotation->clearSelection();
+                ui->tableViewRotation->selectRow(0);
+            }
+        }
     }
     updateRotationDuration();
     m_rotModel.layoutChanged();

@@ -212,6 +212,7 @@ private slots:
     void tableViewStreamDoubleClicked(const QModelIndex &index);
     void btnStreamAddClicked();
     void btnStreamRemoveClicked();
+    void tableViewStreamContextMenuRequested(const QPoint &pos);
     void streamResolveSucceeded(QString streamUrl);
     void streamResolveFailed(QString errorMessage);
     void ytDlpResolveSucceeded(QString streamUrl);
@@ -256,6 +257,7 @@ private slots:
     void autosizeViews();
     void autosizeQueueCols();
     void updateQueueTabsForCurrentSinger();
+    void removeStreamSong(const okj::StreamSong &song);
     void playStreamUrl(const QString &url);
     void autosizeBmViews();
     void autosizeHistoryCols();
