@@ -1967,6 +1967,10 @@ void MainWindow::tableViewRotationClicked(const QModelIndex &index) {
                 m_rotModel.singerDisableRegularTracking(index.data(Qt::UserRole).toInt());
             }
         }
+        // The regular flag drives whether the History tab is shown, so
+        // re-evaluate it now rather than waiting for a selection change.
+        m_historySongsModel.loadSinger(m_rotModel.getSinger(index.data(Qt::UserRole).toInt()).name);
+        updateQueueTabsForCurrentSinger();
     }
 }
 
@@ -3933,19 +3937,33 @@ void MainWindow::showAlert(const QString &title, const QString &message) {
     msgBox.exec();
 }
 
-void MainWindow::tableViewRotationCurrentChanged(const QModelIndex &cur, const QModelIndex &prev) {
-    Q_UNUSED(prev)
-    m_qModel.loadSinger(cur.data(Qt::UserRole).toInt());
-    m_historySongsModel.loadSinger(m_rotModel.getSinger(cur.data(Qt::UserRole).toInt()).name);
-    m_streamSongsModel.loadSinger(m_rotModel.getSinger(cur.data(Qt::UserRole).toInt()).name);
-    // History is only shown for regulars. Look the tab up by widget rather
-    // than by a hard-coded index, since the Stream tab now sits after it.
-    if (!m_settings.treatAllSingersAsRegs() && !cur.sibling(cur.row(), TableModelRotation::COL_REGULAR).data().toBool()) {
+void MainWindow::updateQueueTabsForCurrentSinger() {
+    // The History tab is only shown for regular singers. This lives in its own
+    // method because it needs to run both when the selected singer changes and
+    // when the current singer's regular flag is toggled - previously it only
+    // ran on selection change, so toggling Regular didn't show the tab until
+    // you clicked away to another singer and back.
+    auto selRows = ui->tableViewRotation->selectionModel()->selectedRows();
+    if (selRows.isEmpty())
+        return;
+    auto cur = selRows.at(0);
+    bool isRegular = cur.sibling(cur.row(), TableModelRotation::COL_REGULAR).data().toBool();
+    // Look the tab up by widget rather than by a hard-coded index, since the
+    // Stream tab now sits after it.
+    if (!m_settings.treatAllSingersAsRegs() && !isRegular) {
         if (auto idx = ui->tabWidgetQueue->indexOf(m_historyTabWidget); idx != -1)
             ui->tabWidgetQueue->removeTab(idx);
     } else if (ui->tabWidgetQueue->indexOf(m_historyTabWidget) == -1) {
         ui->tabWidgetQueue->insertTab(1, m_historyTabWidget, "History");
     }
+}
+
+void MainWindow::tableViewRotationCurrentChanged(const QModelIndex &cur, const QModelIndex &prev) {
+    Q_UNUSED(prev)
+    m_qModel.loadSinger(cur.data(Qt::UserRole).toInt());
+    m_historySongsModel.loadSinger(m_rotModel.getSinger(cur.data(Qt::UserRole).toInt()).name);
+    m_streamSongsModel.loadSinger(m_rotModel.getSinger(cur.data(Qt::UserRole).toInt()).name);
+    updateQueueTabsForCurrentSinger();
     ui->gbxQueue->setTitle(
             QString("Song Queue - " + cur.sibling(cur.row(), TableModelRotation::COL_NAME).data().toString()));
     if (!ui->tabWidgetQueue->isVisible()) {

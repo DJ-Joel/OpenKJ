@@ -255,6 +255,7 @@ private slots:
     void timerButtonFlashTimeout();
     void autosizeViews();
     void autosizeQueueCols();
+    void updateQueueTabsForCurrentSinger();
     void playStreamUrl(const QString &url);
     void autosizeBmViews();
     void autosizeHistoryCols();
