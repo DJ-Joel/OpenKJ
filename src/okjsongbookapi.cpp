@@ -409,50 +409,6 @@ bool OKJSongbookAPI::test()
         emit testFailed(json.object().value("errorString").toString());
         return false;
     }
-    if (command == "getChatSerial")
-    {
-        int newChatSerial = json.object().value("serial").toInt();
-        if (newChatSerial != chatSerial)
-        {
-            chatSerial = newChatSerial;
-            refreshChat();
-        }
-    }
-    if (command == "getChatOverview")
-    {
-        chatSerial = json.object().value("serial").toInt();
-        OkjsChatMessages messages;
-        QJsonArray msgArray = json.object().value("messages").toArray();
-        for (const auto &val : msgArray)
-        {
-            QJsonObject obj = val.toObject();
-            OkjsChatMessage msg;
-            msg.messageId = obj.value("message_id").toInt();
-            msg.singerId = obj.value("singer_id").toInt();
-            msg.username = obj.value("username").toString();
-            msg.fromKj = obj.value("from_kj").toBool();
-            msg.messageText = obj.value("message_text").toString();
-            msg.hidden = obj.value("hidden").toBool();
-            msg.muted = obj.value("muted").toBool();
-            msg.time = obj.value("sent_time").toInt();
-            messages.append(msg);
-        }
-        if (messages != chatMessages)
-        {
-            chatMessages = messages;
-            emit chatMessagesChanged(chatMessages);
-        }
-    }
-    if (command == "sendChatReply" || command == "setChatMessageHidden" || command == "clearChat")
-    {
-        // These change server-side chat state, so pull the updated view back.
-        refreshChat();
-    }
-    if (command == "setSingerMuted")
-    {
-        // Mute state rides along on chat messages, so refresh to pick it up.
-        refreshChat();
-    }
     if (command == "getSerial")
     {
         int newSerial = json.object().value("serial").toInt();
@@ -546,6 +502,50 @@ void OKJSongbookAPI::onNetworkReply(QNetworkReply *reply)
             venues.clear();
             refreshVenues();
         }
+    }
+    if (command == "getChatSerial")
+    {
+        int newChatSerial = json.object().value("serial").toInt();
+        if (newChatSerial != chatSerial)
+        {
+            chatSerial = newChatSerial;
+            refreshChat();
+        }
+    }
+    if (command == "getChatOverview")
+    {
+        chatSerial = json.object().value("serial").toInt();
+        OkjsChatMessages messages;
+        QJsonArray msgArray = json.object().value("messages").toArray();
+        for (const auto &val : msgArray)
+        {
+            QJsonObject obj = val.toObject();
+            OkjsChatMessage msg;
+            msg.messageId = obj.value("message_id").toInt();
+            msg.singerId = obj.value("singer_id").toInt();
+            msg.username = obj.value("username").toString();
+            msg.fromKj = obj.value("from_kj").toBool();
+            msg.messageText = obj.value("message_text").toString();
+            msg.hidden = obj.value("hidden").toBool();
+            msg.muted = obj.value("muted").toBool();
+            msg.time = obj.value("sent_time").toInt();
+            messages.append(msg);
+        }
+        if (messages != chatMessages)
+        {
+            chatMessages = messages;
+            emit chatMessagesChanged(chatMessages);
+        }
+    }
+    if (command == "sendChatReply" || command == "setChatMessageHidden" || command == "clearChat")
+    {
+        // These change server-side chat state, so pull the updated view back.
+        refreshChat();
+    }
+    if (command == "setSingerMuted")
+    {
+        // Mute state rides along on chat messages, so refresh to pick it up.
+        refreshChat();
     }
     if (command == "getSerial")
     {
@@ -768,4 +768,3 @@ bool OkjsRequest::operator ==(const OkjsRequest& r) const
         return false;
     return true;
 }
-
