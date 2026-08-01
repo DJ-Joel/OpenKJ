@@ -47,6 +47,22 @@ std::ostream& operator<<(std::ostream& os, const OkjsVenue& v);
 
 typedef QList<OkjsVenue> OkjsVenues;
 
+class OkjsChatMessage
+{
+public:
+    int messageId{0};
+    int singerId{0};
+    QString username;
+    bool fromKj{false};
+    QString messageText;
+    bool hidden{false};
+    bool muted{false};
+    int time{0};
+    bool operator == (const OkjsChatMessage& m) const;
+};
+
+typedef QList<OkjsChatMessage> OkjsChatMessages;
+
 class OKJSongbookAPI : public QObject
 {
     Q_OBJECT
@@ -68,6 +84,8 @@ private:
     bool updateInProgress;
     Settings m_settings;
     QJsonArray lastRotationSent;
+    int chatSerial{-1};
+    OkjsChatMessages chatMessages;
 
 public:
     explicit OKJSongbookAPI(QObject *parent = nullptr);
@@ -80,6 +98,13 @@ public:
     void clearRequests();
     void updateSongDb();
     void updateRotation(const std::vector<okj::RotationSinger> &singers, int currentSingerId);
+    void refreshChat();
+    void getChatSerial();
+    void sendChatReply(int singerId, const QString &message);
+    void setChatMessageHidden(int messageId, bool hidden);
+    void setSingerMuted(int singerId, bool muted);
+    void clearChat();
+    [[nodiscard]] OkjsChatMessages getChatMessages() const { return chatMessages; }
     bool test();
     void alertCheck();
     void getEntitledSystemCount();
@@ -102,6 +127,7 @@ signals:
     void testSslError(QString error);
     void alertRecieved(QString title, QString message);
     void entitledSystemCountChanged(int count);
+    void chatMessagesChanged(OkjsChatMessages messages);
 
 
 public slots:

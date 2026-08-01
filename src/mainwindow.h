@@ -56,6 +56,9 @@
 #include "songshop.h"
 #include "durationlazyupdater.h"
 #include "dlgvideopreview.h"
+#include "dlgchat.h"
+#include "dlgaddstreamsong.h"
+#include "src/models/tablemodelstreamsongs.h"
 #include "ytdlpresolver.h"
 #include <QTimer>
 #include <QProgressDialog>
@@ -109,6 +112,7 @@ private:
     TableModelRotation m_rotModel{this};
     ItemDelegateRotation m_rotDelegate{this};
     TableModelHistorySongs m_historySongsModel{m_karaokeSongsModel};
+    TableModelStreamSongs m_streamSongsModel;
     TableModelBreakSongs m_tableModelBreakSongs{this};
     TableModelPlaylistSongs m_tableModelPlaylistSongs{m_tableModelBreakSongs, this};
     std::unique_ptr<QSqlTableModel> m_tableModelPlaylists;
@@ -118,6 +122,20 @@ private:
     std::unique_ptr<DlgKeyChange> dlgKeyChange;
     std::unique_ptr<DlgRequests> requestsDialog;
     std::unique_ptr<DlgSongShop> dlgSongShop;
+    std::unique_ptr<DlgChat> dlgChat;
+    // Count of chat messages already seen, so the button badge can show how
+    // many arrived while the chat window wasn't open.
+    int m_chatMessagesSeen{0};
+    // Unread count driving the chat button's flashing, mirroring how the
+    // requests button behaves.
+    int m_chatUnread{0};
+    // Resolver + in-flight state for playing a saved stream entry. Kept
+    // separate from the Stream button's resolver so the two can't collide.
+    YtDlpResolver m_streamSongResolver;
+    QProgressDialog *m_streamSongProgressDlg{nullptr};
+    QTimer m_streamSongTimeoutTimer;
+    okj::StreamSong m_pendingStreamSong;
+    int m_pendingStreamSingerId{-1};
     std::unique_ptr<BmDbDialog> bmDbDialog;
     DlgRegularSingers m_dlgRegularSingers{&m_rotModel, this};
     MediaBackend m_mediaBackendKar{this, "KAR", MediaBackend::Karaoke};
@@ -189,6 +207,14 @@ private slots:
     void buttonStopClicked();
     void buttonPauseClicked();
     void streamButtonClicked();
+    void chatButtonClicked();
+    void chatMessagesChanged(OkjsChatMessages messages);
+    void tableViewStreamDoubleClicked(const QModelIndex &index);
+    void btnStreamAddClicked();
+    void btnStreamRemoveClicked();
+    void tableViewStreamContextMenuRequested(const QPoint &pos);
+    void streamResolveSucceeded(QString streamUrl);
+    void streamResolveFailed(QString errorMessage);
     void ytDlpResolveSucceeded(QString streamUrl);
     void ytDlpResolveFailed(QString errorMessage);
     void ytDlpResolveTimedOut();
@@ -230,6 +256,8 @@ private slots:
     void timerButtonFlashTimeout();
     void autosizeViews();
     void autosizeQueueCols();
+    void updateQueueTabsForCurrentSinger();
+    void removeStreamSong(const okj::StreamSong &song);
     void playStreamUrl(const QString &url);
     void autosizeBmViews();
     void autosizeHistoryCols();

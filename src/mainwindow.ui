@@ -1150,6 +1150,93 @@ QPushButton:default {
                        </item>
                       </layout>
                      </widget>
+                     <widget class="QWidget" name="tabWidgetQPgStream">
+                      <attribute name="title">
+                       <string>Stream</string>
+                      </attribute>
+                      <layout class="QVBoxLayout" name="verticalLayout_stream">
+                       <property name="spacing">
+                        <number>4</number>
+                       </property>
+                       <property name="leftMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="topMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="rightMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="bottomMargin">
+                        <number>4</number>
+                       </property>
+                       <item>
+                        <widget class="QTableView" name="tableViewStream">
+                         <property name="toolTip">
+                          <string>Stream links saved for this singer. Double click one to resolve and play it.</string>
+                         </property>
+                         <property name="contextMenuPolicy">
+                          <enum>Qt::CustomContextMenu</enum>
+                         </property>
+                         <property name="alternatingRowColors">
+                          <bool>true</bool>
+                         </property>
+                         <property name="selectionBehavior">
+                          <enum>QAbstractItemView::SelectRows</enum>
+                         </property>
+                         <property name="wordWrap">
+                          <bool>false</bool>
+                         </property>
+                         <attribute name="horizontalHeaderMinimumSectionSize">
+                          <number>10</number>
+                         </attribute>
+                         <attribute name="verticalHeaderHighlightSections">
+                          <bool>false</bool>
+                         </attribute>
+                        </widget>
+                       </item>
+                       <item>
+                        <layout class="QHBoxLayout" name="horizontalLayout_stream">
+                         <property name="topMargin">
+                          <number>0</number>
+                         </property>
+                         <item>
+                          <widget class="QPushButton" name="btnStreamAdd">
+                           <property name="toolTip">
+                            <string>Add a stream link for this singer</string>
+                           </property>
+                           <property name="text">
+                            <string>Add</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QPushButton" name="btnStreamRemove">
+                           <property name="toolTip">
+                            <string>Remove the selected stream link</string>
+                           </property>
+                           <property name="text">
+                            <string>Remove</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item>
+                          <spacer name="horizontalSpacer_stream">
+                           <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                           </property>
+                           <property name="sizeHint" stdset="0">
+                            <size>
+                             <width>40</width>
+                             <height>20</height>
+                            </size>
+                           </property>
+                          </spacer>
+                         </item>
+                        </layout>
+                       </item>
+                      </layout>
+                     </widget>
                     </widget>
                    </widget>
                   </item>
@@ -2279,12 +2366,40 @@ QPushButton:default {
                 <number>0</number>
                </property>
                <item>
+                <widget class="QPushButton" name="pushButtonChat">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>View and reply to messages from singers</string>
+                 </property>
+                 <property name="text">
+                  <string>Chat</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <widget class="QPushButton" name="pushButtonStream">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
                  </property>
                  <property name="toolTip">
                   <string>Play a video/audio stream URL in the singer window</string>
@@ -2302,6 +2417,12 @@ QPushButton:default {
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
+                 </property>
                  <property name="toolTip">
                   <string>Open the song shop</string>
                  </property>
@@ -2317,6 +2438,12 @@ QPushButton:default {
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
                  </property>
                  <property name="toolTip">
                   <string>Toggle visibility of the singer window</string>

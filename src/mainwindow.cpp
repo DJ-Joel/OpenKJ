@@ -557,8 +557,10 @@ void MainWindow::shortcutsUpdated() {
 void MainWindow::treatAllSingersAsRegsChanged(bool enabled) {
     if (enabled) {
         ui->tableViewRotation->hideColumn(TableModelRotation::COL_REGULAR);
-        if (ui->tabWidgetQueue->count() == 1)
-            ui->tabWidgetQueue->addTab(m_historyTabWidget, "History");
+        // Re-insert at index 1 rather than appending - there is now a Stream
+        // tab after History, and appending would put History after it.
+        if (ui->tabWidgetQueue->indexOf(m_historyTabWidget) == -1)
+            ui->tabWidgetQueue->insertTab(1, m_historyTabWidget, "History");
     } else {
         ui->tableViewRotation->showColumn(TableModelRotation::COL_REGULAR);
         int curSelSingerId{-1};
@@ -610,6 +612,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->comboBoxHistoryDblClick->addItems(QStringList{"Adds to queue", "Plays song"});
     ui->tabWidgetQueue->setCurrentIndex(0);
     ui->tableViewHistory->setModel(&m_historySongsModel);
+    ui->tableViewStream->setModel(&m_streamSongsModel);
+    ui->tableViewStream->hideColumn(TableModelStreamSongs::COL_ID);
     ui->tableViewHistory->hideColumn(0);
     ui->tableViewHistory->hideColumn(1);
     ui->tableViewHistory->hideColumn(2);
@@ -651,6 +655,7 @@ MainWindow::MainWindow(QWidget *parent) :
     requestsDialog = std::make_unique<DlgRequests>(m_rotModel, m_songbookApi);
     requestsDialog->setModal(false);
     dlgSongShop = std::make_unique<DlgSongShop>(m_songShop);
+    dlgChat = std::make_unique<DlgChat>(m_songbookApi);
     dlgSongShop->setModal(false);
     ui->tableViewDB->setModel(&m_karaokeSongsModel);
     ui->tableViewDB->viewport()->installEventFilter(new TableViewToolTipFilter(ui->tableViewDB));
@@ -1049,6 +1054,20 @@ void MainWindow::setupConnections() {
     connect(ui->pushButtonIncomingRequests, &QPushButton::clicked, requestsDialog.get(), &DlgRequests::show);
     connect(ui->pushButtonShop, &QPushButton::clicked, dlgSongShop.get(), &DlgSongShop::show);
     connect(ui->pushButtonStream, &QPushButton::clicked, this, &MainWindow::streamButtonClicked);
+    connect(ui->pushButtonChat, &QPushButton::clicked, this, &MainWindow::chatButtonClicked);
+    connect(&m_songbookApi, &OKJSongbookAPI::chatMessagesChanged, this, &MainWindow::chatMessagesChanged);
+    connect(ui->tableViewStream, &QTableView::doubleClicked, this, &MainWindow::tableViewStreamDoubleClicked);
+    connect(ui->tableViewStream, &QTableView::customContextMenuRequested, this,
+            &MainWindow::tableViewStreamContextMenuRequested);
+    connect(ui->btnStreamAdd, &QPushButton::clicked, this, &MainWindow::btnStreamAddClicked);
+    connect(ui->btnStreamRemove, &QPushButton::clicked, this, &MainWindow::btnStreamRemoveClicked);
+    connect(&m_streamSongResolver, &YtDlpResolver::resolved, this, &MainWindow::streamResolveSucceeded);
+    connect(&m_streamSongResolver, &YtDlpResolver::failed, this, &MainWindow::streamResolveFailed);
+    m_streamSongTimeoutTimer.setSingleShot(true);
+    connect(&m_streamSongTimeoutTimer, &QTimer::timeout, this, [this]() {
+        m_streamSongResolver.cancel();
+        streamResolveFailed("Timed out waiting for yt-dlp.");
+    });
     connect(&m_ytDlpResolver, &YtDlpResolver::resolved, this, &MainWindow::ytDlpResolveSucceeded);
     connect(&m_ytDlpResolver, &YtDlpResolver::failed, this, &MainWindow::ytDlpResolveFailed);
     m_ytDlpTimeoutTimer.setSingleShot(true);
@@ -1282,6 +1301,18 @@ void MainWindow::dbInit(const QDir &okjDataDir) {
                            singersQuery.value("name").toString().toStdString());
         }
     }
+    if (schemaVersion < 107) {
+        m_logger->info("{} Updating database schema to version 107", m_loggingPrefix);
+        // Stream songs: per-singer YouTube/stream URLs that can't live in
+        // queueSongs, because that table joins against dbsongs and every row
+        // must reference a real karaoke file. Keyed to historySingers (by
+        // name) so a regular's saved links come back on future nights.
+        query.exec(
+                "CREATE TABLE streamSongs (id INTEGER PRIMARY KEY AUTOINCREMENT, historySinger INT NOT NULL, artist TEXT, title TEXT, url TEXT NOT NULL, duration INT DEFAULT(0), played LOGICAL DEFAULT(0), position INT)");
+        query.exec("CREATE INDEX idx_streamSinger on streamSongs(historySinger)");
+        query.exec("PRAGMA user_version = 107");
+        m_logger->info("{} DB Schema update to v107 completed", m_loggingPrefix);
+    }
 }
 
 
@@ -1493,6 +1524,218 @@ void MainWindow::buttonStopClicked() {
         m_mediaBackendKar.stop();
         m_mediaBackendBm.fadeIn();
     }
+}
+
+void MainWindow::btnStreamAddClicked() {
+    auto selRows = ui->tableViewRotation->selectionModel()->selectedRows();
+    if (selRows.isEmpty()) {
+        QMessageBox::information(this, "No singer selected",
+                                  "Select a singer in the rotation first, then add a stream song for them.");
+        return;
+    }
+    int singerId = selRows.at(0).data(Qt::UserRole).toInt();
+    QString singerName = m_rotModel.getSinger(singerId).name;
+
+    DlgAddStreamSong dlg(singerName, this);
+    if (dlg.exec() != QDialog::Accepted)
+        return;
+    if (m_streamSongsModel.addSong(singerName, dlg.artist(), dlg.title(), dlg.url(), dlg.duration()) == -1) {
+        QMessageBox::warning(this, "Unable to add", "Something went wrong saving that stream song.");
+        return;
+    }
+    // The rotation's "next song" column can change as a result, since stream
+    // entries fill in when a singer has no unplayed queue songs.
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
+}
+
+void MainWindow::tableViewStreamContextMenuRequested(const QPoint &pos) {
+    QModelIndex index = ui->tableViewStream->indexAt(pos);
+    if (!index.isValid())
+        return;
+    auto song = qvariant_cast<okj::StreamSong>(index.data(Qt::UserRole));
+    QMenu contextMenu(this);
+    contextMenu.addAction(song.played ? "Set unplayed" : "Set played", [this, song]() {
+        m_streamSongsModel.setPlayed(song.id, !song.played);
+        updateRotationDuration();
+        m_rotModel.layoutChanged();
+    });
+    contextMenu.addSeparator();
+    contextMenu.addAction("Delete", [this, song]() {
+        removeStreamSong(song);
+    });
+    contextMenu.exec(QCursor::pos());
+}
+
+void MainWindow::removeStreamSong(const okj::StreamSong &song) {
+    // Only warn for songs that haven't been sung yet, matching how the queue
+    // treats removal of unplayed songs.
+    if (!song.played) {
+        auto result = QMessageBox::question(this, "Remove stream song",
+                            "Remove \"" + song.title + "\" from this singer's stream list?",
+                            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        if (result != QMessageBox::Yes)
+            return;
+    }
+    m_streamSongsModel.deleteSong(song.id);
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
+}
+
+void MainWindow::btnStreamRemoveClicked() {
+    auto selRows = ui->tableViewStream->selectionModel()->selectedRows();
+    if (selRows.isEmpty())
+        return;
+    removeStreamSong(qvariant_cast<okj::StreamSong>(selRows.at(0).data(Qt::UserRole)));
+}
+
+void MainWindow::tableViewStreamDoubleClicked(const QModelIndex &index) {
+    if (!index.isValid())
+        return;
+    if (m_streamSongProgressDlg)
+        return; // a resolve is already running
+
+    auto song = qvariant_cast<okj::StreamSong>(index.data(Qt::UserRole));
+    if (song.url.trimmed().isEmpty())
+        return;
+
+    QString ytDlpPath = m_settings.ytDlpPath();
+    if (ytDlpPath.trimmed().isEmpty()) {
+        QMessageBox::warning(this, "yt-dlp not configured",
+                              "A yt-dlp path is needed to resolve stream links into something playable.\n\n"
+                              "Set one in Settings -> External.");
+        return;
+    }
+
+    if (m_mediaBackendKar.state() == MediaBackend::PlayingState && m_settings.showSongInterruptionWarning()) {
+        auto result = QMessageBox::warning(this, "Interrupt currently playing karaoke song?",
+                            "There is currently a karaoke song playing. If you continue, the current song "
+                            "will be stopped. Are you sure?",
+                            QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
+        if (result != QMessageBox::Yes)
+            return;
+    }
+
+    auto selRows = ui->tableViewRotation->selectionModel()->selectedRows();
+    m_pendingStreamSingerId = selRows.isEmpty() ? -1 : selRows.at(0).data(Qt::UserRole).toInt();
+    m_pendingStreamSong = song;
+
+    m_streamSongProgressDlg = new QProgressDialog("Resolving stream via yt-dlp...", "Cancel", 0, 0, this);
+    m_streamSongProgressDlg->setWindowModality(Qt::WindowModal);
+    m_streamSongProgressDlg->setMinimumDuration(0);
+    m_streamSongProgressDlg->setAutoClose(false);
+    m_streamSongProgressDlg->setAutoReset(false);
+    connect(m_streamSongProgressDlg, &QProgressDialog::canceled, this, [this]() {
+        m_streamSongResolver.cancel();
+        m_streamSongTimeoutTimer.stop();
+        if (m_streamSongProgressDlg) {
+            m_streamSongProgressDlg->deleteLater();
+            m_streamSongProgressDlg = nullptr;
+        }
+    });
+    m_streamSongProgressDlg->show();
+
+    m_streamSongTimeoutTimer.start(30000);
+    m_streamSongResolver.resolve(ytDlpPath, song.url);
+}
+
+void MainWindow::streamResolveSucceeded(QString streamUrl) {
+    m_streamSongTimeoutTimer.stop();
+    if (m_streamSongProgressDlg) {
+        m_streamSongProgressDlg->deleteLater();
+        m_streamSongProgressDlg = nullptr;
+    }
+
+    auto song = m_pendingStreamSong;
+    int singerId = m_pendingStreamSingerId;
+
+    m_k2kTransition = false;
+    if (m_mediaBackendKar.state() == MediaBackend::PlayingState ||
+        m_mediaBackendKar.state() == MediaBackend::PausedState) {
+        audioRecorder.stop();
+        m_mediaBackendKar.stop(true);
+    }
+
+    m_curArtist = song.artist;
+    m_curTitle = song.title;
+    if (singerId != -1)
+        m_curSinger = m_rotModel.getSinger(singerId).name;
+
+    playStreamUrl(streamUrl);
+    // Streams always play at the original key - no pitch shift.
+    m_mediaBackendKar.setPitchShift(0);
+
+    ui->labelArtist->setText(m_curArtist);
+    ui->labelTitle->setText(m_curTitle);
+    ui->labelSinger->setText(m_curSinger);
+
+    // Record the original page URL (not the resolved, expiring one) so the
+    // history entry stays meaningful on future nights.
+    if (singerId != -1 && (m_settings.treatAllSingersAsRegs() || m_rotModel.getSinger(singerId).regular))
+        m_historySongsModel.saveSong(m_curSinger, song.url, song.artist, song.title, QString(), 0);
+
+    m_streamSongsModel.setPlayed(song.id);
+    if (singerId != -1) {
+        m_rotDelegate.setCurrentSinger(singerId);
+        m_rotModel.setCurrentSinger(singerId);
+        // Move the singer to the top of the rotation, exactly as starting a
+        // regular karaoke song does. Without this the singer keeps playing but
+        // stays where they were in the rotation order.
+        if (m_settings.rotationAltSortOrder()) {
+            auto curSingerPos = m_rotModel.getSinger(singerId).position;
+            m_curSingerOriginalPosition = curSingerPos;
+            if (curSingerPos != 0) {
+                m_rotModel.singerMove(curSingerPos, 0);
+                ui->tableViewRotation->clearSelection();
+                ui->tableViewRotation->selectRow(0);
+            }
+        }
+    }
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
+}
+
+void MainWindow::streamResolveFailed(QString errorMessage) {
+    m_streamSongTimeoutTimer.stop();
+    if (m_streamSongProgressDlg) {
+        m_streamSongProgressDlg->deleteLater();
+        m_streamSongProgressDlg = nullptr;
+    }
+    m_logger->error("{} Stream song resolve failed: {}", m_loggingPrefix, errorMessage.toStdString());
+    QMessageBox::warning(this, "Unable to play stream",
+                          "yt-dlp couldn't turn that link into a playable stream:\n\n" + errorMessage);
+}
+
+void MainWindow::chatButtonClicked() {
+    // Opening the window means everything currently there has been seen.
+    m_chatMessagesSeen = m_songbookApi.getChatMessages().size();
+    m_chatUnread = 0;
+    dlgChat->show();
+    dlgChat->raise();
+    dlgChat->activateWindow();
+}
+
+void MainWindow::chatMessagesChanged(OkjsChatMessages messages) {
+    // Only count singer-sent messages as "unread" - the KJ's own replies
+    // coming back from the server shouldn't light up their own badge.
+    int unread = 0;
+    for (int i = m_chatMessagesSeen; i < messages.size(); i++) {
+        if (!messages.at(i).fromKj)
+            unread++;
+    }
+    if (dlgChat && dlgChat->isVisible()) {
+        // Window is open, so they're seeing them as they arrive.
+        m_chatMessagesSeen = messages.size();
+        unread = 0;
+    }
+    if (messages.size() < m_chatMessagesSeen) {
+        // Chat was cleared out from under us - reset the baseline.
+        m_chatMessagesSeen = messages.size();
+        unread = 0;
+    }
+    // The flash timer picks this up and handles the button's text/appearance,
+    // so the chat button behaves exactly like the requests button.
+    m_chatUnread = unread;
 }
 
 void MainWindow::streamButtonClicked() {
@@ -1763,6 +2006,10 @@ void MainWindow::tableViewRotationClicked(const QModelIndex &index) {
                 m_rotModel.singerDisableRegularTracking(index.data(Qt::UserRole).toInt());
             }
         }
+        // The regular flag drives whether the History tab is shown, so
+        // re-evaluate it now rather than waiting for a selection change.
+        m_historySongsModel.loadSinger(m_rotModel.getSinger(index.data(Qt::UserRole).toInt()).name);
+        updateQueueTabsForCurrentSinger();
     }
 }
 
@@ -1960,6 +2207,11 @@ void MainWindow::clearRotation() {
         m_rotModel.clearRotation();
         m_rotDelegate.setCurrentSinger(-1);
         m_qModel.loadSinger(-1);
+        // Saved stream entries persist by singer name across nights, so rather
+        // than deleting them we just mark them unsung again - ready for the
+        // next show.
+        TableModelStreamSongs::clearAllPlayed();
+        m_streamSongsModel.refresh();
     }
 }
 
@@ -2789,6 +3041,39 @@ void MainWindow::timerButtonFlashTimeout() {
         } else {
             ui->pushButtonIncomingRequests->setStyleSheet(normalSS);
             ui->pushButtonIncomingRequests->setText(" Requests ");
+        }
+        update();
+    }
+
+    // Same treatment for the chat button - flash while there are unread
+    // messages from singers, using the same styling as the requests button
+    // so the two read as one consistent "needs your attention" signal.
+    if (m_chatUnread > 0) {
+        static bool chatFlashed = false;
+        if (m_settings.theme() != 0) {
+            auto normal = this->palette().button().color();
+            auto blink = QColor("yellow");
+            auto blinkTxt = QColor("black");
+            auto normalTxt = this->palette().buttonText().color();
+            auto palette = QPalette(ui->pushButtonChat->palette());
+            palette.setColor(QPalette::Button, (chatFlashed) ? normal : blink);
+            palette.setColor(QPalette::ButtonText, (chatFlashed) ? normalTxt : blinkTxt);
+            ui->pushButtonChat->setPalette(palette);
+            ui->pushButtonChat->setText(" Chat (" + QString::number(m_chatUnread) + ") ");
+            chatFlashed = !chatFlashed;
+        } else {
+            ui->pushButtonChat->setText(" Chat (" + QString::number(m_chatUnread) + ") ");
+            ui->pushButtonChat->setStyleSheet((chatFlashed) ? normalSS : blinkSS);
+            chatFlashed = !chatFlashed;
+        }
+        update();
+    } else if (ui->pushButtonChat->text().trimmed() != "Chat") {
+        if (m_settings.theme() != 0) {
+            ui->pushButtonChat->setPalette(this->palette());
+            ui->pushButtonChat->setText("Chat");
+        } else {
+            ui->pushButtonChat->setStyleSheet(normalSS);
+            ui->pushButtonChat->setText(" Chat ");
         }
         update();
     }
@@ -3691,15 +3976,33 @@ void MainWindow::showAlert(const QString &title, const QString &message) {
     msgBox.exec();
 }
 
+void MainWindow::updateQueueTabsForCurrentSinger() {
+    // The History tab is only shown for regular singers. This lives in its own
+    // method because it needs to run both when the selected singer changes and
+    // when the current singer's regular flag is toggled - previously it only
+    // ran on selection change, so toggling Regular didn't show the tab until
+    // you clicked away to another singer and back.
+    auto selRows = ui->tableViewRotation->selectionModel()->selectedRows();
+    if (selRows.isEmpty())
+        return;
+    auto cur = selRows.at(0);
+    bool isRegular = cur.sibling(cur.row(), TableModelRotation::COL_REGULAR).data().toBool();
+    // Look the tab up by widget rather than by a hard-coded index, since the
+    // Stream tab now sits after it.
+    if (!m_settings.treatAllSingersAsRegs() && !isRegular) {
+        if (auto idx = ui->tabWidgetQueue->indexOf(m_historyTabWidget); idx != -1)
+            ui->tabWidgetQueue->removeTab(idx);
+    } else if (ui->tabWidgetQueue->indexOf(m_historyTabWidget) == -1) {
+        ui->tabWidgetQueue->insertTab(1, m_historyTabWidget, "History");
+    }
+}
+
 void MainWindow::tableViewRotationCurrentChanged(const QModelIndex &cur, const QModelIndex &prev) {
     Q_UNUSED(prev)
     m_qModel.loadSinger(cur.data(Qt::UserRole).toInt());
     m_historySongsModel.loadSinger(m_rotModel.getSinger(cur.data(Qt::UserRole).toInt()).name);
-    if (!m_settings.treatAllSingersAsRegs() && !cur.sibling(cur.row(), TableModelRotation::COL_REGULAR).data().toBool())
-        ui->tabWidgetQueue->removeTab(1);
-    else if (ui->tabWidgetQueue->count() == 1) {
-        ui->tabWidgetQueue->addTab(m_historyTabWidget, "History");
-    }
+    m_streamSongsModel.loadSinger(m_rotModel.getSinger(cur.data(Qt::UserRole).toInt()).name);
+    updateQueueTabsForCurrentSinger();
     ui->gbxQueue->setTitle(
             QString("Song Queue - " + cur.sibling(cur.row(), TableModelRotation::COL_NAME).data().toString()));
     if (!ui->tabWidgetQueue->isVisible()) {

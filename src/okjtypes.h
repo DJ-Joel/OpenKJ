@@ -97,6 +97,20 @@ namespace okj {
         QString path;
     };
 
+    // A stream (e.g. YouTube) entry saved against a singer. The url stays as
+    // the original page link - it gets resolved to a playable stream via
+    // yt-dlp at play time, since resolved URLs are signed and expire.
+    struct StreamSong {
+        int id{0};
+        int historySinger{0};
+        QString artist;
+        QString title;
+        QString url;
+        int duration{0};
+        bool played{false};
+        int position{0};
+    };
+
     struct HistorySong {
         unsigned int id{0};
         unsigned int historySinger{0};
@@ -114,6 +128,7 @@ Q_DECLARE_METATYPE(okj::KaraokeSong)
 Q_DECLARE_METATYPE(std::shared_ptr<okj::KaraokeSong>)
 Q_DECLARE_METATYPE(okj::QueueSong)
 Q_DECLARE_METATYPE(okj::HistorySong)
+Q_DECLARE_METATYPE(okj::StreamSong)
 
 std::ostream& operator<<(std::ostream& os, const okj::RotationSinger& s);
 
