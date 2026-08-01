@@ -2286,6 +2286,12 @@ QPushButton:default {
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
+                 </property>
                  <property name="toolTip">
                   <string>View and reply to messages from singers</string>
                  </property>
@@ -2301,6 +2307,12 @@ QPushButton:default {
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
                  </property>
                  <property name="toolTip">
                   <string>Play a video/audio stream URL in the singer window</string>
@@ -2318,6 +2330,12 @@ QPushButton:default {
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
+                 </property>
                  <property name="toolTip">
                   <string>Open the song shop</string>
                  </property>
@@ -2333,6 +2351,12 @@ QPushButton:default {
                    <horstretch>0</horstretch>
                    <verstretch>0</verstretch>
                   </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>25</height>
+                  </size>
                  </property>
                  <property name="toolTip">
                   <string>Toggle visibility of the singer window</string>
