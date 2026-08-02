@@ -867,6 +867,7 @@ void MainWindow::setupConnections() {
     connect(ui->comboBoxHistoryDblClick, QOverload<int>::of(&QComboBox::currentIndexChanged), &m_settings,
             &Settings::setHistoryDblClickAction);
     connect(&m_rotModel, &TableModelRotation::songDroppedOnSinger, this, &MainWindow::songDroppedOnSinger);
+    connect(&m_rotModel, &TableModelRotation::streamDroppedOnSinger, this, &MainWindow::streamDroppedOnSinger);
     connect(dbDialog.get(), &DlgDatabase::databaseUpdateComplete, this, &MainWindow::databaseUpdated);
     connect(dbDialog.get(), &DlgDatabase::databaseSongAdded, &m_karaokeSongsModel, &TableModelKaraokeSongs::loadData);
     connect(dbDialog.get(), &DlgDatabase::databaseSongAdded, requestsDialog.get(), &DlgRequests::databaseSongAdded);
@@ -1320,6 +1321,24 @@ void MainWindow::dbInit(const QDir &okjDataDir) {
         query.exec("PRAGMA user_version = 107");
         m_logger->info("{} DB Schema update to v107 completed", m_loggingPrefix);
     }
+    if (schemaVersion < 108) {
+        m_logger->info("{} Updating database schema to version 108", m_loggingPrefix);
+        // Splits the single streamSongs table into a shared, global catalog
+        // (streamLibrary) plus a thin per-singer assignment table. This lets
+        // the same YouTube link get reused across multiple singers instead of
+        // being re-entered and re-resolved from scratch every time, and lets
+        // it show up in the regular song database search alongside local
+        // files. No migration of existing streamSongs rows - test data only.
+        query.exec("DROP TABLE IF EXISTS streamSongs");
+        query.exec(
+                "CREATE TABLE streamLibrary (id INTEGER PRIMARY KEY AUTOINCREMENT, artist TEXT, title TEXT, url TEXT NOT NULL, duration INT DEFAULT(0))");
+        query.exec(
+                "CREATE TABLE streamSongs (id INTEGER PRIMARY KEY AUTOINCREMENT, historySinger INT NOT NULL, libraryId INT NOT NULL, played LOGICAL DEFAULT(0), position INT)");
+        query.exec("CREATE INDEX idx_streamSinger on streamSongs(historySinger)");
+        query.exec("CREATE INDEX idx_streamLibraryId on streamSongs(libraryId)");
+        query.exec("PRAGMA user_version = 108");
+        m_logger->info("{} DB Schema update to v108 completed", m_loggingPrefix);
+    }
 }
 
 
@@ -1550,7 +1569,24 @@ void MainWindow::btnStreamAddClicked() {
     DlgAddStreamSong dlg(singerName, this);
     if (dlg.exec() != QDialog::Accepted)
         return;
-    if (m_streamSongsModel.addSong(singerName, dlg.artist(), dlg.title(), dlg.url(), dlg.duration()) == -1) {
+
+    int newAssignmentId = -1;
+    auto match = TableModelStreamSongs::findLibraryMatch(dlg.artist(), dlg.title());
+    if (match) {
+        auto result = QMessageBox::question(this, "Song already in library",
+                            QString("\"%1 - %2\" is already in the stream library. Use the existing entry?")
+                                    .arg(match->artist, match->title),
+                            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        if (result == QMessageBox::Yes)
+            newAssignmentId = m_streamSongsModel.attachExistingToSinger(singerName, match->id);
+        else
+            newAssignmentId = m_streamSongsModel.addNewSongForSinger(singerName, dlg.artist(), dlg.title(),
+                                                                       dlg.url(), dlg.duration());
+    } else {
+        newAssignmentId = m_streamSongsModel.addNewSongForSinger(singerName, dlg.artist(), dlg.title(), dlg.url(),
+                                                                   dlg.duration());
+    }
+    if (newAssignmentId == -1) {
         QMessageBox::warning(this, "Unable to add", "Something went wrong saving that stream song.");
         return;
     }
@@ -1871,6 +1907,28 @@ void MainWindow::tableViewDbDoubleClicked(const QModelIndex &index) {
     if (!index.isValid())
         return;
     auto song = qvariant_cast<std::shared_ptr<okj::KaraokeSong>>(index.data(Qt::UserRole));
+    if (song->isStream) {
+        if (m_settings.dbDoubleClickAddsSong()) {
+            QMessageBox::information(this, "Not supported for stream songs",
+                    "Double-click on a stream song doesn't support creating a new singer - "
+                    "select an existing singer in the rotation first, then double-click to add it to them.");
+            return;
+        }
+        if (m_qModel.getSingerId() >= 0 && ui->tableViewRotation->selectionModel()->hasSelection()) {
+            QString singerName = m_rotModel.getSinger(m_qModel.getSingerId()).name;
+            if (m_streamSongsModel.attachExistingToSinger(singerName, song->streamLibraryId) == -1) {
+                QMessageBox::warning(this, "Unable to add", "Something went wrong attaching that stream song.");
+                return;
+            }
+            updateRotationDuration();
+            m_rotModel.layoutChanged();
+        } else {
+            QMessageBox msgBox;
+            msgBox.setText("No singer selected.  You must select a singer before you can double-click to add to a queue.");
+            msgBox.exec();
+        }
+        return;
+    }
     if (m_settings.dbDoubleClickAddsSong()) {
         auto addSongDlg = new DlgAddSong(m_rotModel, m_qModel, song->id, this);
         connect(addSongDlg, &DlgAddSong::newSingerAdded, [&](auto pos) {
@@ -2173,6 +2231,22 @@ void MainWindow::songDroppedOnSinger(const int &singerId, const int &songId, con
     QModelIndex bottomRight;
     topLeft = m_rotModel.index(dropRow, 0, QModelIndex());
     bottomRight = m_rotModel.index(dropRow, 4, QModelIndex());
+    QItemSelection selection(topLeft, bottomRight);
+    selectionModel->select(selection, QItemSelectionModel::Select);
+}
+
+void MainWindow::streamDroppedOnSinger(const int &singerId, const int &libraryId, const int &dropRow) {
+    QString singerName = m_rotModel.getSinger(singerId).name;
+    if (m_streamSongsModel.attachExistingToSinger(singerName, libraryId) == -1) {
+        QMessageBox::warning(this, "Unable to add", "Something went wrong attaching that stream song.");
+        return;
+    }
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
+    ui->tableViewRotation->clearSelection();
+    auto selectionModel = ui->tableViewRotation->selectionModel();
+    QModelIndex topLeft = m_rotModel.index(dropRow, 0, QModelIndex());
+    QModelIndex bottomRight = m_rotModel.index(dropRow, 4, QModelIndex());
     QItemSelection selection(topLeft, bottomRight);
     selectionModel->select(selection, QItemSelectionModel::Select);
 }

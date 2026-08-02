@@ -46,6 +46,11 @@ namespace okj {
         QDateTime lastPlay;
         bool bad{false};
         bool dropped{false};
+        // Set for rows sourced from the stream library rather than a local
+        // file on disk - lets the unified Database tab show both together.
+        bool isStream{false};
+        int streamLibraryId{0};
+        QString streamUrl;
     };
 
     struct HistorySinger {
@@ -100,9 +105,24 @@ namespace okj {
     // A stream (e.g. YouTube) entry saved against a singer. The url stays as
     // the original page link - it gets resolved to a playable stream via
     // yt-dlp at play time, since resolved URLs are signed and expire.
+    // A shared, global catalog entry - one row per unique stream song,
+    // regardless of how many singers use it.
+    struct StreamLibraryEntry {
+        int id{0};
+        QString artist;
+        QString title;
+        QString url;
+        int duration{0};
+    };
+
+    // A singer's assignment to a library entry. Carries the library's
+    // artist/title/url/duration along via join, for convenience - callers
+    // that already work with this struct (playback, rotation, history) don't
+    // need to know the library/assignment split exists underneath.
     struct StreamSong {
         int id{0};
         int historySinger{0};
+        int libraryId{0};
         QString artist;
         QString title;
         QString url;
@@ -129,6 +149,7 @@ Q_DECLARE_METATYPE(std::shared_ptr<okj::KaraokeSong>)
 Q_DECLARE_METATYPE(okj::QueueSong)
 Q_DECLARE_METATYPE(okj::HistorySong)
 Q_DECLARE_METATYPE(okj::StreamSong)
+Q_DECLARE_METATYPE(okj::StreamLibraryEntry)
 
 std::ostream& operator<<(std::ostream& os, const okj::RotationSinger& s);
 
