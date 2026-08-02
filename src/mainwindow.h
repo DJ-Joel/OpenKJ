@@ -103,6 +103,14 @@ private:
     QString m_curArtist;
     QString m_curTitle;
     QString m_kAANextSongPath;
+    // True when the armed next song is a stream entry rather than a file -
+    // m_kAANextSongPath holds the raw (unresolved) URL in that case.
+    bool m_kAANextIsStream{false};
+    okj::StreamSong m_kAAPendingStreamSong;
+    // Separate from the Stream tab's resolver so a manual double-click and
+    // an unattended auto-advance can never collide with each other.
+    YtDlpResolver m_kAAStreamResolver;
+    QTimer m_kAAStreamTimeoutTimer;
     MediaBackend::State m_lastAudioState{MediaBackend::StoppedState};
     SfxEntry m_lastRtClickedSfxBtn;
     QSqlDatabase m_database;
@@ -226,6 +234,7 @@ private slots:
     void actionImportRegularsTriggered();
     void actionSettingsTriggered();
     void songDroppedOnSinger(const int &singerId, const int &songId, const int &dropRow);
+    void streamDroppedOnSinger(const int &singerId, const int &libraryId, const int &dropRow);
     void tableViewQueueClicked(const QModelIndex &index);
     void clearRotation();
     void clearSingerQueue();
@@ -253,12 +262,20 @@ private slots:
     void editSong(const std::shared_ptr<okj::KaraokeSong>& song);
     void markSongBad(const std::shared_ptr<okj::KaraokeSong>& song);
     void karaokeAATimerTimeout();
+    void kAAStreamResolveSucceeded(QString streamUrl);
+    void kAAStreamResolveFailed(QString errorMessage);
     void timerButtonFlashTimeout();
     void autosizeViews();
     void autosizeQueueCols();
     void updateQueueTabsForCurrentSinger();
     void removeStreamSong(const okj::StreamSong &song);
     void playStreamUrl(const QString &url);
+    // Finds the next singer with something unplayed (queue song or stream
+    // entry) starting after the given rotation position, and arms the
+    // auto-advance countdown for them. Extracted so both the normal
+    // song-ended path and the "stream resolve failed, skip them" path can
+    // share the exact same selection logic.
+    void armNextKaraokeAutoAdvance(int fromRotationPosition);
     void autosizeBmViews();
     void autosizeHistoryCols();
     void bmDbUpdated();

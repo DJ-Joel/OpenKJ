@@ -3,6 +3,7 @@
 
 #include <QAbstractTableModel>
 #include <QString>
+#include <optional>
 #include <vector>
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -15,9 +16,17 @@
  * in the karaoke library. These can't live in queueSongs because that table
  * joins against dbsongs and every row must map to a real karaoke file.
  *
- * Entries are keyed to historySingers (by name), so a regular's saved links
- * come back on future nights. The played flag is cleared when the rotation is
- * cleared, so saved entries are ready to sing again next time.
+ * Backed by two tables: streamLibrary (one row per unique song, shared across
+ * every singer who wants it) and streamSongs (a thin per-singer assignment
+ * pointing at a library row). This model presents the joined, flattened view
+ * via okj::StreamSong - callers working with a specific singer's entries
+ * don't need to know the library/assignment split exists underneath.
+ *
+ * Assignments are keyed to historySingers (by name), so a regular's saved
+ * links come back on future nights. The played flag is cleared when the
+ * rotation is cleared, so saved entries are ready to sing again next time.
+ * Library rows are never deleted when an assignment is removed, so the
+ * catalog only grows over time.
  */
 class TableModelStreamSongs : public QAbstractTableModel {
 Q_OBJECT
@@ -37,12 +46,25 @@ public:
     void refresh();
     [[nodiscard]] QString currentSingerName() const { return m_currentSingerName; }
 
-    // Returns the new row's id, or -1 on failure.
-    int addSong(const QString &singerName, const QString &artist, const QString &title, const QString &url,
-                int duration);
+    // Case-insensitive exact match on artist+title against the shared
+    // library, used to offer reusing an existing entry instead of creating a
+    // duplicate. Returns nullopt if nothing matches.
+    static std::optional<okj::StreamLibraryEntry> findLibraryMatch(const QString &artist, const QString &title);
+
+    // Attaches an existing library entry to a singer. Returns the new
+    // assignment's id, or -1 on failure.
+    int attachExistingToSinger(const QString &singerName, int libraryId);
+
+    // Creates a brand new library entry and attaches it to a singer in one
+    // step. Returns the new assignment's id, or -1 on failure.
+    int addNewSongForSinger(const QString &singerName, const QString &artist, const QString &title,
+                             const QString &url, int duration);
+
+    // Removes a singer's assignment only - the library entry (and any other
+    // singer's assignment to it) is left alone.
     void deleteSong(int streamSongId);
     void setPlayed(int streamSongId, bool played = true);
-    // Clears the played flag on every stream song - called when the rotation
+    // Clears the played flag on every assignment - called when the rotation
     // is cleared, so saved entries are available again.
     static void clearAllPlayed();
 
@@ -63,6 +85,7 @@ private:
 
     static int getHistorySingerId(const QString &name);
     static int addHistorySinger(const QString &name);
+    static int nextPositionForSinger(int historySingerId);
 };
 
 #endif // TABLEMODELSTREAMSONGS_H

@@ -132,6 +132,7 @@ private:
 
 signals:
     void songDroppedOnSinger(int singerId, int songId, int dropRow);
+    void streamDroppedOnSinger(int singerId, int libraryId, int dropRow);
     void rotationModified();
     void singersMoved(int startRow, int startCol, int endRow, int endCol);
 

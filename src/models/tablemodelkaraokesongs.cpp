@@ -48,6 +48,8 @@ QVariant TableModelKaraokeSongs::getColumnSizeHint(int section) const {
             return QSize(m_itemFontMetrics.size(Qt::TextSingleLine, "_Plays_").width(), m_itemHeight);
         case COL_LASTPLAY:
             return QSize(m_itemFontMetrics.size(Qt::TextSingleLine, "_10:00 10/00/00_PM").width(), m_itemHeight);
+        case COL_SOURCE:
+            return QSize(m_itemFontMetrics.size(Qt::TextSingleLine, "_Stream_").width(), m_itemHeight);
         case COL_SONGID:
             return QSize(m_itemFontMetrics.size(Qt::TextSingleLine, "XXXX0000000-01-00").width(), m_itemHeight);
         case COL_ARTIST:
@@ -76,6 +78,8 @@ QVariant TableModelKaraokeSongs::getColumnName(int section) {
             return "Plays";
         case COL_LASTPLAY:
             return "Last Played";
+        case COL_SOURCE:
+            return "Source";
         default:
             return {};
     }
@@ -86,7 +90,7 @@ int TableModelKaraokeSongs::rowCount([[maybe_unused]]const QModelIndex &parent) 
 }
 
 int TableModelKaraokeSongs::columnCount([[maybe_unused]]const QModelIndex &parent) const {
-    return 8;
+    return 9;
 }
 
 QVariant TableModelKaraokeSongs::data(const QModelIndex &index, int role) const {
@@ -162,6 +166,8 @@ QVariant TableModelKaraokeSongs::getItemDisplayData(const QModelIndex &index) co
             return m_filteredSongs.at(index.row())->lastPlay.toString(
                     locale.dateTimeFormat(QLocale::ShortFormat));
         }
+        case COL_SOURCE:
+            return m_filteredSongs.at(index.row())->isStream ? "Stream" : "Local";
         default:
             return {};
     }
@@ -195,6 +201,35 @@ void TableModelKaraokeSongs::loadData() {
         }));
     }
     m_logger->info("{} Loaded {} karaoke songs from the db on disk", m_loggingPrefix, m_filteredSongs.size());
+
+    // Merge in the shared stream library so it shows up in the same search
+    // results and results table as local files, distinguished by COL_SOURCE.
+    // These aren't tied to any particular singer - that only happens when one
+    // gets attached via drag-and-drop or double-click.
+    QSqlQuery streamQuery;
+    streamQuery.exec("SELECT id, artist, title, url, duration FROM streamLibrary");
+    while (streamQuery.next()) {
+        int libId = streamQuery.value(0).toInt();
+        QString artist = streamQuery.value(1).toString();
+        QString title = streamQuery.value(2).toString();
+        QString url = streamQuery.value(3).toString();
+        int durationSecs = streamQuery.value(4).toInt();
+        auto song = std::make_shared<okj::KaraokeSong>();
+        song->id = libId;
+        song->artist = artist;
+        song->artistL = artist.toLower();
+        song->title = title;
+        song->titleL = title.toLower();
+        song->duration = durationSecs * 1000;
+        QString combinedSearchText = artist + " " + title;
+        combinedSearchText.replace('&', " and ");
+        song->searchString = combinedSearchText.toLower();
+        song->isStream = true;
+        song->streamLibraryId = libId;
+        song->streamUrl = url;
+        m_allSongs.push_back(song);
+    }
+
     search(m_lastSearch);
     emit layoutChanged();
 }
@@ -353,8 +388,15 @@ void TableModelKaraokeSongs::resizeIconsForFont(const QFont &font) {
 
 QMimeData *TableModelKaraokeSongs::mimeData(const QModelIndexList &indexes) const {
     auto *mimeData = new QMimeData();
-    mimeData->setData("integer/songid",
-                      data(indexes.at(0).sibling(indexes.at(0).row(), COL_ID), Qt::DisplayRole).toByteArray().data());
+    auto song = qvariant_cast<std::shared_ptr<okj::KaraokeSong>>(
+            data(indexes.at(0).sibling(indexes.at(0).row(), COL_ID), Qt::UserRole));
+    if (song && song->isStream) {
+        mimeData->setData("integer/streamlibraryid",
+                          QString::number(song->streamLibraryId).toUtf8());
+    } else {
+        mimeData->setData("integer/songid",
+                          data(indexes.at(0).sibling(indexes.at(0).row(), COL_ID), Qt::DisplayRole).toByteArray().data());
+    }
     return mimeData;
 }
 

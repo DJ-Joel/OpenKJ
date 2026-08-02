@@ -1001,6 +1001,47 @@ void DlgSettings::on_btnYtDlpTest_clicked() {
     ui->labelYtDlpTestResult->setText("OK - yt-dlp version " + version);
 }
 
+void DlgSettings::on_btnYtDlpUpdate_clicked() {
+    QString path = ui->lineEditYtDlpPath->text();
+    if (path.trimmed().isEmpty()) {
+        ui->labelYtDlpTestResult->setText("No path set.");
+        return;
+    }
+    if (!QFileInfo::exists(path)) {
+        ui->labelYtDlpTestResult->setText("File does not exist.");
+        return;
+    }
+    ui->labelYtDlpTestResult->setText("Updating...");
+    ui->btnYtDlpTest->setEnabled(false);
+    ui->btnYtDlpUpdate->setEnabled(false);
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    QApplication::processEvents();
+    QProcess process;
+    process.start(path, QStringList() << "-U");
+    // Self-update fetches a new release from GitHub, so give it longer than
+    // the near-instant --version check.
+    bool finished = process.waitForFinished(60000);
+    QApplication::restoreOverrideCursor();
+    ui->btnYtDlpTest->setEnabled(true);
+    ui->btnYtDlpUpdate->setEnabled(true);
+    if (!finished) {
+        process.kill();
+        ui->labelYtDlpTestResult->setText("Update timed out.");
+        return;
+    }
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+        QString err = QString::fromUtf8(process.readAllStandardError()).trimmed();
+        ui->labelYtDlpTestResult->setText(err.isEmpty() ? "Update failed." : "Update failed: " + err.left(150));
+        return;
+    }
+    // yt-dlp -U prints something like "Updated to version ..." or "yt-dlp is
+    // up to date" on the last line of stdout - show that as confirmation.
+    QStringList lines = QString::fromUtf8(process.readAllStandardOutput())
+            .split('\n', Qt::SkipEmptyParts);
+    QString result = lines.isEmpty() ? "Update finished." : lines.last().trimmed();
+    ui->labelYtDlpTestResult->setText(result);
+}
+
 void DlgSettings::on_checkBoxProgressiveSearch_toggled(bool checked) {
     if (!m_pageSetupDone)
         return;

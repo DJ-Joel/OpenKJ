@@ -77,6 +77,16 @@ int TableModelStreamSongs::addHistorySinger(const QString &name) {
     return query.lastInsertId().toInt();
 }
 
+int TableModelStreamSongs::nextPositionForSinger(int historySingerId) {
+    QSqlQuery posQuery;
+    posQuery.prepare("SELECT COALESCE(MAX(position), -1) + 1 FROM streamSongs WHERE historySinger = :hs");
+    posQuery.bindValue(":hs", historySingerId);
+    posQuery.exec();
+    if (posQuery.next())
+        return posQuery.value(0).toInt();
+    return 0;
+}
+
 void TableModelStreamSongs::loadSinger(const QString &singerName) {
     m_currentSingerName = singerName;
     m_currentHistorySingerId = getHistorySingerId(singerName);
@@ -88,8 +98,10 @@ void TableModelStreamSongs::refresh() {
     m_songs.clear();
     if (m_currentHistorySingerId != -1) {
         QSqlQuery query;
-        query.prepare("SELECT id, historySinger, artist, title, url, duration, played, position "
-                      "FROM streamSongs WHERE historySinger = :hs ORDER BY position");
+        query.prepare(
+                "SELECT s.id, s.historySinger, s.libraryId, l.artist, l.title, l.url, l.duration, s.played, s.position "
+                "FROM streamSongs s INNER JOIN streamLibrary l ON l.id = s.libraryId "
+                "WHERE s.historySinger = :hs ORDER BY s.position");
         query.bindValue(":hs", m_currentHistorySingerId);
         query.exec();
         if (auto error = query.lastError(); error.type() != QSqlError::NoError)
@@ -98,20 +110,40 @@ void TableModelStreamSongs::refresh() {
             okj::StreamSong song;
             song.id = query.value(0).toInt();
             song.historySinger = query.value(1).toInt();
-            song.artist = query.value(2).toString();
-            song.title = query.value(3).toString();
-            song.url = query.value(4).toString();
-            song.duration = query.value(5).toInt();
-            song.played = query.value(6).toBool();
-            song.position = query.value(7).toInt();
+            song.libraryId = query.value(2).toInt();
+            song.artist = query.value(3).toString();
+            song.title = query.value(4).toString();
+            song.url = query.value(5).toString();
+            song.duration = query.value(6).toInt();
+            song.played = query.value(7).toBool();
+            song.position = query.value(8).toInt();
             m_songs.push_back(song);
         }
     }
     emit layoutChanged();
 }
 
-int TableModelStreamSongs::addSong(const QString &singerName, const QString &artist, const QString &title,
-                                   const QString &url, int duration) {
+std::optional<okj::StreamLibraryEntry> TableModelStreamSongs::findLibraryMatch(const QString &artist,
+                                                                                const QString &title) {
+    QSqlQuery query;
+    query.prepare("SELECT id, artist, title, url, duration FROM streamLibrary "
+                  "WHERE artist = :artist COLLATE NOCASE AND title = :title COLLATE NOCASE LIMIT 1");
+    query.bindValue(":artist", artist.trimmed());
+    query.bindValue(":title", title.trimmed());
+    query.exec();
+    if (query.next()) {
+        okj::StreamLibraryEntry entry;
+        entry.id = query.value(0).toInt();
+        entry.artist = query.value(1).toString();
+        entry.title = query.value(2).toString();
+        entry.url = query.value(3).toString();
+        entry.duration = query.value(4).toInt();
+        return entry;
+    }
+    return std::nullopt;
+}
+
+int TableModelStreamSongs::attachExistingToSinger(const QString &singerName, int libraryId) {
     int historySingerId = getHistorySingerId(singerName);
     if (historySingerId == -1)
         historySingerId = addHistorySinger(singerName);
@@ -121,26 +153,15 @@ int TableModelStreamSongs::addSong(const QString &singerName, const QString &art
         return -1;
     }
 
-    int position = 0;
-    QSqlQuery posQuery;
-    posQuery.prepare("SELECT COALESCE(MAX(position), -1) + 1 FROM streamSongs WHERE historySinger = :hs");
-    posQuery.bindValue(":hs", historySingerId);
-    posQuery.exec();
-    if (posQuery.next())
-        position = posQuery.value(0).toInt();
-
     QSqlQuery query;
-    query.prepare("INSERT INTO streamSongs (historySinger, artist, title, url, duration, played, position) "
-                  "VALUES (:hs, :artist, :title, :url, :duration, 0, :position)");
+    query.prepare("INSERT INTO streamSongs (historySinger, libraryId, played, position) "
+                  "VALUES (:hs, :lib, 0, :position)");
     query.bindValue(":hs", historySingerId);
-    query.bindValue(":artist", artist);
-    query.bindValue(":title", title);
-    query.bindValue(":url", url);
-    query.bindValue(":duration", duration);
-    query.bindValue(":position", position);
+    query.bindValue(":lib", libraryId);
+    query.bindValue(":position", nextPositionForSinger(historySingerId));
     query.exec();
     if (auto error = query.lastError(); error.type() != QSqlError::NoError) {
-        m_logger->error("{} DB error adding stream song: {}", m_loggingPrefix, error.text().toStdString());
+        m_logger->error("{} DB error attaching library entry: {}", m_loggingPrefix, error.text().toStdString());
         return -1;
     }
     int newId = query.lastInsertId().toInt();
@@ -149,6 +170,23 @@ int TableModelStreamSongs::addSong(const QString &singerName, const QString &art
         refresh();
     }
     return newId;
+}
+
+int TableModelStreamSongs::addNewSongForSinger(const QString &singerName, const QString &artist,
+                                               const QString &title, const QString &url, int duration) {
+    QSqlQuery libQuery;
+    libQuery.prepare("INSERT INTO streamLibrary (artist, title, url, duration) VALUES (:artist, :title, :url, :duration)");
+    libQuery.bindValue(":artist", artist);
+    libQuery.bindValue(":title", title);
+    libQuery.bindValue(":url", url);
+    libQuery.bindValue(":duration", duration);
+    libQuery.exec();
+    if (auto error = libQuery.lastError(); error.type() != QSqlError::NoError) {
+        m_logger->error("{} DB error adding library entry: {}", m_loggingPrefix, error.text().toStdString());
+        return -1;
+    }
+    int libraryId = libQuery.lastInsertId().toInt();
+    return attachExistingToSinger(singerName, libraryId);
 }
 
 void TableModelStreamSongs::deleteSong(int streamSongId) {
@@ -186,20 +224,24 @@ okj::StreamSong TableModelStreamSongs::getSong(int streamSongId) const {
 okj::StreamSong TableModelStreamSongs::nextUnplayedForSinger(const QString &singerName) {
     okj::StreamSong song;
     QSqlQuery query;
-    query.prepare("SELECT s.id, s.historySinger, s.artist, s.title, s.url, s.duration, s.played, s.position "
-                  "FROM streamSongs s INNER JOIN historySingers h ON h.id = s.historySinger "
-                  "WHERE h.name = :name AND s.played = 0 ORDER BY s.position LIMIT 1");
+    query.prepare(
+            "SELECT s.id, s.historySinger, s.libraryId, l.artist, l.title, l.url, l.duration, s.played, s.position "
+            "FROM streamSongs s "
+            "INNER JOIN streamLibrary l ON l.id = s.libraryId "
+            "INNER JOIN historySingers h ON h.id = s.historySinger "
+            "WHERE h.name = :name AND s.played = 0 ORDER BY s.position LIMIT 1");
     query.bindValue(":name", singerName);
     query.exec();
     if (query.next()) {
         song.id = query.value(0).toInt();
         song.historySinger = query.value(1).toInt();
-        song.artist = query.value(2).toString();
-        song.title = query.value(3).toString();
-        song.url = query.value(4).toString();
-        song.duration = query.value(5).toInt();
-        song.played = query.value(6).toBool();
-        song.position = query.value(7).toInt();
+        song.libraryId = query.value(2).toInt();
+        song.artist = query.value(3).toString();
+        song.title = query.value(4).toString();
+        song.url = query.value(5).toString();
+        song.duration = query.value(6).toInt();
+        song.played = query.value(7).toBool();
+        song.position = query.value(8).toInt();
     }
     return song;
 }
