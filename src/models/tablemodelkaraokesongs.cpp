@@ -221,7 +221,9 @@ void TableModelKaraokeSongs::loadData() {
         song->title = title;
         song->titleL = title.toLower();
         song->duration = durationSecs * 1000;
-        song->searchString = (artist + " " + title).replace('&', " and ").toLower();
+        QString combinedSearchText = artist + " " + title;
+        combinedSearchText.replace('&', " and ");
+        song->searchString = combinedSearchText.toLower();
         song->isStream = true;
         song->streamLibraryId = libId;
         song->streamUrl = url;
