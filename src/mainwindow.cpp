@@ -1072,6 +1072,13 @@ void MainWindow::setupConnections() {
     connect(&m_ytDlpResolver, &YtDlpResolver::failed, this, &MainWindow::ytDlpResolveFailed);
     m_ytDlpTimeoutTimer.setSingleShot(true);
     connect(&m_ytDlpTimeoutTimer, &QTimer::timeout, this, &MainWindow::ytDlpResolveTimedOut);
+    connect(&m_kAAStreamResolver, &YtDlpResolver::resolved, this, &MainWindow::kAAStreamResolveSucceeded);
+    connect(&m_kAAStreamResolver, &YtDlpResolver::failed, this, &MainWindow::kAAStreamResolveFailed);
+    m_kAAStreamTimeoutTimer.setSingleShot(true);
+    connect(&m_kAAStreamTimeoutTimer, &QTimer::timeout, this, [this]() {
+        m_kAAStreamResolver.cancel();
+        kAAStreamResolveFailed("Timed out waiting for yt-dlp.");
+    });
     connect(ui->actionSong_Shop, &QAction::triggered, dlgSongShop.get(), &DlgSongShop::show);
     connect(ui->tabWidget, &QTabWidget::currentChanged, this, &MainWindow::tabWidgetCurrentChanged);
     connect(ui->sliderBmPosition, &QSlider::sliderPressed, this, &MainWindow::sliderBmPositionPressed);
@@ -1323,6 +1330,8 @@ void MainWindow::play(const QString &karaokeFilePath, const bool &k2k) {
         if (m_mediaBackendKar.state() == MediaBackend::PlayingState) {
             if (m_settings.karaokeAutoAdvance()) {
                 m_kAASkip = true;
+                m_kAAStreamResolver.cancel();
+                m_kAAStreamTimeoutTimer.stop();
                 cdgWindow->showAlert(false);
             }
             m_mediaBackendKar.stop();
@@ -1515,6 +1524,8 @@ void MainWindow::buttonStopClicked() {
         }
     }
     m_kAASkip = true;
+    m_kAAStreamResolver.cancel();
+    m_kAAStreamTimeoutTimer.stop();
     cdgWindow->showAlert(false);
     audioRecorder.stop();
     if (m_settings.bmKCrossFade()) {
@@ -1907,6 +1918,8 @@ void MainWindow::tableViewRotationDoubleClicked(const QModelIndex &index) {
             if (m_mediaBackendKar.state() == MediaBackend::PausedState) {
                 if (m_settings.karaokeAutoAdvance()) {
                     m_kAASkip = true;
+                    m_kAAStreamResolver.cancel();
+                    m_kAAStreamTimeoutTimer.stop();
                     cdgWindow->showAlert(false);
                 }
                 audioRecorder.stop();
@@ -2047,6 +2060,8 @@ void MainWindow::tableViewQueueDoubleClicked(const QModelIndex &index) {
     else if (m_mediaBackendKar.state() == MediaBackend::PausedState) {
         if (m_settings.karaokeAutoAdvance()) {
             m_kAASkip = true;
+            m_kAAStreamResolver.cancel();
+            m_kAAStreamTimeoutTimer.stop();
             cdgWindow->showAlert(false);
         }
         audioRecorder.stop();
@@ -2293,45 +2308,13 @@ void MainWindow::karaokeMediaBackend_stateChanged(const MediaBackend::State &sta
                 m_kAASkip = false;
                 m_logger->info("{}  - Karaoke Autoplay set to skip, bailing out", m_loggingPrefix);
             } else {
-                okj::RotationSinger nextSinger;
-                QString nextSongPath;
-                bool empty = false;
-
                 int curSingerId = m_rotModel.currentSinger();
-
                 int curPos = m_rotModel.getSinger(curSingerId).position;
                 if (m_settings.rotationAltSortOrder())
                     curPos = m_curSingerOriginalPosition;
                 if (curSingerId == -1)
                     curPos = static_cast<int>(m_rotModel.singerCount() - 1);
-                int loops = 0;
-                while ((nextSongPath == "") && (!empty)) {
-                    if (loops > m_rotModel.singerCount()) {
-                        empty = true;
-                    } else {
-                        if (++curPos >= m_rotModel.singerCount()) {
-                            curPos = 0;
-                        }
-                        nextSinger = m_rotModel.getSingerAtPosition(curPos);
-                        nextSongPath = nextSinger.nextSongPath();
-                        loops++;
-                    }
-                }
-                if (empty)
-                    m_logger->info("{} KaraokeAA - No more songs to play, giving up", m_loggingPrefix);
-                else {
-                    m_kAANextSinger = nextSinger.id;
-                    m_kAANextSongPath = nextSongPath;
-                    m_logger->info("{} KaraokeAA - Will play: {} - {}", m_loggingPrefix,
-                                   nextSinger.name.toStdString(), nextSongPath.toStdString());
-                    m_logger->info("{} KaraokeAA - Starting {} second timer", m_loggingPrefix,
-                                   m_settings.karaokeAATimeout());
-                    m_timerKaraokeAA.start(m_settings.karaokeAATimeout() * 1000);
-                    cdgWindow->setNextSinger(nextSinger.name);
-                    cdgWindow->setNextSong(nextSinger.nextSongArtistTitle());
-                    cdgWindow->setCountdownSecs(m_settings.karaokeAATimeout());
-                    cdgWindow->showAlert(true);
-                }
+                armNextKaraokeAutoAdvance(curPos);
             }
         }
         if (m_settings.rotationAltSortOrder()) {
@@ -2930,43 +2913,152 @@ void MainWindow::markSongBad(const std::shared_ptr<okj::KaraokeSong>& song) {
     }
 }
 
+void MainWindow::armNextKaraokeAutoAdvance(int fromRotationPosition) {
+    okj::RotationSinger nextSinger;
+    QString nextSongPath;
+    bool empty = false;
+    int curPos = fromRotationPosition;
+    int loops = 0;
+    while ((nextSongPath == "") && (!empty)) {
+        if (loops > m_rotModel.singerCount()) {
+            empty = true;
+        } else {
+            if (++curPos >= m_rotModel.singerCount()) {
+                curPos = 0;
+            }
+            nextSinger = m_rotModel.getSingerAtPosition(curPos);
+            nextSongPath = nextSinger.nextSongPath();
+            loops++;
+        }
+    }
+    if (empty) {
+        m_logger->info("{} KaraokeAA - No more songs to play, giving up", m_loggingPrefix);
+        return;
+    }
+    m_kAANextSinger = nextSinger.id;
+    m_kAANextSongPath = nextSongPath;
+    m_kAANextIsStream = MediaBackend::isNetworkStreamUri(nextSongPath);
+    if (m_kAANextIsStream)
+        m_kAAPendingStreamSong = TableModelStreamSongs::nextUnplayedForSinger(nextSinger.name);
+    m_logger->info("{} KaraokeAA - Will play: {} - {}", m_loggingPrefix,
+                   nextSinger.name.toStdString(), nextSongPath.toStdString());
+    m_logger->info("{} KaraokeAA - Starting {} second timer", m_loggingPrefix,
+                   m_settings.karaokeAATimeout());
+    m_timerKaraokeAA.start(m_settings.karaokeAATimeout() * 1000);
+    cdgWindow->setNextSinger(nextSinger.name);
+    cdgWindow->setNextSong(nextSinger.nextSongArtistTitle());
+    cdgWindow->setCountdownSecs(m_settings.karaokeAATimeout());
+    cdgWindow->showAlert(true);
+}
+
 void MainWindow::karaokeAATimerTimeout() {
     m_logger->info("{} KaraokeAA - timer timeout", m_loggingPrefix);
     m_timerKaraokeAA.stop();
-    cdgWindow->showAlert(false);
     if (m_kAASkip) {
+        cdgWindow->showAlert(false);
         m_logger->info("{} KaraokeAA - Aborted via stop button", m_loggingPrefix);
         m_kAASkip = false;
-    } else {
-        auto &singer = m_rotModel.getSinger(m_kAANextSinger);
-        m_curSinger = singer.name;
-        m_curArtist = singer.nextSongArtist();
-        m_curTitle = singer.nextSongTitle();
-        ui->labelArtist->setText(m_curArtist);
-        ui->labelTitle->setText(m_curTitle);
-        ui->labelSinger->setText(m_curSinger);
-        if (m_settings.treatAllSingersAsRegs() || m_rotModel.getSinger(m_kAANextSinger).regular) {
-            m_historySongsModel.saveSong(
-                    m_curSinger,
-                    m_kAANextSongPath,
-                    m_curArtist,
-                    m_curTitle,
-                    singer.nextSongSongId(),
-                    singer.nextSongKeyChg()
-            );
-        }
-        m_karaokeSongsModel.updateSongHistory(m_karaokeSongsModel.getIdForPath(m_kAANextSongPath));
-        play(m_kAANextSongPath);
-        m_mediaBackendKar.setPitchShift(singer.nextSongKeyChg());
-        m_qModel.setPlayed(singer.nextSongQueueId());
-        m_rotModel.setCurrentSinger(m_kAANextSinger);
-        m_rotDelegate.setCurrentSinger(m_kAANextSinger);
-        if (m_settings.rotationAltSortOrder()) {
-            m_curSingerOriginalPosition = singer.position;
-            if (singer.position != 0)
-                m_rotModel.singerMove(singer.position, 0);
-        }
+        return;
     }
+
+    if (m_kAANextIsStream) {
+        // Resolving takes a few seconds - leave the "up next" alert showing
+        // on the singer window with updated text rather than hiding it, since
+        // there's no one at the keyboard to reassure otherwise.
+        cdgWindow->setNextSong("Resolving...");
+        QString ytDlpPath = m_settings.ytDlpPath();
+        if (ytDlpPath.trimmed().isEmpty()) {
+            m_logger->warn("{} KaraokeAA - next song is a stream entry but no yt-dlp path is "
+                           "configured, skipping this singer", m_loggingPrefix);
+            kAAStreamResolveFailed("yt-dlp is not configured (Settings -> External).");
+            return;
+        }
+        m_kAAStreamTimeoutTimer.start(30000);
+        m_kAAStreamResolver.resolve(ytDlpPath, m_kAANextSongPath);
+        return;
+    }
+
+    cdgWindow->showAlert(false);
+    auto &singer = m_rotModel.getSinger(m_kAANextSinger);
+    m_curSinger = singer.name;
+    m_curArtist = singer.nextSongArtist();
+    m_curTitle = singer.nextSongTitle();
+    ui->labelArtist->setText(m_curArtist);
+    ui->labelTitle->setText(m_curTitle);
+    ui->labelSinger->setText(m_curSinger);
+    if (m_settings.treatAllSingersAsRegs() || m_rotModel.getSinger(m_kAANextSinger).regular) {
+        m_historySongsModel.saveSong(
+                m_curSinger,
+                m_kAANextSongPath,
+                m_curArtist,
+                m_curTitle,
+                singer.nextSongSongId(),
+                singer.nextSongKeyChg()
+        );
+    }
+    m_karaokeSongsModel.updateSongHistory(m_karaokeSongsModel.getIdForPath(m_kAANextSongPath));
+    play(m_kAANextSongPath);
+    m_mediaBackendKar.setPitchShift(singer.nextSongKeyChg());
+    m_qModel.setPlayed(singer.nextSongQueueId());
+    m_rotModel.setCurrentSinger(m_kAANextSinger);
+    m_rotDelegate.setCurrentSinger(m_kAANextSinger);
+    if (m_settings.rotationAltSortOrder()) {
+        m_curSingerOriginalPosition = singer.position;
+        if (singer.position != 0)
+            m_rotModel.singerMove(singer.position, 0);
+    }
+}
+
+void MainWindow::kAAStreamResolveSucceeded(QString streamUrl) {
+    m_kAAStreamTimeoutTimer.stop();
+    cdgWindow->showAlert(false);
+
+    auto &singer = m_rotModel.getSinger(m_kAANextSinger);
+    auto song = m_kAAPendingStreamSong;
+    m_curSinger = singer.name;
+    m_curArtist = song.artist;
+    m_curTitle = song.title;
+    ui->labelArtist->setText(m_curArtist);
+    ui->labelTitle->setText(m_curTitle);
+    ui->labelSinger->setText(m_curSinger);
+
+    playStreamUrl(streamUrl);
+    m_mediaBackendKar.setPitchShift(0);
+
+    // The original page URL, not the resolved-and-expiring one - matches the
+    // manual double-click path so history stays meaningful on future nights.
+    if (m_settings.treatAllSingersAsRegs() || singer.regular)
+        m_historySongsModel.saveSong(m_curSinger, song.url, m_curArtist, m_curTitle, QString(), 0);
+
+    m_streamSongsModel.setPlayed(song.id);
+    m_rotModel.setCurrentSinger(m_kAANextSinger);
+    m_rotDelegate.setCurrentSinger(m_kAANextSinger);
+    if (m_settings.rotationAltSortOrder()) {
+        m_curSingerOriginalPosition = singer.position;
+        if (singer.position != 0)
+            m_rotModel.singerMove(singer.position, 0);
+    }
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
+}
+
+void MainWindow::kAAStreamResolveFailed(QString errorMessage) {
+    m_kAAStreamTimeoutTimer.stop();
+    cdgWindow->showAlert(false);
+    m_logger->error("{} KaraokeAA - stream resolve failed for singer id {}: {}", m_loggingPrefix,
+                    m_kAANextSinger, errorMessage.toStdString());
+
+    // Non-blocking, since no one may be at the keyboard to dismiss it - the
+    // show has to keep moving regardless.
+    auto *msgBox = new QMessageBox(QMessageBox::Warning, "Unable to play stream",
+            "Couldn't resolve a stream link for the next singer, skipping them:\n\n" + errorMessage,
+            QMessageBox::Ok, this);
+    msgBox->setModal(false);
+    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+    msgBox->show();
+
+    int failedSingerPos = m_rotModel.getSinger(m_kAANextSinger).position;
+    armNextKaraokeAutoAdvance(failedSingerPos);
 }
 
 void MainWindow::timerButtonFlashTimeout() {
@@ -4580,6 +4672,8 @@ void MainWindow::buttonHistoryPlayClicked() {
     if (m_mediaBackendKar.state() == MediaBackend::PausedState) {
         if (m_settings.karaokeAutoAdvance()) {
             m_kAASkip = true;
+            m_kAAStreamResolver.cancel();
+            m_kAAStreamTimeoutTimer.stop();
             cdgWindow->showAlert(false);
         }
         audioRecorder.stop();
