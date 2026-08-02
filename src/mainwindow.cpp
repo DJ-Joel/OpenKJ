@@ -1590,6 +1590,12 @@ void MainWindow::btnStreamAddClicked() {
         QMessageBox::warning(this, "Unable to add", "Something went wrong saving that stream song.");
         return;
     }
+    // The Database tab's song list is loaded into memory once and never told
+    // about new streamLibrary rows on its own - without this, a newly added
+    // stream song is correctly saved and shows in the Stream tab right away,
+    // but won't show up in Database tab search until the next full reload
+    // (e.g. app restart).
+    m_karaokeSongsModel.loadData();
     // The rotation's "next song" column can change as a result, since stream
     // entries fill in when a singer has no unplayed queue songs.
     updateRotationDuration();
