@@ -899,6 +899,7 @@ void MainWindow::setupConnections() {
     connect(ui->pushButtonKeyDn, &QPushButton::clicked, ui->spinBoxKey, &QSpinBox::stepDown);
     connect(ui->pushButtonKeyUp, &QPushButton::clicked, ui->spinBoxKey, &QSpinBox::stepUp);
     connect(requestsDialog.get(), &DlgRequests::addRequestSong, &m_qModel, &TableModelQueueSongs::songAddSlot);
+    connect(requestsDialog.get(), &DlgRequests::addRequestStreamSong, this, &MainWindow::addRequestStreamSongSlot);
     connect(&m_mediaBackendBm, &MediaBackend::stateChanged, this, &MainWindow::bmMediaStateChanged);
     connect(&m_mediaBackendBm, &MediaBackend::positionChanged, this, &MainWindow::bmMediaPositionChanged);
     connect(&m_mediaBackendBm, &MediaBackend::durationChanged, this, &MainWindow::bmMediaDurationChanged);
@@ -1554,6 +1555,16 @@ void MainWindow::buttonStopClicked() {
         m_mediaBackendKar.stop();
         m_mediaBackendBm.fadeIn();
     }
+}
+
+void MainWindow::addRequestStreamSongSlot(int libraryId, int singerId) {
+    QString singerName = m_rotModel.getSinger(singerId).name;
+    if (m_streamSongsModel.attachExistingToSinger(singerName, libraryId) == -1) {
+        QMessageBox::warning(this, "Unable to add", "Something went wrong attaching that stream song.");
+        return;
+    }
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
 }
 
 void MainWindow::btnStreamAddClicked() {

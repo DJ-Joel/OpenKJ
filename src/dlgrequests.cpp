@@ -312,7 +312,39 @@ void DlgRequests::on_pushButtonAddSong_clicked() {
             ui->tableViewSearch->selectionModel()->selectedIndexes().at(0).data(Qt::UserRole)
     );
     int keyChg = ui->spinBoxKey->value();
-    if (ui->radioButtonNewSinger->isChecked()) {
+    if (song->isStream) {
+        // A stream row's song->id is its streamLibrary.id, not a dbSongs id -
+        // it must go through a separate path rather than the signal below,
+        // which treats its argument as a real local song id unconditionally.
+        // Streams also don't support key change.
+        if (ui->radioButtonNewSinger->isChecked()) {
+            if (ui->lineEditSingerName->text() == "" || rotModel.singerExists(ui->lineEditSingerName->text()))
+                return;
+            int newSingerId = rotModel.singerAdd(ui->lineEditSingerName->text(),
+                                                 ui->comboBoxAddPosition->currentIndex());
+            emit addRequestStreamSong(song->streamLibraryId, newSingerId);
+            m_reqLogger->info(
+                    "RequestID: {} | Added stream to new singer | Name: {} | Position: {} | Wait: {} | Song: {} - {}",
+                    curRequestId,
+                    ui->lineEditSingerName->text().toStdString(),
+                    rotModel.getSinger(newSingerId).position,
+                    rotModel.singerTurnDistance(newSingerId),
+                    song->artist.toStdString(),
+                    song->title.toStdString()
+            );
+            m_reqLogger->flush();
+        } else if (ui->radioButtonExistingSinger->isChecked()) {
+            emit addRequestStreamSong(song->streamLibraryId,
+                                      rotModel.getSingerByName(ui->comboBoxSingers->currentText()).id);
+            m_reqLogger->info("RequestID: {} | Added stream to existing singer | Name: {} | Song: {} - {}",
+                              curRequestId,
+                              ui->comboBoxSingers->currentText().toStdString(),
+                              song->artist.toStdString(),
+                              song->title.toStdString()
+            );
+            m_reqLogger->flush();
+        }
+    } else if (ui->radioButtonNewSinger->isChecked()) {
         if (ui->lineEditSingerName->text() == "" || rotModel.singerExists(ui->lineEditSingerName->text()))
             return;
         int newSingerId = rotModel.singerAdd(ui->lineEditSingerName->text(),
