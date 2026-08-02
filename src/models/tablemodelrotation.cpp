@@ -669,6 +669,7 @@ void ItemDelegateRotation::setCurrentSinger(const int singerId) {
 QStringList TableModelRotation::mimeTypes() const {
     return {
             "integer/songid",
+            "integer/streamlibraryid",
             "integer/rotationpos",
             "application/rotsingers"
     };
@@ -696,7 +697,8 @@ bool TableModelRotation::canDropMimeData(const QMimeData *data, Qt::DropAction a
                                          const QModelIndex &parent) const {
     if (parent.row() == -1 && !data->hasFormat("integer/rotationpos"))
         return false;
-    if ((data->hasFormat("integer/songid")) || (data->hasFormat("integer/rotationpos")))
+    if ((data->hasFormat("integer/songid")) || (data->hasFormat("integer/streamlibraryid")) ||
+        (data->hasFormat("integer/rotationpos")))
         return true;
     return false;
 }
@@ -749,6 +751,22 @@ bool TableModelRotation::dropMimeData(const QMimeData *data, Qt::DropAction acti
         emit songDroppedOnSinger(
                 index(static_cast<int>(dropRow), 0).data(Qt::UserRole).toInt(),
                 data->data("integer/songid").toInt(),
+                static_cast<int>(dropRow)
+        );
+    }
+
+    if (data->hasFormat("integer/streamlibraryid")) {
+        unsigned int dropRow;
+        if (parent.row() >= 0) {
+            dropRow = parent.row();
+        } else if (row >= 0) {
+            dropRow = row;
+        } else {
+            dropRow = m_singers.size();
+        }
+        emit streamDroppedOnSinger(
+                index(static_cast<int>(dropRow), 0).data(Qt::UserRole).toInt(),
+                data->data("integer/streamlibraryid").toInt(),
                 static_cast<int>(dropRow)
         );
     }

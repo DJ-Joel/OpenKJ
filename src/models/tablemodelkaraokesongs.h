@@ -25,7 +25,8 @@ public:
         COL_FILENAME,
         COL_DURATION,
         COL_PLAYS,
-        COL_LASTPLAY
+        COL_LASTPLAY,
+        COL_SOURCE
     };
     enum SearchType {
         SEARCH_TYPE_ALL=1,
