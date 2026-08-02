@@ -1590,6 +1590,14 @@ void MainWindow::btnStreamAddClicked() {
         QMessageBox::warning(this, "Unable to add", "Something went wrong saving that stream song.");
         return;
     }
+    // Push the exact entry involved (whether newly created or reused) to the
+    // request server, so singers can find it in search next time. Looked up
+    // by id rather than artist/title, since duplicates are allowed by design
+    // and a text match could otherwise grab the wrong row.
+    if (auto pushedEntry = TableModelStreamSongs::getLibraryEntry(m_streamSongsModel.lastLibraryId())) {
+        m_songbookApi.pushStreamLibraryEntry(pushedEntry->id, pushedEntry->artist, pushedEntry->title,
+                                             pushedEntry->url, pushedEntry->duration);
+    }
     // The Database tab's song list is loaded into memory once and never told
     // about new streamLibrary rows on its own - without this, a newly added
     // stream song is correctly saved and shows in the Stream tab right away,

@@ -180,6 +180,25 @@ void OKJSongbookAPI::updateRotation(const std::vector<okj::RotationSinger> &sing
     manager->post(request, jsonDocument.toJson());
 }
 
+void OKJSongbookAPI::pushStreamLibraryEntry(int localId, const QString &artist, const QString &title,
+                                            const QString &url, int duration)
+{
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command", "addStreamLibraryEntry");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    mainObject.insert("localId", localId);
+    mainObject.insert("artist", artist);
+    mainObject.insert("title", title);
+    mainObject.insert("url", url);
+    mainObject.insert("duration", duration);
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
 void OKJSongbookAPI::clearRequests()
 {
     QJsonObject mainObject;

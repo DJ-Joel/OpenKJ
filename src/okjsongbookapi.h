@@ -98,6 +98,12 @@ public:
     void clearRequests();
     void updateSongDb();
     void updateRotation(const std::vector<okj::RotationSinger> &singers, int currentSingerId);
+    // Pushes one stream library entry to the request server, so singers can
+    // find it in search. Idempotent server-side (keyed on localId), so it's
+    // safe to call this every time a stream song is added, whether the entry
+    // is brand new or being reused for another singer.
+    void pushStreamLibraryEntry(int localId, const QString &artist, const QString &title, const QString &url,
+                                 int duration);
     void refreshChat();
     void getChatSerial();
     void sendChatReply(int singerId, const QString &message);
