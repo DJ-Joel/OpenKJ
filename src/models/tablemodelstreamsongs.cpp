@@ -143,6 +143,23 @@ std::optional<okj::StreamLibraryEntry> TableModelStreamSongs::findLibraryMatch(c
     return std::nullopt;
 }
 
+std::optional<okj::StreamLibraryEntry> TableModelStreamSongs::getLibraryEntry(int libraryId) {
+    QSqlQuery query;
+    query.prepare("SELECT id, artist, title, url, duration FROM streamLibrary WHERE id = :id LIMIT 1");
+    query.bindValue(":id", libraryId);
+    query.exec();
+    if (query.next()) {
+        okj::StreamLibraryEntry entry;
+        entry.id = query.value(0).toInt();
+        entry.artist = query.value(1).toString();
+        entry.title = query.value(2).toString();
+        entry.url = query.value(3).toString();
+        entry.duration = query.value(4).toInt();
+        return entry;
+    }
+    return std::nullopt;
+}
+
 int TableModelStreamSongs::attachExistingToSinger(const QString &singerName, int libraryId) {
     int historySingerId = getHistorySingerId(singerName);
     if (historySingerId == -1)
@@ -169,6 +186,7 @@ int TableModelStreamSongs::attachExistingToSinger(const QString &singerName, int
         m_currentHistorySingerId = historySingerId;
         refresh();
     }
+    m_lastLibraryId = libraryId;
     return newId;
 }
 
