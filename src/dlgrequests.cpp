@@ -74,7 +74,6 @@ DlgRequests::DlgRequests(TableModelRotation &rotationModel, OKJSongbookAPI &song
     ui->tableViewSearch->setModel(&dbModel);
     ui->tableViewSearch->viewport()->installEventFilter(new TableViewToolTipFilter(ui->tableViewSearch));
     ui->groupBoxAddSong->setDisabled(true);
-    ui->groupBoxSongDb->setDisabled(true);
     connect(ui->tableViewRequests->selectionModel(), &QItemSelectionModel::selectionChanged, this,
             &DlgRequests::requestSelectionChanged);
     connect(ui->tableViewSearch->selectionModel(), &QItemSelectionModel::selectionChanged, this,
@@ -210,7 +209,6 @@ void DlgRequests::requestSelectionChanged(const QItemSelection &current, const Q
     ui->groupBoxAddSong->setDisabled(true);
     if (current.indexes().size() == 0) {
         dbModel.search("yeahjustsomethingitllneverfind.imlazylikethat");
-        ui->groupBoxSongDb->setDisabled(true);
         ui->comboBoxSingers->setCurrentIndex(0);
         ui->spinBoxKey->setValue(0);
         curSelReqSinger = "";
@@ -563,7 +561,13 @@ void DlgRequests::on_spinBoxKey_valueChanged(int arg1) {
 }
 
 void DlgRequests::on_pushButtonWebSearch_clicked() {
-    QString link = "http://db.openkj.org/?type=All&searchstr=" + ui->lineEditSearch->text();
+    QStringList words = ui->lineEditSearch->text().toLower().split(' ', Qt::SkipEmptyParts);
+    if (words.size() > 10)
+        words = words.mid(0, 10);
+    QStringList encodedWords;
+    for (const QString &word : words)
+        encodedWords << QUrl::toPercentEncoding(word);
+    QString link = "https://www.youtube.com/results?search_query=%22karaoke%22+" + encodedWords.join('+');
     QDesktopServices::openUrl(QUrl(link));
 }
 
