@@ -2067,6 +2067,16 @@ For example, searching for &quot;im&quot; will find songs that contain &quot;I'm
                   </widget>
                  </item>
                  <item>
+                  <widget class="QPushButton" name="btnYtDlpUpdate">
+                   <property name="toolTip">
+                    <string>Run yt-dlp -U to update it to the latest version</string>
+                   </property>
+                   <property name="text">
+                    <string>Update</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QLabel" name="labelYtDlpTestResult">
                    <property name="text">
                     <string/>
