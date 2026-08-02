@@ -1604,6 +1604,11 @@ void MainWindow::btnStreamAddClicked() {
     // but won't show up in Database tab search until the next full reload
     // (e.g. app restart).
     m_karaokeSongsModel.loadData();
+    // The Incoming Requests dialog has its own separate, private copy of the
+    // song list (dbModel) for its "Song Matches" panel - it needs the same
+    // refresh independently, or a stream song a singer just requested won't
+    // show up there as a match to attach to their queue.
+    requestsDialog->databaseUpdateComplete();
     // The rotation's "next song" column can change as a result, since stream
     // entries fill in when a singer has no unplayed queue songs.
     updateRotationDuration();
