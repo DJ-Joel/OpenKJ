@@ -3048,6 +3048,15 @@ void MainWindow::kAAStreamResolveFailed(QString errorMessage) {
     m_logger->error("{} KaraokeAA - stream resolve failed for singer id {}: {}", m_loggingPrefix,
                     m_kAANextSinger, errorMessage.toStdString());
 
+    // Mark it played so the search below can't immediately re-select the same
+    // broken entry - without this, if it were the only pending item anywhere
+    // in the rotation, this would loop forever retrying the same bad link.
+    // The KJ can right-click it in the Stream tab and choose "Set unplayed"
+    // to retry after fixing the URL.
+    m_streamSongsModel.setPlayed(m_kAAPendingStreamSong.id);
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
+
     // Non-blocking, since no one may be at the keyboard to dismiss it - the
     // show has to keep moving regardless.
     auto *msgBox = new QMessageBox(QMessageBox::Warning, "Unable to play stream",
