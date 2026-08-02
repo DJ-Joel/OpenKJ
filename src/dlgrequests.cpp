@@ -303,9 +303,15 @@ void DlgRequests::on_tableViewRequests_clicked(const QModelIndex &index) {
 }
 
 void DlgRequests::on_pushButtonAddSong_clicked() {
-    if (ui->tableViewRequests->selectionModel()->selectedIndexes().empty() ||
-        ui->tableViewSearch->selectionModel()->selectedIndexes().empty())
+    if (ui->tableViewSearch->selectionModel()->selectedIndexes().empty())
         return;
+    // A request row isn't required any more - the search area works
+    // independently now. curRequestId is stale once a request is deselected
+    // (it's never reset), so check the live selection directly rather than
+    // trusting it, and only touch request-specific behavior (logging with a
+    // real id, auto-remove) when a request is genuinely selected right now.
+    bool hasRequestSelected = !ui->tableViewRequests->selectionModel()->selectedIndexes().empty();
+    int logRequestId = hasRequestSelected ? curRequestId : -1;
     auto song = qvariant_cast<std::shared_ptr<okj::KaraokeSong>>(
             ui->tableViewSearch->selectionModel()->selectedIndexes().at(0).data(Qt::UserRole)
     );
@@ -323,7 +329,7 @@ void DlgRequests::on_pushButtonAddSong_clicked() {
             emit addRequestStreamSong(song->streamLibraryId, newSingerId);
             m_reqLogger->info(
                     "RequestID: {} | Added stream to new singer | Name: {} | Position: {} | Wait: {} | Song: {} - {}",
-                    curRequestId,
+                    logRequestId,
                     ui->lineEditSingerName->text().toStdString(),
                     rotModel.getSinger(newSingerId).position,
                     rotModel.singerTurnDistance(newSingerId),
@@ -335,7 +341,7 @@ void DlgRequests::on_pushButtonAddSong_clicked() {
             emit addRequestStreamSong(song->streamLibraryId,
                                       rotModel.getSingerByName(ui->comboBoxSingers->currentText()).id);
             m_reqLogger->info("RequestID: {} | Added stream to existing singer | Name: {} | Song: {} - {}",
-                              curRequestId,
+                              logRequestId,
                               ui->comboBoxSingers->currentText().toStdString(),
                               song->artist.toStdString(),
                               song->title.toStdString()
@@ -350,7 +356,7 @@ void DlgRequests::on_pushButtonAddSong_clicked() {
         emit addRequestSong(song->id, newSingerId, keyChg);
         m_reqLogger->info(
                 "RequestID: {} | Added to new singer | Name: {} | Position: {} | Wait: {} | Song: {} - {} - {} | Key: {}",
-                curRequestId,
+                logRequestId,
                 ui->lineEditSingerName->text().toStdString(),
                 rotModel.getSinger(newSingerId).position,
                 rotModel.singerTurnDistance(newSingerId),
@@ -363,7 +369,7 @@ void DlgRequests::on_pushButtonAddSong_clicked() {
     } else if (ui->radioButtonExistingSinger->isChecked()) {
         emit addRequestSong(song->id, rotModel.getSingerByName(ui->comboBoxSingers->currentText()).id, keyChg);
         m_reqLogger->info("RequestID: {} | Added to existing singer | Name: {} | Song: {} - {} - {} | Key: {}",
-                          curRequestId,
+                          logRequestId,
                           ui->comboBoxSingers->currentText().toStdString(),
                           song->songid.toStdString(),
                           song->artist.toStdString(),
@@ -372,7 +378,7 @@ void DlgRequests::on_pushButtonAddSong_clicked() {
         );
         m_reqLogger->flush();
     }
-    if (m_settings.requestRemoveOnRotAdd()) {
+    if (hasRequestSelected && m_settings.requestRemoveOnRotAdd()) {
         songbookApi.removeRequest(curRequestId);
         m_reqLogger->info("RequestID: {} | Auto-removed after add to singer queue", curRequestId);
         m_reqLogger->flush();
