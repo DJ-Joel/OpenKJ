@@ -899,6 +899,7 @@ void MainWindow::setupConnections() {
     connect(ui->pushButtonKeyDn, &QPushButton::clicked, ui->spinBoxKey, &QSpinBox::stepDown);
     connect(ui->pushButtonKeyUp, &QPushButton::clicked, ui->spinBoxKey, &QSpinBox::stepUp);
     connect(requestsDialog.get(), &DlgRequests::addRequestSong, &m_qModel, &TableModelQueueSongs::songAddSlot);
+    connect(requestsDialog.get(), &DlgRequests::addRequestStreamSong, this, &MainWindow::addRequestStreamSongSlot);
     connect(&m_mediaBackendBm, &MediaBackend::stateChanged, this, &MainWindow::bmMediaStateChanged);
     connect(&m_mediaBackendBm, &MediaBackend::positionChanged, this, &MainWindow::bmMediaPositionChanged);
     connect(&m_mediaBackendBm, &MediaBackend::durationChanged, this, &MainWindow::bmMediaDurationChanged);
@@ -1556,6 +1557,16 @@ void MainWindow::buttonStopClicked() {
     }
 }
 
+void MainWindow::addRequestStreamSongSlot(int libraryId, int singerId) {
+    QString singerName = m_rotModel.getSinger(singerId).name;
+    if (m_streamSongsModel.attachExistingToSinger(singerName, libraryId) == -1) {
+        QMessageBox::warning(this, "Unable to add", "Something went wrong attaching that stream song.");
+        return;
+    }
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
+}
+
 void MainWindow::btnStreamAddClicked() {
     auto selRows = ui->tableViewRotation->selectionModel()->selectedRows();
     if (selRows.isEmpty()) {
@@ -1590,12 +1601,25 @@ void MainWindow::btnStreamAddClicked() {
         QMessageBox::warning(this, "Unable to add", "Something went wrong saving that stream song.");
         return;
     }
+    // Push the exact entry involved (whether newly created or reused) to the
+    // request server, so singers can find it in search next time. Looked up
+    // by id rather than artist/title, since duplicates are allowed by design
+    // and a text match could otherwise grab the wrong row.
+    if (auto pushedEntry = TableModelStreamSongs::getLibraryEntry(m_streamSongsModel.lastLibraryId())) {
+        m_songbookApi.pushStreamLibraryEntry(pushedEntry->id, pushedEntry->artist, pushedEntry->title,
+                                             pushedEntry->url, pushedEntry->duration);
+    }
     // The Database tab's song list is loaded into memory once and never told
     // about new streamLibrary rows on its own - without this, a newly added
     // stream song is correctly saved and shows in the Stream tab right away,
     // but won't show up in Database tab search until the next full reload
     // (e.g. app restart).
     m_karaokeSongsModel.loadData();
+    // The Incoming Requests dialog has its own separate, private copy of the
+    // song list (dbModel) for its "Song Matches" panel - it needs the same
+    // refresh independently, or a stream song a singer just requested won't
+    // show up there as a match to attach to their queue.
+    requestsDialog->databaseUpdateComplete();
     // The rotation's "next song" column can change as a result, since stream
     // entries fill in when a singer has no unplayed queue songs.
     updateRotationDuration();

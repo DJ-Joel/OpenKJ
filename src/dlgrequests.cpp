@@ -74,7 +74,6 @@ DlgRequests::DlgRequests(TableModelRotation &rotationModel, OKJSongbookAPI &song
     ui->tableViewSearch->setModel(&dbModel);
     ui->tableViewSearch->viewport()->installEventFilter(new TableViewToolTipFilter(ui->tableViewSearch));
     ui->groupBoxAddSong->setDisabled(true);
-    ui->groupBoxSongDb->setDisabled(true);
     connect(ui->tableViewRequests->selectionModel(), &QItemSelectionModel::selectionChanged, this,
             &DlgRequests::requestSelectionChanged);
     connect(ui->tableViewSearch->selectionModel(), &QItemSelectionModel::selectionChanged, this,
@@ -210,7 +209,6 @@ void DlgRequests::requestSelectionChanged(const QItemSelection &current, const Q
     ui->groupBoxAddSong->setDisabled(true);
     if (current.indexes().size() == 0) {
         dbModel.search("yeahjustsomethingitllneverfind.imlazylikethat");
-        ui->groupBoxSongDb->setDisabled(true);
         ui->comboBoxSingers->setCurrentIndex(0);
         ui->spinBoxKey->setValue(0);
         curSelReqSinger = "";
@@ -305,14 +303,52 @@ void DlgRequests::on_tableViewRequests_clicked(const QModelIndex &index) {
 }
 
 void DlgRequests::on_pushButtonAddSong_clicked() {
-    if (ui->tableViewRequests->selectionModel()->selectedIndexes().empty() ||
-        ui->tableViewSearch->selectionModel()->selectedIndexes().empty())
+    if (ui->tableViewSearch->selectionModel()->selectedIndexes().empty())
         return;
+    // A request row isn't required any more - the search area works
+    // independently now. curRequestId is stale once a request is deselected
+    // (it's never reset), so check the live selection directly rather than
+    // trusting it, and only touch request-specific behavior (logging with a
+    // real id, auto-remove) when a request is genuinely selected right now.
+    bool hasRequestSelected = !ui->tableViewRequests->selectionModel()->selectedIndexes().empty();
+    int logRequestId = hasRequestSelected ? curRequestId : -1;
     auto song = qvariant_cast<std::shared_ptr<okj::KaraokeSong>>(
             ui->tableViewSearch->selectionModel()->selectedIndexes().at(0).data(Qt::UserRole)
     );
     int keyChg = ui->spinBoxKey->value();
-    if (ui->radioButtonNewSinger->isChecked()) {
+    if (song->isStream) {
+        // A stream row's song->id is its streamLibrary.id, not a dbSongs id -
+        // it must go through a separate path rather than the signal below,
+        // which treats its argument as a real local song id unconditionally.
+        // Streams also don't support key change.
+        if (ui->radioButtonNewSinger->isChecked()) {
+            if (ui->lineEditSingerName->text() == "" || rotModel.singerExists(ui->lineEditSingerName->text()))
+                return;
+            int newSingerId = rotModel.singerAdd(ui->lineEditSingerName->text(),
+                                                 ui->comboBoxAddPosition->currentIndex());
+            emit addRequestStreamSong(song->streamLibraryId, newSingerId);
+            m_reqLogger->info(
+                    "RequestID: {} | Added stream to new singer | Name: {} | Position: {} | Wait: {} | Song: {} - {}",
+                    logRequestId,
+                    ui->lineEditSingerName->text().toStdString(),
+                    rotModel.getSinger(newSingerId).position,
+                    rotModel.singerTurnDistance(newSingerId),
+                    song->artist.toStdString(),
+                    song->title.toStdString()
+            );
+            m_reqLogger->flush();
+        } else if (ui->radioButtonExistingSinger->isChecked()) {
+            emit addRequestStreamSong(song->streamLibraryId,
+                                      rotModel.getSingerByName(ui->comboBoxSingers->currentText()).id);
+            m_reqLogger->info("RequestID: {} | Added stream to existing singer | Name: {} | Song: {} - {}",
+                              logRequestId,
+                              ui->comboBoxSingers->currentText().toStdString(),
+                              song->artist.toStdString(),
+                              song->title.toStdString()
+            );
+            m_reqLogger->flush();
+        }
+    } else if (ui->radioButtonNewSinger->isChecked()) {
         if (ui->lineEditSingerName->text() == "" || rotModel.singerExists(ui->lineEditSingerName->text()))
             return;
         int newSingerId = rotModel.singerAdd(ui->lineEditSingerName->text(),
@@ -320,7 +356,7 @@ void DlgRequests::on_pushButtonAddSong_clicked() {
         emit addRequestSong(song->id, newSingerId, keyChg);
         m_reqLogger->info(
                 "RequestID: {} | Added to new singer | Name: {} | Position: {} | Wait: {} | Song: {} - {} - {} | Key: {}",
-                curRequestId,
+                logRequestId,
                 ui->lineEditSingerName->text().toStdString(),
                 rotModel.getSinger(newSingerId).position,
                 rotModel.singerTurnDistance(newSingerId),
@@ -333,7 +369,7 @@ void DlgRequests::on_pushButtonAddSong_clicked() {
     } else if (ui->radioButtonExistingSinger->isChecked()) {
         emit addRequestSong(song->id, rotModel.getSingerByName(ui->comboBoxSingers->currentText()).id, keyChg);
         m_reqLogger->info("RequestID: {} | Added to existing singer | Name: {} | Song: {} - {} - {} | Key: {}",
-                          curRequestId,
+                          logRequestId,
                           ui->comboBoxSingers->currentText().toStdString(),
                           song->songid.toStdString(),
                           song->artist.toStdString(),
@@ -342,7 +378,7 @@ void DlgRequests::on_pushButtonAddSong_clicked() {
         );
         m_reqLogger->flush();
     }
-    if (m_settings.requestRemoveOnRotAdd()) {
+    if (hasRequestSelected && m_settings.requestRemoveOnRotAdd()) {
         songbookApi.removeRequest(curRequestId);
         m_reqLogger->info("RequestID: {} | Auto-removed after add to singer queue", curRequestId);
         m_reqLogger->flush();
@@ -531,7 +567,13 @@ void DlgRequests::on_spinBoxKey_valueChanged(int arg1) {
 }
 
 void DlgRequests::on_pushButtonWebSearch_clicked() {
-    QString link = "http://db.openkj.org/?type=All&searchstr=" + ui->lineEditSearch->text();
+    QStringList words = ui->lineEditSearch->text().toLower().split(' ', Qt::SkipEmptyParts);
+    if (words.size() > 10)
+        words = words.mid(0, 10);
+    QStringList encodedWords;
+    for (const QString &word : words)
+        encodedWords << QUrl::toPercentEncoding(word);
+    QString link = "https://www.youtube.com/results?search_query=%22karaoke%22+" + encodedWords.join('+');
     QDesktopServices::openUrl(QUrl(link));
 }
 

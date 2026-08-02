@@ -60,6 +60,7 @@ public:
 
 signals:
     void addRequestSong(int songId, int singerId, int keyChg);
+    void addRequestStreamSong(int libraryId, int singerId);
 
 public slots:
     void databaseAboutToUpdate();

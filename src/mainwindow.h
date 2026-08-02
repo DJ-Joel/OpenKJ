@@ -221,6 +221,7 @@ private slots:
     void btnStreamAddClicked();
     void btnStreamRemoveClicked();
     void tableViewStreamContextMenuRequested(const QPoint &pos);
+    void addRequestStreamSongSlot(int libraryId, int singerId);
     void streamResolveSucceeded(QString streamUrl);
     void streamResolveFailed(QString errorMessage);
     void ytDlpResolveSucceeded(QString streamUrl);

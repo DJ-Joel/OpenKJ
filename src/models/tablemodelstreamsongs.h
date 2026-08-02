@@ -60,6 +60,17 @@ public:
     int addNewSongForSinger(const QString &singerName, const QString &artist, const QString &title,
                              const QString &url, int duration);
 
+    // The libraryId involved in the most recent successful
+    // attachExistingToSinger()/addNewSongForSinger() call. Exists so callers
+    // can push the correct entry to the request server afterward without
+    // ambiguity - a post-hoc artist/title lookup could match the wrong row if
+    // duplicates exist (which is allowed by design).
+    [[nodiscard]] int lastLibraryId() const { return m_lastLibraryId; }
+
+    // Direct by-id library lookup - unambiguous even when duplicate
+    // artist/title entries exist.
+    static std::optional<okj::StreamLibraryEntry> getLibraryEntry(int libraryId);
+
     // Removes a singer's assignment only - the library entry (and any other
     // singer's assignment to it) is left alone.
     void deleteSong(int streamSongId);
@@ -80,6 +91,7 @@ private:
     std::vector<okj::StreamSong> m_songs;
     QString m_currentSingerName;
     int m_currentHistorySingerId{-1};
+    int m_lastLibraryId{-1};
     std::string m_loggingPrefix{"[StreamSongsModel]"};
     std::shared_ptr<spdlog::logger> m_logger;
 
