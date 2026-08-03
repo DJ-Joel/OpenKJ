@@ -1070,6 +1070,13 @@ void MainWindow::setupConnections() {
         m_streamSongResolver.cancel();
         streamResolveFailed("Timed out waiting for yt-dlp.");
     });
+    connect(&m_previewStreamResolver, &YtDlpResolver::resolved, this, &MainWindow::previewStreamResolveSucceeded);
+    connect(&m_previewStreamResolver, &YtDlpResolver::failed, this, &MainWindow::previewStreamResolveFailed);
+    m_previewStreamTimeoutTimer.setSingleShot(true);
+    connect(&m_previewStreamTimeoutTimer, &QTimer::timeout, this, [this]() {
+        m_previewStreamResolver.cancel();
+        previewStreamResolveFailed("Timed out waiting for yt-dlp.");
+    });
     connect(&m_ytDlpResolver, &YtDlpResolver::resolved, this, &MainWindow::ytDlpResolveSucceeded);
     connect(&m_ytDlpResolver, &YtDlpResolver::failed, this, &MainWindow::ytDlpResolveFailed);
     m_ytDlpTimeoutTimer.setSingleShot(true);
@@ -2621,12 +2628,23 @@ void MainWindow::tableViewDBContextMenuRequested(const QPoint &pos) {
         return;
     auto song = qvariant_cast<std::shared_ptr<okj::KaraokeSong>>(index.data(Qt::UserRole));
     QMenu contextMenu(this);
-    contextMenu.addAction("Preview", [&]() {
-        previewKaraokeSong(song->path);
-    });
-    contextMenu.addSeparator();
-    contextMenu.addAction("Edit", [&] () { editSong(song); });
-    contextMenu.addAction("Mark bad", [&] () { markSongBad(song); });
+    if (song->isStream) {
+        contextMenu.addAction("Preview", [&]() {
+            previewStreamSong(song);
+        });
+        contextMenu.addSeparator();
+        contextMenu.addAction("Edit", [&]() { editStreamSong(song); });
+        // No "Mark bad" for streams - there's no local file to mark bad or
+        // remove, and the equivalent removal already exists per-singer in
+        // the Stream tab.
+    } else {
+        contextMenu.addAction("Preview", [&]() {
+            previewKaraokeSong(song->path);
+        });
+        contextMenu.addSeparator();
+        contextMenu.addAction("Edit", [&] () { editSong(song); });
+        contextMenu.addAction("Mark bad", [&] () { markSongBad(song); });
+    }
     contextMenu.exec(QCursor::pos());
 }
 
@@ -2726,10 +2744,10 @@ void MainWindow::toggleQueuePlayed() {
     updateRotationDuration();
 }
 
-void MainWindow::previewKaraokeSong(const QString &path) {
+void MainWindow::previewKaraokeSong(const QString &path, bool isStream) {
     if (path.isEmpty())
         return;
-    if (!QFile::exists(path)) {
+    if (!isStream && !QFile::exists(path)) {
         QMessageBox::warning(this, tr("Missing File!"),
                              "Specified karaoke file missing, preview aborted!\n\n" + path, QMessageBox::Ok);
         return;
@@ -2739,6 +2757,79 @@ void MainWindow::previewKaraokeSong(const QString &path) {
         videoPreview->setPlaybackTimeLimit(3);
     videoPreview->setAttribute(Qt::WA_DeleteOnClose);
     videoPreview->show();
+}
+
+void MainWindow::previewStreamSong(const std::shared_ptr<okj::KaraokeSong> &song) {
+    if (m_previewStreamProgressDlg)
+        return; // a resolve is already running
+    if (song->streamUrl.trimmed().isEmpty())
+        return;
+
+    QString ytDlpPath = m_settings.ytDlpPath();
+    if (ytDlpPath.trimmed().isEmpty()) {
+        QMessageBox::warning(this, "yt-dlp not configured",
+                              "A yt-dlp path is needed to resolve stream links into something playable.\n\n"
+                              "Set one in Settings -> External.");
+        return;
+    }
+
+    m_previewStreamProgressDlg = new QProgressDialog("Resolving stream via yt-dlp...", "Cancel", 0, 0, this);
+    m_previewStreamProgressDlg->setWindowModality(Qt::WindowModal);
+    m_previewStreamProgressDlg->setMinimumDuration(0);
+    m_previewStreamProgressDlg->setAutoClose(false);
+    m_previewStreamProgressDlg->setAutoReset(false);
+    connect(m_previewStreamProgressDlg, &QProgressDialog::canceled, this, [this]() {
+        m_previewStreamResolver.cancel();
+        m_previewStreamTimeoutTimer.stop();
+        if (m_previewStreamProgressDlg) {
+            m_previewStreamProgressDlg->deleteLater();
+            m_previewStreamProgressDlg = nullptr;
+        }
+    });
+    m_previewStreamProgressDlg->show();
+
+    m_previewStreamTimeoutTimer.start(30000);
+    m_previewStreamResolver.resolve(ytDlpPath, song->streamUrl);
+}
+
+void MainWindow::previewStreamResolveSucceeded(QString streamUrl) {
+    m_previewStreamTimeoutTimer.stop();
+    if (m_previewStreamProgressDlg) {
+        m_previewStreamProgressDlg->deleteLater();
+        m_previewStreamProgressDlg = nullptr;
+    }
+    previewKaraokeSong(streamUrl, true);
+}
+
+void MainWindow::previewStreamResolveFailed(QString errorMessage) {
+    m_previewStreamTimeoutTimer.stop();
+    if (m_previewStreamProgressDlg) {
+        m_previewStreamProgressDlg->deleteLater();
+        m_previewStreamProgressDlg = nullptr;
+    }
+    QMessageBox::warning(this, "Unable to preview stream",
+                          "yt-dlp couldn't turn that link into a playable stream:\n\n" + errorMessage);
+}
+
+void MainWindow::editStreamSong(const std::shared_ptr<okj::KaraokeSong> &song) {
+    DlgEditStreamSong dlg(song->artist, song->title, this);
+    if (dlg.exec() != QDialog::Accepted)
+        return;
+    if (!TableModelStreamSongs::updateLibraryEntry(song->streamLibraryId, dlg.artist(), dlg.title())) {
+        QMessageBox::warning(this, "Unable to save", "Something went wrong updating that stream song.");
+        return;
+    }
+    // Every place this entry could be cached needs telling separately - see
+    // the earlier live-refresh fixes for the same underlying reason.
+    m_karaokeSongsModel.loadData();
+    requestsDialog->databaseUpdateComplete();
+    m_streamSongsModel.refresh();
+    // Push the corrected artist/title to the request server so singers
+    // searching there see the update too, not the old typo forever.
+    m_songbookApi.pushStreamLibraryEntry(song->streamLibraryId, dlg.artist(), dlg.title(), song->streamUrl,
+                                         song->duration);
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
 }
 
 void MainWindow::editSong(const std::shared_ptr<okj::KaraokeSong>& song) {

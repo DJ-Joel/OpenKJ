@@ -58,6 +58,7 @@
 #include "dlgvideopreview.h"
 #include "dlgchat.h"
 #include "dlgaddstreamsong.h"
+#include "dlgeditstreamsong.h"
 #include "src/models/tablemodelstreamsongs.h"
 #include "ytdlpresolver.h"
 #include <QTimer>
@@ -142,6 +143,9 @@ private:
     YtDlpResolver m_streamSongResolver;
     QProgressDialog *m_streamSongProgressDlg{nullptr};
     QTimer m_streamSongTimeoutTimer;
+    YtDlpResolver m_previewStreamResolver;
+    QProgressDialog *m_previewStreamProgressDlg{nullptr};
+    QTimer m_previewStreamTimeoutTimer;
     okj::StreamSong m_pendingStreamSong;
     int m_pendingStreamSingerId{-1};
     std::unique_ptr<BmDbDialog> bmDbDialog;
@@ -259,7 +263,11 @@ private slots:
     void sliderProgressReleased();
     void setKeyChange();
     void toggleQueuePlayed();
-    void previewKaraokeSong(const QString &path);
+    void previewKaraokeSong(const QString &path, bool isStream = false);
+    void previewStreamSong(const std::shared_ptr<okj::KaraokeSong> &song);
+    void previewStreamResolveSucceeded(QString streamUrl);
+    void previewStreamResolveFailed(QString errorMessage);
+    void editStreamSong(const std::shared_ptr<okj::KaraokeSong> &song);
     void editSong(const std::shared_ptr<okj::KaraokeSong>& song);
     void markSongBad(const std::shared_ptr<okj::KaraokeSong>& song);
     void karaokeAATimerTimeout();
