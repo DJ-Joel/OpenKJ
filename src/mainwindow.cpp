@@ -2752,7 +2752,7 @@ void MainWindow::previewKaraokeSong(const QString &path, bool isStream) {
                              "Specified karaoke file missing, preview aborted!\n\n" + path, QMessageBox::Ok);
         return;
     }
-    auto *videoPreview = new DlgVideoPreview(path, this);
+    auto *videoPreview = new DlgVideoPreview(path, this, isStream);
     if (m_testMode)
         videoPreview->setPlaybackTimeLimit(3);
     videoPreview->setAttribute(Qt::WA_DeleteOnClose);

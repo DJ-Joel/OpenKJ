@@ -6,7 +6,7 @@
 #include "okjutil.h"
 
 
-DlgVideoPreview::DlgVideoPreview(QString mediaFilePath, QWidget *parent) :
+DlgVideoPreview::DlgVideoPreview(QString mediaFilePath, QWidget *parent, bool isStream) :
         QDialog(parent), ui(new Ui::DlgVideoPreview), m_mediaFilename(std::move(mediaFilePath)) {
     m_logger = spdlog::get("logger");
     m_logger->trace("{} Constructor called with media path: {}", m_loggingPrefix, m_mediaFilename);
@@ -16,6 +16,16 @@ DlgVideoPreview::DlgVideoPreview(QString mediaFilePath, QWidget *parent) :
     connect(ui->pushButtonClose, &QPushButton::clicked, [&]() {
         close();
     });
+    if (isStream) {
+        // A resolved stream URL isn't a local file - none of the
+        // existence/zip/cdg checks below apply, so play it directly the same
+        // way a plain video file would be.
+        m_mediaBackend.setVideoOutputWidgets({ui->videoDisplay});
+        m_mediaBackend.setUseSilenceDetection(false);
+        m_logger->info("{} Starting preview playback of stream: {}", m_loggingPrefix, m_mediaFilename);
+        playVideo(m_mediaFilename);
+        return;
+    }
     if (!QFile(m_mediaFilename).exists()) {
         m_logger->warn("{} Bad karaoke file - file missing - {}", m_loggingPrefix, m_mediaFilename);
         QMessageBox::warning(nullptr, tr("Bad karaoke file"), tr("File missing."), QMessageBox::Ok);

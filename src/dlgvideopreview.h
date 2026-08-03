@@ -20,7 +20,7 @@ class DlgVideoPreview : public QDialog
     Q_OBJECT
 
 public:
-    explicit DlgVideoPreview(QString mediaFilePath, QWidget *parent = nullptr);
+    explicit DlgVideoPreview(QString mediaFilePath, QWidget *parent = nullptr, bool isStream = false);
     ~DlgVideoPreview() override;
     // Intended for use with torture testing modes.  Closes the dialog after playing back the specified number
     // of seconds of playback
