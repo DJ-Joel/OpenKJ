@@ -71,6 +71,12 @@ public:
     // artist/title entries exist.
     static std::optional<okj::StreamLibraryEntry> getLibraryEntry(int libraryId);
 
+    // Updates a shared library entry's artist/title in place. Affects every
+    // singer currently assigned to it, and the caller is responsible for
+    // refreshing the Database tab/Requests dialog caches and pushing the
+    // change to the request server afterward.
+    static bool updateLibraryEntry(int libraryId, const QString &artist, const QString &title);
+
     // Removes a singer's assignment only - the library entry (and any other
     // singer's assignment to it) is left alone.
     void deleteSong(int streamSongId);
