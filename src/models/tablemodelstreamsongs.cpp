@@ -169,6 +169,23 @@ bool TableModelStreamSongs::updateLibraryEntry(int libraryId, const QString &art
     return query.exec();
 }
 
+std::optional<okj::StreamLibraryEntry> TableModelStreamSongs::findLibraryEntryByUrl(const QString &url) {
+    QSqlQuery query;
+    query.prepare("SELECT id, artist, title, url, duration FROM streamLibrary WHERE url = :url LIMIT 1");
+    query.bindValue(":url", url);
+    query.exec();
+    if (query.next()) {
+        okj::StreamLibraryEntry entry;
+        entry.id = query.value(0).toInt();
+        entry.artist = query.value(1).toString();
+        entry.title = query.value(2).toString();
+        entry.url = query.value(3).toString();
+        entry.duration = query.value(4).toInt();
+        return entry;
+    }
+    return std::nullopt;
+}
+
 int TableModelStreamSongs::attachExistingToSinger(const QString &singerName, int libraryId) {
     int historySingerId = getHistorySingerId(singerName);
     if (historySingerId == -1)

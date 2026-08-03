@@ -71,6 +71,10 @@ public:
     // artist/title entries exist.
     static std::optional<okj::StreamLibraryEntry> getLibraryEntry(int libraryId);
 
+    // Looks up a library entry by its exact original URL - used when only the
+    // URL is available (e.g. from a history row) rather than a known id.
+    static std::optional<okj::StreamLibraryEntry> findLibraryEntryByUrl(const QString &url);
+
     // Updates a shared library entry's artist/title in place. Affects every
     // singer currently assigned to it, and the caller is responsible for
     // refreshing the Database tab/Requests dialog caches and pushing the
