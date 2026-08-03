@@ -199,6 +199,47 @@ void OKJSongbookAPI::pushStreamLibraryEntry(int localId, const QString &artist, 
     manager->post(request, jsonDocument.toJson());
 }
 
+void OKJSongbookAPI::refreshSingerAccounts()
+{
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command", "listSingers");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
+void OKJSongbookAPI::deleteSingerAccount(int singerId)
+{
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command", "deleteSinger");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    mainObject.insert("singerId", singerId);
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
+void OKJSongbookAPI::resetSingerAccountPassword(int singerId)
+{
+    QJsonObject mainObject;
+    mainObject.insert("api_key", m_settings.requestServerApiKey());
+    mainObject.insert("command", "resetSingerPassword");
+    mainObject.insert("venue_id", m_settings.requestServerVenue());
+    mainObject.insert("singerId", singerId);
+    QJsonDocument jsonDocument;
+    jsonDocument.setObject(mainObject);
+    QNetworkRequest request(QUrl(m_settings.requestServerUrl()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    manager->post(request, jsonDocument.toJson());
+}
+
 void OKJSongbookAPI::clearRequests()
 {
     QJsonObject mainObject;
@@ -556,6 +597,38 @@ void OKJSongbookAPI::onNetworkReply(QNetworkReply *reply)
             emit chatMessagesChanged(chatMessages);
         }
     }
+    if (command == "listSingers")
+    {
+        OkjsSingerAccounts accounts;
+        QJsonArray singerArray = json.object().value("singers").toArray();
+        for (const auto &val : singerArray)
+        {
+            QJsonObject obj = val.toObject();
+            OkjsSingerAccount acct;
+            acct.id = obj.value("id").toInt();
+            acct.name = obj.value("name").toString();
+            acct.email = obj.value("email").toString();
+            acct.muted = obj.value("muted").toBool();
+            acct.createdAt = obj.value("created_at").toString();
+            accounts.append(acct);
+        }
+        if (accounts != singerAccounts)
+        {
+            singerAccounts = accounts;
+            emit singerAccountsChanged(singerAccounts);
+        }
+    }
+    if (command == "deleteSinger")
+    {
+        // Re-fetch the list so the Settings panel reflects the removal.
+        refreshSingerAccounts();
+    }
+    if (command == "resetSingerPassword")
+    {
+        int singerId = json.object().value("singerId").toInt();
+        QString tempPassword = json.object().value("tempPassword").toString();
+        emit singerPasswordResetComplete(singerId, tempPassword);
+    }
     if (command == "sendChatReply" || command == "setChatMessageHidden" || command == "clearChat")
     {
         // These change server-side chat state, so pull the updated view back.
@@ -756,6 +829,21 @@ bool OkjsChatMessage::operator ==(const OkjsChatMessage &m) const
     if (muted != m.muted)
         return false;
     if (time != m.time)
+        return false;
+    return true;
+}
+
+bool OkjsSingerAccount::operator ==(const OkjsSingerAccount &s) const
+{
+    if (id != s.id)
+        return false;
+    if (name != s.name)
+        return false;
+    if (email != s.email)
+        return false;
+    if (muted != s.muted)
+        return false;
+    if (createdAt != s.createdAt)
         return false;
     return true;
 }

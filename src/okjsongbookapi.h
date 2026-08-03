@@ -63,6 +63,19 @@ public:
 
 typedef QList<OkjsChatMessage> OkjsChatMessages;
 
+class OkjsSingerAccount
+{
+public:
+    int id{0};
+    QString name;
+    QString email;
+    bool muted{false};
+    QString createdAt;
+    bool operator == (const OkjsSingerAccount& s) const;
+};
+
+typedef QList<OkjsSingerAccount> OkjsSingerAccounts;
+
 class OKJSongbookAPI : public QObject
 {
     Q_OBJECT
@@ -85,6 +98,7 @@ private:
     Settings m_settings;
     QJsonArray lastRotationSent;
     int chatSerial{-1};
+    OkjsSingerAccounts singerAccounts;
     OkjsChatMessages chatMessages;
 
 public:
@@ -110,6 +124,11 @@ public:
     void setChatMessageHidden(int messageId, bool hidden);
     void setSingerMuted(int singerId, bool muted);
     void clearChat();
+    // Singer account admin, surfaced in Settings.
+    void refreshSingerAccounts();
+    void deleteSingerAccount(int singerId);
+    void resetSingerAccountPassword(int singerId);
+    [[nodiscard]] OkjsSingerAccounts getSingerAccounts() const { return singerAccounts; }
     [[nodiscard]] OkjsChatMessages getChatMessages() const { return chatMessages; }
     bool test();
     void alertCheck();
@@ -134,6 +153,8 @@ signals:
     void alertRecieved(QString title, QString message);
     void entitledSystemCountChanged(int count);
     void chatMessagesChanged(OkjsChatMessages messages);
+    void singerAccountsChanged(OkjsSingerAccounts accounts);
+    void singerPasswordResetComplete(int singerId, QString tempPassword);
 
 
 public slots:

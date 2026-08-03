@@ -167,6 +167,12 @@ private slots:
     void on_btnYtDlpBrowse_clicked();
     void on_btnYtDlpTest_clicked();
     void on_btnYtDlpUpdate_clicked();
+    void on_btnSingerAccountsRefresh_clicked();
+    void on_btnSingerAccountsDelete_clicked();
+    void on_btnSingerAccountsResetPassword_clicked();
+    void on_tableWidgetSingerAccounts_itemSelectionChanged();
+    void singerAccountsUpdated(OkjsSingerAccounts accounts);
+    void singerPasswordResetDone(int singerId, QString tempPassword);
     void on_checkBoxProgressiveSearch_toggled(bool checked);
     void on_cbxPreviewEnabled_toggled(bool checked);
     void on_comboBoxKAudioDevices_currentIndexChanged(int index);

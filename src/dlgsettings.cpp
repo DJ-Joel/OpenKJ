@@ -28,6 +28,7 @@
 #include <QProcess>
 #include <QStandardPaths>
 #include <QMessageBox>
+#include <QTableWidgetItem>
 #include <QSqlQuery>
 #include <QtSql>
 #include <QXmlStreamWriter>
@@ -286,6 +287,9 @@ DlgSettings::DlgSettings(MediaBackend &AudioBackend, MediaBackend &BmAudioBacken
     connect(&songbookApi, &OKJSongbookAPI::entitledSystemCountChanged, this, &DlgSettings::entitledSystemCountChanged);
     connect(ui->cbxRotShowNextSong, &QCheckBox::toggled, &m_settings, &Settings::setRotationShowNextSong);
     connect(ui->cbxRotShowNextSong, &QCheckBox::toggled, this, &DlgSettings::rotationShowNextSongChanged);
+    connect(&songbookApi, &OKJSongbookAPI::singerAccountsChanged, this, &DlgSettings::singerAccountsUpdated);
+    connect(&songbookApi, &OKJSongbookAPI::singerPasswordResetComplete, this, &DlgSettings::singerPasswordResetDone);
+    songbookApi.refreshSingerAccounts();
     setupHotkeysForm();
     m_pageSetupDone = true;
 }
@@ -1182,4 +1186,81 @@ void DlgSettings::comboBoxFileLogLevelChanged(int index) {
     }
     if (m_logger->level() < sink->level())
         m_logger->set_level(sink->level());
+}
+
+void DlgSettings::singerAccountsUpdated(OkjsSingerAccounts accounts) {
+    ui->tableWidgetSingerAccounts->setRowCount(0);
+    ui->tableWidgetSingerAccounts->setRowCount(accounts.size());
+    for (int i = 0; i < accounts.size(); i++) {
+        const auto &acct = accounts.at(i);
+        auto *nameItem = new QTableWidgetItem(acct.name);
+        nameItem->setData(Qt::UserRole, acct.id);
+        ui->tableWidgetSingerAccounts->setItem(i, 0, nameItem);
+        ui->tableWidgetSingerAccounts->setItem(i, 1, new QTableWidgetItem(acct.email));
+        ui->tableWidgetSingerAccounts->setItem(i, 2, new QTableWidgetItem(acct.muted ? "Yes" : "No"));
+        ui->tableWidgetSingerAccounts->setItem(i, 3, new QTableWidgetItem(acct.createdAt));
+    }
+    ui->tableWidgetSingerAccounts->resizeColumnsToContents();
+    ui->btnSingerAccountsDelete->setEnabled(false);
+    ui->btnSingerAccountsResetPassword->setEnabled(false);
+}
+
+void DlgSettings::on_tableWidgetSingerAccounts_itemSelectionChanged() {
+    bool hasSelection = !ui->tableWidgetSingerAccounts->selectionModel()->selectedRows().isEmpty();
+    ui->btnSingerAccountsDelete->setEnabled(hasSelection);
+    ui->btnSingerAccountsResetPassword->setEnabled(hasSelection);
+}
+
+void DlgSettings::on_btnSingerAccountsRefresh_clicked() {
+    songbookApi.refreshSingerAccounts();
+}
+
+void DlgSettings::on_btnSingerAccountsDelete_clicked() {
+    auto selRows = ui->tableWidgetSingerAccounts->selectionModel()->selectedRows();
+    if (selRows.isEmpty())
+        return;
+    int row = selRows.at(0).row();
+    int singerId = ui->tableWidgetSingerAccounts->item(row, 0)->data(Qt::UserRole).toInt();
+    QString name = ui->tableWidgetSingerAccounts->item(row, 0)->text();
+    auto result = QMessageBox::question(this, "Delete account",
+                        "Delete " + name + "'s account? This also removes their favorites and chat "
+                        "history, and can't be undone.",
+                        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (result != QMessageBox::Yes)
+        return;
+    songbookApi.deleteSingerAccount(singerId);
+}
+
+void DlgSettings::on_btnSingerAccountsResetPassword_clicked() {
+    auto selRows = ui->tableWidgetSingerAccounts->selectionModel()->selectedRows();
+    if (selRows.isEmpty())
+        return;
+    int row = selRows.at(0).row();
+    int singerId = ui->tableWidgetSingerAccounts->item(row, 0)->data(Qt::UserRole).toInt();
+    QString name = ui->tableWidgetSingerAccounts->item(row, 0)->text();
+    auto result = QMessageBox::question(this, "Reset password",
+                        "Reset the password for " + name + "? They'll need the new password from you "
+                        "to log in again.",
+                        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (result != QMessageBox::Yes)
+        return;
+    songbookApi.resetSingerAccountPassword(singerId);
+}
+
+void DlgSettings::singerPasswordResetDone(int singerId, QString tempPassword) {
+    if (tempPassword.isEmpty()) {
+        QMessageBox::warning(this, "Unable to reset password", "Something went wrong resetting that password.");
+        return;
+    }
+    QString name;
+    for (const auto &acct : songbookApi.getSingerAccounts()) {
+        if (acct.id == singerId) {
+            name = acct.name;
+            break;
+        }
+    }
+    QString who = name.isEmpty() ? "this singer" : name;
+    QMessageBox::information(this, "Password reset",
+                             "New temporary password for " + who + ":\n\n" + tempPassword +
+                             "\n\nGive this to them so they can log in.");
 }
