@@ -10,7 +10,7 @@ A few features:
 * Rotation ticker on the CDG display
 * Option to use a custom background or display a rotating slide show on the CDG output dialog while idle
 * Fades break music in and out automatically when karaoke tracks start/end
-* Remote request server integration allowing singers to look up and submit songs, **request key changes, creat an account to save favorite songs, view singer queue** via the web or mobile apps
+* Remote request server integration allowing singers to look up and submit songs, **request key changes, create an account to save favorite songs, view singer queue** via the web or mobile apps
 * **YouTube video integration**  (Must have YT-DLP installed)
 * Automatic performance recording
 * Autoplay karaoke mode
