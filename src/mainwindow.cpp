@@ -1077,6 +1077,13 @@ void MainWindow::setupConnections() {
         m_previewStreamResolver.cancel();
         previewStreamResolveFailed("Timed out waiting for yt-dlp.");
     });
+    connect(&m_historyStreamResolver, &YtDlpResolver::resolved, this, &MainWindow::historyStreamResolveSucceeded);
+    connect(&m_historyStreamResolver, &YtDlpResolver::failed, this, &MainWindow::historyStreamResolveFailed);
+    m_historyStreamTimeoutTimer.setSingleShot(true);
+    connect(&m_historyStreamTimeoutTimer, &QTimer::timeout, this, [this]() {
+        m_historyStreamResolver.cancel();
+        historyStreamResolveFailed("Timed out waiting for yt-dlp.");
+    });
     connect(&m_ytDlpResolver, &YtDlpResolver::resolved, this, &MainWindow::ytDlpResolveSucceeded);
     connect(&m_ytDlpResolver, &YtDlpResolver::failed, this, &MainWindow::ytDlpResolveFailed);
     m_ytDlpTimeoutTimer.setSingleShot(true);
@@ -2630,7 +2637,7 @@ void MainWindow::tableViewDBContextMenuRequested(const QPoint &pos) {
     QMenu contextMenu(this);
     if (song->isStream) {
         contextMenu.addAction("Preview", [&]() {
-            previewStreamSong(song);
+            previewStreamSong(song->streamUrl);
         });
         contextMenu.addSeparator();
         contextMenu.addAction("Edit", [&]() { editStreamSong(song); });
@@ -2759,10 +2766,10 @@ void MainWindow::previewKaraokeSong(const QString &path, bool isStream) {
     videoPreview->show();
 }
 
-void MainWindow::previewStreamSong(const std::shared_ptr<okj::KaraokeSong> &song) {
+void MainWindow::previewStreamSong(const QString &streamUrl) {
     if (m_previewStreamProgressDlg)
         return; // a resolve is already running
-    if (song->streamUrl.trimmed().isEmpty())
+    if (streamUrl.trimmed().isEmpty())
         return;
 
     QString ytDlpPath = m_settings.ytDlpPath();
@@ -2789,7 +2796,7 @@ void MainWindow::previewStreamSong(const std::shared_ptr<okj::KaraokeSong> &song
     m_previewStreamProgressDlg->show();
 
     m_previewStreamTimeoutTimer.start(30000);
-    m_previewStreamResolver.resolve(ytDlpPath, song->streamUrl);
+    m_previewStreamResolver.resolve(ytDlpPath, streamUrl);
 }
 
 void MainWindow::previewStreamResolveSucceeded(QString streamUrl) {
@@ -4852,6 +4859,8 @@ void MainWindow::buttonHistoryPlayClicked() {
     if (selRows.empty())
         return;
     auto index = selRows.at(0);
+    QString filePath = index.sibling(index.row(), 2).data().toString();
+    bool isStream = MediaBackend::isNetworkStreamUri(filePath);
     m_k2kTransition = false;
     if (m_mediaBackendKar.state() == MediaBackend::PlayingState) {
         if (m_settings.showSongInterruptionWarning()) {
@@ -4884,12 +4893,49 @@ void MainWindow::buttonHistoryPlayClicked() {
         m_mediaBackendKar.stop(true);
     }
     int curSingerId = m_rotModel.getSingerByName(m_historySongsModel.currentSingerName()).id;
-    m_curSinger = m_rotModel.getSinger(curSingerId).name;
-    m_curArtist = index.sibling(index.row(), 3).data().toString();
-    m_curTitle = index.sibling(index.row(), 4).data().toString();
+    QString curArtist = index.sibling(index.row(), 3).data().toString();
+    QString curTitle = index.sibling(index.row(), 4).data().toString();
     QString curSongId = index.sibling(index.row(), 5).data().toString();
-    QString filePath = index.sibling(index.row(), 2).data().toString();
     int curKeyChange = index.sibling(index.row(), 6).data().toInt();
+
+    if (isStream) {
+        if (m_historyStreamProgressDlg)
+            return; // a resolve is already running
+        QString ytDlpPath = m_settings.ytDlpPath();
+        if (ytDlpPath.trimmed().isEmpty()) {
+            QMessageBox::warning(this, "yt-dlp not configured",
+                                  "A yt-dlp path is needed to resolve stream links into something playable.\n\n"
+                                  "Set one in Settings -> External.");
+            return;
+        }
+        m_historyStreamSingerId = curSingerId;
+        m_historyStreamArtist = curArtist;
+        m_historyStreamTitle = curTitle;
+        m_historyStreamUrl = filePath;
+
+        m_historyStreamProgressDlg = new QProgressDialog("Resolving stream via yt-dlp...", "Cancel", 0, 0, this);
+        m_historyStreamProgressDlg->setWindowModality(Qt::WindowModal);
+        m_historyStreamProgressDlg->setMinimumDuration(0);
+        m_historyStreamProgressDlg->setAutoClose(false);
+        m_historyStreamProgressDlg->setAutoReset(false);
+        connect(m_historyStreamProgressDlg, &QProgressDialog::canceled, this, [this]() {
+            m_historyStreamResolver.cancel();
+            m_historyStreamTimeoutTimer.stop();
+            if (m_historyStreamProgressDlg) {
+                m_historyStreamProgressDlg->deleteLater();
+                m_historyStreamProgressDlg = nullptr;
+            }
+        });
+        m_historyStreamProgressDlg->show();
+
+        m_historyStreamTimeoutTimer.start(30000);
+        m_historyStreamResolver.resolve(ytDlpPath, filePath);
+        return;
+    }
+
+    m_curSinger = m_rotModel.getSinger(curSingerId).name;
+    m_curArtist = curArtist;
+    m_curTitle = curTitle;
     ui->labelSinger->setText(m_curSinger);
     ui->labelArtist->setText(m_curArtist);
     ui->labelTitle->setText(m_curTitle);
@@ -4908,6 +4954,43 @@ void MainWindow::buttonHistoryPlayClicked() {
     }
 }
 
+void MainWindow::historyStreamResolveSucceeded(QString streamUrl) {
+    m_historyStreamTimeoutTimer.stop();
+    if (m_historyStreamProgressDlg) {
+        m_historyStreamProgressDlg->deleteLater();
+        m_historyStreamProgressDlg = nullptr;
+    }
+    m_curSinger = m_rotModel.getSinger(m_historyStreamSingerId).name;
+    m_curArtist = m_historyStreamArtist;
+    m_curTitle = m_historyStreamTitle;
+    ui->labelSinger->setText(m_curSinger);
+    ui->labelArtist->setText(m_curArtist);
+    ui->labelTitle->setText(m_curTitle);
+    playStreamUrl(streamUrl);
+    // Streams always play at their original key - no pitch shift.
+    m_mediaBackendKar.setPitchShift(0);
+    if (m_settings.treatAllSingersAsRegs() || m_rotModel.getSinger(m_historyStreamSingerId).regular)
+        m_historySongsModel.saveSong(m_curSinger, m_historyStreamUrl, m_curArtist, m_curTitle, QString(), 0);
+    m_rotModel.setCurrentSinger(m_historyStreamSingerId);
+    m_rotDelegate.setCurrentSinger(m_historyStreamSingerId);
+    if (m_settings.rotationAltSortOrder()) {
+        auto curSingerPos = m_rotModel.getSinger(m_historyStreamSingerId).position;
+        m_curSingerOriginalPosition = curSingerPos;
+        if (curSingerPos != 0)
+            m_rotModel.singerMove(curSingerPos, 0);
+    }
+}
+
+void MainWindow::historyStreamResolveFailed(QString errorMessage) {
+    m_historyStreamTimeoutTimer.stop();
+    if (m_historyStreamProgressDlg) {
+        m_historyStreamProgressDlg->deleteLater();
+        m_historyStreamProgressDlg = nullptr;
+    }
+    QMessageBox::warning(this, "Unable to play stream",
+                          "yt-dlp couldn't turn that link into a playable stream:\n\n" + errorMessage);
+}
+
 void MainWindow::buttonHistoryToQueueClicked() {
     auto selRows = ui->tableViewHistory->selectionModel()->selectedRows();
     if (selRows.empty())
@@ -4917,6 +5000,26 @@ void MainWindow::buttonHistoryToQueueClicked() {
         auto path = index.sibling(index.row(), 2).data().toString();
         int curSingerId = m_rotModel.getSingerByName(m_historySongsModel.currentSingerName()).id;
         int key = index.sibling(index.row(), 6).data().toInt();
+        if (MediaBackend::isNetworkStreamUri(path)) {
+            auto entry = TableModelStreamSongs::findLibraryEntryByUrl(path);
+            if (!entry) {
+                QMessageBox::warning(this,
+                                     "Unable to add history song",
+                                     "Couldn't find a matching stream library entry for this history "
+                                     "song. This can happen if it was removed from the library.\n\n"
+                                     "Song: " + path
+                );
+                return;
+            }
+            QString singerName = m_rotModel.getSinger(curSingerId).name;
+            if (m_streamSongsModel.attachExistingToSinger(singerName, entry->id) == -1) {
+                QMessageBox::warning(this, "Unable to add", "Something went wrong attaching that stream song.");
+                return;
+            }
+            updateRotationDuration();
+            m_rotModel.layoutChanged();
+            return;
+        }
         int dbSongId = m_karaokeSongsModel.getIdForPath(path);
         if (dbSongId == -1) {
             QMessageBox::warning(this,
@@ -4953,6 +5056,10 @@ void MainWindow::tableViewHistoryContextMenu(const QPoint &pos) {
             QMenu contextMenu(this);
             contextMenu.addAction("Preview", [&]() {
                 QString filename = index.sibling(index.row(), 2).data().toString();
+                if (MediaBackend::isNetworkStreamUri(filename)) {
+                    previewStreamSong(filename);
+                    return;
+                }
                 if (!QFile::exists(filename)) {
                     QMessageBox::warning(this, tr("Missing File!"),
                                          "Specified karaoke file missing, preview aborted!\n\n" + m_dbRtClickFile,

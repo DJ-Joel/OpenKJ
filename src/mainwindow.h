@@ -146,6 +146,13 @@ private:
     YtDlpResolver m_previewStreamResolver;
     QProgressDialog *m_previewStreamProgressDlg{nullptr};
     QTimer m_previewStreamTimeoutTimer;
+    YtDlpResolver m_historyStreamResolver;
+    QProgressDialog *m_historyStreamProgressDlg{nullptr};
+    QTimer m_historyStreamTimeoutTimer;
+    int m_historyStreamSingerId{-1};
+    QString m_historyStreamArtist;
+    QString m_historyStreamTitle;
+    QString m_historyStreamUrl;
     okj::StreamSong m_pendingStreamSong;
     int m_pendingStreamSingerId{-1};
     std::unique_ptr<BmDbDialog> bmDbDialog;
@@ -264,10 +271,12 @@ private slots:
     void setKeyChange();
     void toggleQueuePlayed();
     void previewKaraokeSong(const QString &path, bool isStream = false);
-    void previewStreamSong(const std::shared_ptr<okj::KaraokeSong> &song);
+    void previewStreamSong(const QString &streamUrl);
     void previewStreamResolveSucceeded(QString streamUrl);
     void previewStreamResolveFailed(QString errorMessage);
     void editStreamSong(const std::shared_ptr<okj::KaraokeSong> &song);
+    void historyStreamResolveSucceeded(QString streamUrl);
+    void historyStreamResolveFailed(QString errorMessage);
     void editSong(const std::shared_ptr<okj::KaraokeSong>& song);
     void markSongBad(const std::shared_ptr<okj::KaraokeSong>& song);
     void karaokeAATimerTimeout();
