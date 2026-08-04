@@ -346,6 +346,7 @@ void OKJSongbookAPI::updateSongDb()
     QList<QJsonDocument> jsonDocs;
     QSqlQuery query;
     int numEntries = 0;
+    int docs = 0;
     if (cancelUpdate)
         return;
     if (query.exec("SELECT COUNT(DISTINCT artist||title) FROM dbsongs WHERE discid != '!!DROPPED!!' AND discid != '!!BAD!!'"))
@@ -364,7 +365,6 @@ void OKJSongbookAPI::updateSongDb()
         if (numEntries % songsPerDoc > 0)
             numDocs++;
         emit remoteSongDbUpdateNumDocs(numDocs);
-        int docs = 0;
         while (!done)
         {
             if (cancelUpdate)
@@ -430,6 +430,64 @@ void OKJSongbookAPI::updateSongDb()
             emit remoteSongDbUpdateProgress(i + 1);
         }
     }
+
+    // Stream library entries were previously only ever pushed one at a time,
+    // at the moment each was first added (see pushStreamLibraryEntry). A KJ
+    // pointing OpenKJ at a new or replacement request server would never
+    // have their existing stream songs synced there at all without this -
+    // "Update Remote DB" looked complete but silently skipped every stream
+    // entry. Extends the same progress bar the local song push already uses
+    // rather than running as an invisible second phase.
+    if (cancelUpdate)
+        return;
+    QSqlQuery streamQuery;
+    int streamCount = 0;
+    if (streamQuery.exec("SELECT COUNT(*) FROM streamLibrary"))
+    {
+        if (streamQuery.next())
+            streamCount = streamQuery.value(0).toInt();
+    }
+    if (streamCount > 0)
+    {
+        emit remoteSongDbUpdateNumDocs(docs + streamCount);
+        if (streamQuery.exec("SELECT id, artist, title, url, duration FROM streamLibrary"))
+        {
+            int streamIndex = 0;
+            QUrl streamUrl(m_settings.requestServerUrl());
+            while (streamQuery.next())
+            {
+                if (cancelUpdate)
+                    return;
+                QApplication::processEvents();
+                QJsonObject streamObject;
+                streamObject.insert("api_key", m_settings.requestServerApiKey());
+                streamObject.insert("command", "addStreamLibraryEntry");
+                streamObject.insert("venue_id", m_settings.requestServerVenue());
+                streamObject.insert("localId", streamQuery.value(0).toInt());
+                streamObject.insert("artist", streamQuery.value(1).toString());
+                streamObject.insert("title", streamQuery.value(2).toString());
+                streamObject.insert("url", streamQuery.value(3).toString());
+                streamObject.insert("duration", streamQuery.value(4).toInt());
+                QJsonDocument streamDocument;
+                streamDocument.setObject(streamObject);
+                QNetworkRequest streamRequest(streamUrl);
+                streamRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+                QNetworkAccessManager *streamManager = new QNetworkAccessManager(this);
+                QNetworkReply *streamReply = streamManager->post(streamRequest, streamDocument.toJson());
+                while (!streamReply->isFinished())
+                {
+                    if (cancelUpdate)
+                        return;
+                    QApplication::processEvents();
+                }
+                if (cancelUpdate)
+                    return;
+                streamIndex++;
+                emit remoteSongDbUpdateProgress(docs + streamIndex);
+            }
+        }
+    }
+
     if (cancelUpdate)
         return;
     updateInProgress = false;
