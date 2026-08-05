@@ -23,4 +23,7 @@ Database entries for the songs are based on the file naming scheme.  Common nami
 
 See current RELEASES for installation file
 
+**YT-DLP required for streaming functions to work:**
+https://github.com/yt-dlp/yt-dlp/wiki/Installation
+
 **Must be used in conjunction with https://github.com/DJ-Joel/StandaloneRequestServer for the singer device/web features.**
