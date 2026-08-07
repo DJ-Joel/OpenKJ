@@ -61,6 +61,15 @@ public:
 signals:
     void addRequestSong(int songId, int singerId, int keyChg);
     void addRequestStreamSong(int libraryId, int singerId);
+    // artist/title come from the currently selected request row, if any -
+    // may be empty if no request is selected when the link is added.
+    void addRequestPastedLink(QString url, QString artist, QString title, int singerId);
+    // artist/title likewise come from whichever context (pasted link or a
+    // selected Song Matches stream row) the Download button acted on - may
+    // be empty, in which case MainWindow falls back to a yt-dlp metadata
+    // lookup to fill them in.
+    void downloadRequested(QString url, QString artist, QString title);
+    void downloadCancelRequested();
 
 public slots:
     void databaseAboutToUpdate();
@@ -68,6 +77,9 @@ public slots:
     void databaseSongAdded();
     void rotationChanged();
     void updateIcons();
+    void downloadProgressUpdate(QString statusLine);
+    void downloadFinishedUpdate(QString message);
+    void downloadFailedUpdate(QString errorMessage);
 
 private slots:
     void on_pushButtonClose_clicked();
@@ -101,6 +113,8 @@ private slots:
     void on_pushButtonWebSearch_clicked();
 
     void on_pushButtonRunTortureTest_clicked();
+    void on_pushButtonDownload_clicked();
+    void on_pushButtonCancelDownload_clicked();
 
 protected:
     void resizeEvent(QResizeEvent *event);

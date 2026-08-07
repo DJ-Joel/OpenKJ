@@ -61,6 +61,7 @@
 #include "dlgeditstreamsong.h"
 #include "src/models/tablemodelstreamsongs.h"
 #include "ytdlpresolver.h"
+#include "ytdlpdownloader.h"
 #include <QTimer>
 #include <QProgressDialog>
 #include "src/models/tablemodelhistorysongs.h"
@@ -161,6 +162,12 @@ private:
     MediaBackend m_mediaBackendSfx{this, "SFX", MediaBackend::SFX};
     MediaBackend m_mediaBackendBm{this, "BM", MediaBackend::BackgroundMusic};
     YtDlpResolver m_ytDlpResolver;
+    YtDlpDownloader m_ytDlpDownloader;
+    // Captured when a download starts, used when it finishes - the
+    // downloader's own finished() signal only reports the resulting file
+    // path and duration, not the artist/title that were requested with it.
+    QString m_pendingDownloadArtist;
+    QString m_pendingDownloadTitle;
     QProgressDialog *m_ytDlpProgressDialog{nullptr};
     QTimer m_ytDlpTimeoutTimer;
     AudioRecorder audioRecorder;
@@ -214,6 +221,7 @@ private:
     bool bmPlaylistExists(const QString& name);
     void addSfxButton(const QString &filename, const QString &label, bool reset = false);
     void refreshSfxButtons();
+    QString computeCollisionSafeDownloadPath(const QString &folder, const QString &artist, const QString &title);
 
 public:
     explicit MainWindow(QWidget *parent = nullptr);
@@ -233,6 +241,12 @@ private slots:
     void btnStreamRemoveClicked();
     void tableViewStreamContextMenuRequested(const QPoint &pos);
     void addRequestStreamSongSlot(int libraryId, int singerId);
+    void addRequestPastedLinkSlot(QString url, QString artist, QString title, int singerId);
+    void downloadRequestedSlot(QString url, QString artist, QString title);
+    void downloadCancelRequestedSlot();
+    void downloadProgressSlot(QString statusLine);
+    void downloadFinishedSlot(QString filePath, int durationSecs);
+    void downloadFailedSlot(QString errorMessage);
     void streamResolveSucceeded(QString streamUrl);
     void streamResolveFailed(QString errorMessage);
     void ytDlpResolveSucceeded(QString streamUrl);

@@ -150,6 +150,11 @@ QString Settings::ytDlpPath()
     return settings->value("ytDlpPath", "").toString();
 }
 
+QString Settings::downloadPath()
+{
+    return settings->value("downloadPath", "").toString();
+}
+
 bool Settings::logShow()
 {
     return settings->value("logVisible", false).toBool();
@@ -183,6 +188,11 @@ void Settings::setLogDir(QString path)
 void Settings::setYtDlpPath(QString path)
 {
     settings->setValue("ytDlpPath", path);
+}
+
+void Settings::setDownloadPath(QString path)
+{
+    settings->setValue("downloadPath", path);
 }
 
 void Settings::setCurrentRotationPosition(int position)

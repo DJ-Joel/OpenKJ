@@ -87,6 +87,7 @@ public:
     QString storeDownloadDir();
     QString logDir();
     QString ytDlpPath();
+    QString downloadPath();
     bool logShow();
     bool logEnabled();
     void setPassword(QString password);
@@ -378,6 +379,7 @@ public slots:
     void setLogVisible(bool visible);
     void setLogDir(QString path);
     void setYtDlpPath(QString path);
+    void setDownloadPath(QString path);
     void setCurrentRotationPosition(int position);
     void dbSetDirectoryWatchEnabled(bool val);
     void setSystemId(int id);

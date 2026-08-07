@@ -165,6 +165,7 @@ private slots:
     void on_btnDurationBgColor_clicked();
     void on_btnLogDirBrowse_clicked();
     void on_btnYtDlpBrowse_clicked();
+    void on_btnDownloadPathBrowse_clicked();
     void on_btnYtDlpTest_clicked();
     void on_btnYtDlpUpdate_clicked();
     void on_btnSingerAccountsRefresh_clicked();

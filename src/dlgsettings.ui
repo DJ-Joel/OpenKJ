@@ -2102,6 +2102,46 @@ For example, searching for &quot;im&quot; will find songs that contain &quot;I'm
              </widget>
             </item>
             <item>
+             <widget class="QGroupBox" name="groupBoxDownloadPath">
+              <property name="title">
+               <string>Download Folder</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_29">
+               <item>
+                <widget class="QLabel" name="labelDownloadPathDesc">
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>Where the Incoming Requests window's Download button saves videos it pulls down via yt-dlp. Downloaded songs are added to the local song database automatically.</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayoutDownloadPath">
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QLineEdit" name="lineEditDownloadPath">
+                   <property name="readOnly">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="btnDownloadPathBrowse">
+                   <property name="text">
+                    <string>Browse</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
              <spacer name="verticalSpacerExternal">
               <property name="orientation">
                <enum>Qt::Vertical</enum>

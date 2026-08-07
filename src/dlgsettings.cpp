@@ -222,6 +222,7 @@ DlgSettings::DlgSettings(MediaBackend &AudioBackend, MediaBackend &BmAudioBacken
     ui->lineEditDownloadsDir->setText(m_settings.storeDownloadDir());
     ui->lineEditLogDir->setText(m_settings.logDir());
     ui->lineEditYtDlpPath->setText(m_settings.ytDlpPath());
+    ui->lineEditDownloadPath->setText(m_settings.downloadPath());
     ui->checkBoxEnforceAspectRatio->setChecked(m_settings.enforceAspectRatio());
     ui->checkBoxTreatAllSingersAsRegs->setChecked(m_settings.treatAllSingersAsRegs());
     ui->cbxCrossFade->setChecked(m_settings.bmKCrossFade());
@@ -972,6 +973,18 @@ void DlgSettings::on_btnYtDlpBrowse_clicked() {
         m_settings.setYtDlpPath(fileName);
         ui->lineEditYtDlpPath->setText(fileName);
         ui->labelYtDlpTestResult->setText("");
+    }
+}
+
+void DlgSettings::on_btnDownloadPathBrowse_clicked() {
+    QString dirName = QFileDialog::getExistingDirectory(
+            this,
+            "Select download folder",
+            ui->lineEditDownloadPath->text()
+    );
+    if (dirName != "") {
+        m_settings.setDownloadPath(dirName);
+        ui->lineEditDownloadPath->setText(dirName);
     }
 }
 

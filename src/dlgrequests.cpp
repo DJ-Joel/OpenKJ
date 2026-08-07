@@ -303,6 +303,59 @@ void DlgRequests::on_tableViewRequests_clicked(const QModelIndex &index) {
 }
 
 void DlgRequests::on_pushButtonAddSong_clicked() {
+    // A pasted YouTube link takes priority over a Song Matches selection -
+    // it's a deliberate, specific act, so it wins over whatever happened to
+    // be selected in the table underneath it.
+    QString pastedUrl = ui->lineEditYoutubeLink->text().trimmed();
+    if (!pastedUrl.isEmpty()) {
+        bool hasRequestSelected = !ui->tableViewRequests->selectionModel()->selectedIndexes().empty();
+        int logRequestId = hasRequestSelected ? curRequestId : -1;
+        QModelIndex reqIndex = hasRequestSelected
+                ? ui->tableViewRequests->selectionModel()->selectedIndexes().at(0) : QModelIndex();
+        // Columns on tableViewRequests: 0=Singer, 1=Artist, 2=Title, matching
+        // requestSelectionChanged()'s already-verified mapping.
+        QString pastedArtist = reqIndex.isValid() ? reqIndex.sibling(reqIndex.row(), 1).data().toString() : QString();
+        QString pastedTitle = reqIndex.isValid() ? reqIndex.sibling(reqIndex.row(), 2).data().toString() : QString();
+
+        if (ui->radioButtonNewSinger->isChecked()) {
+            if (ui->lineEditSingerName->text() == "" || rotModel.singerExists(ui->lineEditSingerName->text()))
+                return;
+            int newSingerId = rotModel.singerAdd(ui->lineEditSingerName->text(),
+                                                 ui->comboBoxAddPosition->currentIndex());
+            emit addRequestPastedLink(pastedUrl, pastedArtist, pastedTitle, newSingerId);
+            m_reqLogger->info(
+                    "RequestID: {} | Added pasted link to new singer | Name: {} | Position: {} | Wait: {} | URL: {}",
+                    logRequestId,
+                    ui->lineEditSingerName->text().toStdString(),
+                    rotModel.getSinger(newSingerId).position,
+                    rotModel.singerTurnDistance(newSingerId),
+                    pastedUrl.toStdString()
+            );
+            m_reqLogger->flush();
+        } else if (ui->radioButtonExistingSinger->isChecked()) {
+            emit addRequestPastedLink(pastedUrl, pastedArtist, pastedTitle,
+                                      rotModel.getSingerByName(ui->comboBoxSingers->currentText()).id);
+            m_reqLogger->info("RequestID: {} | Added pasted link to existing singer | Name: {} | URL: {}",
+                              logRequestId,
+                              ui->comboBoxSingers->currentText().toStdString(),
+                              pastedUrl.toStdString()
+            );
+            m_reqLogger->flush();
+        }
+        ui->lineEditYoutubeLink->clear();
+        if (hasRequestSelected && m_settings.requestRemoveOnRotAdd()) {
+            songbookApi.removeRequest(curRequestId);
+            m_reqLogger->info("RequestID: {} | Auto-removed after add to singer queue", curRequestId);
+            m_reqLogger->flush();
+            ui->tableViewRequests->selectionModel()->clearSelection();
+            ui->lineEditSearch->clear();
+            ui->lineEditSingerName->clear();
+            ui->comboBoxSingers->clear();
+            ui->radioButtonExistingSinger->setChecked(true);
+        }
+        return;
+    }
+
     if (ui->tableViewSearch->selectionModel()->selectedIndexes().empty())
         return;
     // A request row isn't required any more - the search area works
@@ -609,4 +662,62 @@ void DlgRequests::requestsChanged(OkjsRequests requests) {
         }
     }
     m_prevRequestList = curRequestsList;
+}
+
+void DlgRequests::on_pushButtonDownload_clicked() {
+    QString url = ui->lineEditYoutubeLink->text().trimmed();
+    QString artist, title;
+
+    if (!url.isEmpty()) {
+        // Same artist/title source as the pasted-link Add Song path - see
+        // on_pushButtonAddSong_clicked for the column mapping note.
+        bool hasRequestSelected = !ui->tableViewRequests->selectionModel()->selectedIndexes().empty();
+        QModelIndex reqIndex = hasRequestSelected
+                ? ui->tableViewRequests->selectionModel()->selectedIndexes().at(0) : QModelIndex();
+        artist = reqIndex.isValid() ? reqIndex.sibling(reqIndex.row(), 1).data().toString() : QString();
+        title = reqIndex.isValid() ? reqIndex.sibling(reqIndex.row(), 2).data().toString() : QString();
+    } else if (!ui->tableViewSearch->selectionModel()->selectedIndexes().empty()) {
+        auto song = qvariant_cast<std::shared_ptr<okj::KaraokeSong>>(
+                ui->tableViewSearch->selectionModel()->selectedIndexes().at(0).data(Qt::UserRole)
+        );
+        if (!song->isStream) {
+            QMessageBox::information(this, "Nothing to download",
+                                      "The selected Song Matches row is already a local file.");
+            return;
+        }
+        url = song->streamUrl;
+        artist = song->artist;
+        title = song->title;
+    } else {
+        QMessageBox::information(this, "Nothing to download",
+                                  "Paste a YouTube link, or select a stream song in Song Matches, first.");
+        return;
+    }
+
+    ui->pushButtonDownload->setEnabled(false);
+    ui->widgetDownloadStatus->setVisible(true);
+    ui->labelDownloadStatus->setText("Starting download...");
+    emit downloadRequested(url, artist, title);
+}
+
+void DlgRequests::on_pushButtonCancelDownload_clicked() {
+    emit downloadCancelRequested();
+}
+
+void DlgRequests::downloadProgressUpdate(QString statusLine) {
+    ui->widgetDownloadStatus->setVisible(true);
+    ui->pushButtonDownload->setEnabled(false);
+    ui->labelDownloadStatus->setText(statusLine);
+}
+
+void DlgRequests::downloadFinishedUpdate(QString message) {
+    ui->widgetDownloadStatus->setVisible(false);
+    ui->pushButtonDownload->setEnabled(true);
+    Q_UNUSED(message)
+}
+
+void DlgRequests::downloadFailedUpdate(QString errorMessage) {
+    ui->widgetDownloadStatus->setVisible(false);
+    ui->pushButtonDownload->setEnabled(true);
+    QMessageBox::warning(this, "Download failed", errorMessage);
 }

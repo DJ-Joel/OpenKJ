@@ -27,6 +27,10 @@
 #include <QInputDialog>
 #include <QUrl>
 #include <QFileDialog>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QProcess>
 #include <QImageReader>
 #include <QDesktopServices>
 #include "mzarchive.h"
@@ -900,6 +904,12 @@ void MainWindow::setupConnections() {
     connect(ui->pushButtonKeyUp, &QPushButton::clicked, ui->spinBoxKey, &QSpinBox::stepUp);
     connect(requestsDialog.get(), &DlgRequests::addRequestSong, &m_qModel, &TableModelQueueSongs::songAddSlot);
     connect(requestsDialog.get(), &DlgRequests::addRequestStreamSong, this, &MainWindow::addRequestStreamSongSlot);
+    connect(requestsDialog.get(), &DlgRequests::addRequestPastedLink, this, &MainWindow::addRequestPastedLinkSlot);
+    connect(requestsDialog.get(), &DlgRequests::downloadRequested, this, &MainWindow::downloadRequestedSlot);
+    connect(requestsDialog.get(), &DlgRequests::downloadCancelRequested, this, &MainWindow::downloadCancelRequestedSlot);
+    connect(&m_ytDlpDownloader, &YtDlpDownloader::progress, this, &MainWindow::downloadProgressSlot);
+    connect(&m_ytDlpDownloader, &YtDlpDownloader::finished, this, &MainWindow::downloadFinishedSlot);
+    connect(&m_ytDlpDownloader, &YtDlpDownloader::failed, this, &MainWindow::downloadFailedSlot);
     connect(&m_mediaBackendBm, &MediaBackend::stateChanged, this, &MainWindow::bmMediaStateChanged);
     connect(&m_mediaBackendBm, &MediaBackend::positionChanged, this, &MainWindow::bmMediaPositionChanged);
     connect(&m_mediaBackendBm, &MediaBackend::durationChanged, this, &MainWindow::bmMediaDurationChanged);
@@ -1579,6 +1589,165 @@ void MainWindow::addRequestStreamSongSlot(int libraryId, int singerId) {
     }
     updateRotationDuration();
     m_rotModel.layoutChanged();
+}
+
+void MainWindow::addRequestPastedLinkSlot(QString url, QString artist, QString title, int singerId) {
+    QString singerName = m_rotModel.getSinger(singerId).name;
+    int newAssignmentId = -1;
+
+    // A pasted link is matched by exact URL, not artist/title text - the
+    // latter comes from whatever the singer originally typed into their
+    // request, which may not match the real video title closely enough to
+    // be a reliable dedup key. Two requests pasting the same URL should
+    // clearly reuse the same library entry either way.
+    auto match = TableModelStreamSongs::findLibraryEntryByUrl(url);
+    if (match) {
+        newAssignmentId = m_streamSongsModel.attachExistingToSinger(singerName, match->id);
+    } else {
+        newAssignmentId = m_streamSongsModel.addNewSongForSinger(singerName, artist, title, url, 0);
+    }
+
+    if (newAssignmentId == -1) {
+        QMessageBox::warning(this, "Unable to add", "Something went wrong saving that stream song.");
+        return;
+    }
+    if (auto pushedEntry = TableModelStreamSongs::getLibraryEntry(m_streamSongsModel.lastLibraryId())) {
+        m_songbookApi.pushStreamLibraryEntry(pushedEntry->id, pushedEntry->artist, pushedEntry->title,
+                                             pushedEntry->url, pushedEntry->duration);
+    }
+    m_karaokeSongsModel.loadData();
+    requestsDialog->databaseUpdateComplete();
+    updateRotationDuration();
+    m_rotModel.layoutChanged();
+}
+
+QString MainWindow::computeCollisionSafeDownloadPath(const QString &folder, const QString &artist, const QString &title) {
+    // Strip characters invalid in Windows filenames, since that's
+    // realistically where this runs.
+    auto sanitize = [](QString s) {
+        static const QString invalidChars = "<>:\"/\\|?*";
+        for (const QChar &c : invalidChars)
+            s.remove(c);
+        return s.trimmed();
+    };
+    QString safeArtist = sanitize(artist);
+    QString safeTitle = sanitize(title);
+    QString baseName = !safeArtist.isEmpty() && !safeTitle.isEmpty() ? safeArtist + " - " + safeTitle
+                        : !safeTitle.isEmpty() ? safeTitle
+                        : !safeArtist.isEmpty() ? safeArtist
+                        : QString("Untitled");
+
+    // yt-dlp can't guarantee the requested .mp4 container ends up being what
+    // actually gets saved (see YtDlpDownloader's class comment) - checking
+    // several common video extensions here, not just .mp4, avoids a rare
+    // but real risk of silently colliding with an unrelated existing file
+    // that happens to share the same base name in a different container.
+    static const QStringList checkExts { "mp4", "webm", "mkv", "m4v" };
+    QString candidate = baseName;
+    int suffix = 1;
+    while (true) {
+        bool collision = false;
+        for (const QString &ext : checkExts) {
+            if (QFile::exists(QDir(folder).filePath(candidate + "." + ext))) {
+                collision = true;
+                break;
+            }
+        }
+        if (!collision)
+            break;
+        suffix++;
+        candidate = QString("%1 (%2)").arg(baseName).arg(suffix);
+    }
+    return QDir(folder).filePath(candidate);
+}
+
+void MainWindow::downloadRequestedSlot(QString url, QString artist, QString title) {
+    QString ytDlpPath = m_settings.ytDlpPath();
+    if (ytDlpPath.trimmed().isEmpty() || !QFileInfo::exists(ytDlpPath)) {
+        requestsDialog->downloadFailedUpdate("yt-dlp path is not set or doesn't exist. Set it in Settings -> External.");
+        return;
+    }
+    QString downloadDir = m_settings.downloadPath();
+    if (downloadDir.trimmed().isEmpty() || !QDir(downloadDir).exists()) {
+        requestsDialog->downloadFailedUpdate("Download folder is not set or doesn't exist. Set one in Settings -> External.");
+        return;
+    }
+    if (m_ytDlpDownloader.isRunning()) {
+        requestsDialog->downloadFailedUpdate("A download is already in progress.");
+        return;
+    }
+
+    // If nothing supplied any artist/title at all (e.g. the link was pasted
+    // with no request selected), look up the real video title via a quick
+    // synchronous yt-dlp metadata call - same command DlgAddStreamSong
+    // already uses for its own lookup button - rather than save the file
+    // under a blank name.
+    if (artist.trimmed().isEmpty() && title.trimmed().isEmpty()) {
+        QProcess lookupProcess;
+        lookupProcess.start(ytDlpPath, QStringList() << "--no-playlist" << "--print" << "%(title)s" << url);
+        if (lookupProcess.waitForFinished(30000) && lookupProcess.exitStatus() == QProcess::NormalExit
+                && lookupProcess.exitCode() == 0) {
+            QString lookedUpTitle = QString::fromUtf8(lookupProcess.readAllStandardOutput()).trimmed();
+            if (!lookedUpTitle.isEmpty())
+                title = lookedUpTitle;
+        }
+        if (title.trimmed().isEmpty())
+            title = "Unknown Title";
+    }
+
+    QString outputBase = computeCollisionSafeDownloadPath(downloadDir, artist, title);
+    m_pendingDownloadArtist = artist;
+    m_pendingDownloadTitle = title;
+    m_ytDlpDownloader.download(ytDlpPath, url, outputBase);
+}
+
+void MainWindow::downloadCancelRequestedSlot() {
+    m_ytDlpDownloader.cancel();
+    requestsDialog->downloadFinishedUpdate("Cancelled");
+}
+
+void MainWindow::downloadProgressSlot(QString statusLine) {
+    requestsDialog->downloadProgressUpdate(statusLine);
+}
+
+void MainWindow::downloadFailedSlot(QString errorMessage) {
+    requestsDialog->downloadFailedUpdate(errorMessage);
+}
+
+void MainWindow::downloadFinishedSlot(QString filePath, int durationSecs) {
+    QFileInfo fi(filePath);
+    QString artist = m_pendingDownloadArtist;
+    QString title = m_pendingDownloadTitle;
+
+    // Field order and defaults follow okj::KaraokeSong's own definition -
+    // see the existing drag-and-drop addSong() call site for the same
+    // pattern. No natural discid exists for a downloaded video, so it's
+    // left empty, same as stream library entries already do.
+    okj::KaraokeSong newSong{
+            -1,
+            artist,
+            artist.toLower(),
+            title,
+            title.toLower(),
+            "",
+            "",
+            durationSecs,
+            fi.completeBaseName(),
+            filePath,
+            fi.completeBaseName() + " " + artist + " " + title + " ",
+            0,
+            QDateTime()
+    };
+    int songId = m_karaokeSongsModel.addSong(newSong);
+    if (songId == -1) {
+        requestsDialog->downloadFailedUpdate("Downloaded successfully, but couldn't add the song to the local database.");
+        return;
+    }
+    // The Incoming Requests dialog has its own separate, private copy of the
+    // song list for its "Song Matches" panel - same refresh already needed
+    // elsewhere whenever the local song database changes.
+    requestsDialog->databaseUpdateComplete();
+    requestsDialog->downloadFinishedUpdate(QString("Downloaded: %1 - %2").arg(artist, title));
 }
 
 void MainWindow::btnStreamAddClicked() {
