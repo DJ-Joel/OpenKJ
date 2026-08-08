@@ -141,6 +141,15 @@ void YtDlpDownloader::processFinished(int exitCode, QProcess::ExitStatus exitSta
     if (filePathFile.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         finalFilePath = QString::fromUtf8(filePathFile.readAll()).trimmed();
+        // yt-dlp reports the path using Windows' native backslashes. Qt's
+        // own file scanning (DbUpdater, via QDirIterator) consistently uses
+        // forward slashes internally regardless of OS. Left unnormalized,
+        // the same physical file ends up recorded under two textually
+        // different path strings - one from here, one from a later
+        // DirectoryMonitor rescan of the same folder - and the database's
+        // UNIQUE constraint on path never catches it as a duplicate, since
+        // it compares strings literally, not filesystem-aware.
+        finalFilePath = QDir::fromNativeSeparators(finalFilePath);
         filePathFile.close();
     }
     QFile::remove(m_filePathTempFile);
