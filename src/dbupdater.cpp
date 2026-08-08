@@ -446,7 +446,12 @@ void DbUpdater::fixMissingFiles(QVector<DbSongRecord> &filesMissingOnDisk, QStri
         bool matchFound = false;
         auto filenameWithoutPath = QFileInfo(missingFile.path).fileName();
         auto const lb = std::lower_bound(filesOnDiskFilenamesOnlySorted.begin(), filesOnDiskFilenamesOnlySorted.end(), filenameWithoutPath, caseInsensitiveSort);
-        if (lb->compare(filenameWithoutPath, Qt::CaseInsensitive) == 0) {
+        // std::lower_bound returns end() when nothing in the list matches -
+        // dereferencing that unconditionally is undefined behavior. This is
+        // exactly the case a rename on a network drive can hit: the old
+        // filename disappears before DirectoryMonitor's rescan has picked up
+        // the new one as a "new file", so nothing here matches at all yet.
+        if (lb != filesOnDiskFilenamesOnlySorted.end() && lb->compare(filenameWithoutPath, Qt::CaseInsensitive) == 0) {
             query.bindValue(":newpath", *lb->string());
             query.bindValue(":id", missingFile.id);
 
