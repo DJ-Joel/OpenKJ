@@ -1364,6 +1364,17 @@ void MainWindow::dbInit(const QDir &okjDataDir) {
         query.exec("PRAGMA user_version = 108");
         m_logger->info("{} DB Schema update to v108 completed", m_loggingPrefix);
     }
+    if (schemaVersion < 109) {
+        m_logger->info("{} Updating database schema to version 109", m_loggingPrefix);
+        // Lets a streamLibrary row remember the local dbSongs id it was
+        // downloaded to (NULL until then). Once set, the entry is treated
+        // as "already downloaded" rather than a separate playable stream -
+        // see TableModelKaraokeSongs::loadData() and
+        // MainWindow::addRequestPastedLinkSlot().
+        query.exec("ALTER TABLE streamLibrary ADD COLUMN downloadedSongId INTEGER DEFAULT NULL");
+        query.exec("PRAGMA user_version = 109");
+        m_logger->info("{} DB Schema update to v109 completed", m_loggingPrefix);
+    }
 }
 
 
@@ -1592,6 +1603,19 @@ void MainWindow::addRequestStreamSongSlot(int libraryId, int singerId) {
 }
 
 void MainWindow::addRequestPastedLinkSlot(QString url, QString artist, QString title, int singerId) {
+    // If this exact URL has already been downloaded to a real local file,
+    // route straight to that singer's queue instead of creating a fresh
+    // stream attachment - otherwise the same song ends up reachable two
+    // different ways: the real file, and a stale "unresolved stream" entry
+    // that plays it by re-resolving the URL every time instead.
+    if (int downloadedSongId = TableModelStreamSongs::downloadedSongIdForUrl(url); downloadedSongId != -1) {
+        m_qModel.songAddSlot(downloadedSongId, singerId, 0);
+        requestsDialog->databaseUpdateComplete();
+        updateRotationDuration();
+        m_rotModel.layoutChanged();
+        return;
+    }
+
     QString singerName = m_rotModel.getSinger(singerId).name;
     int newAssignmentId = -1;
 
@@ -1792,15 +1816,16 @@ void MainWindow::downloadFinishedSlot(QString filePath, int durationSecs) {
         m_rotModel.layoutChanged();
     }
 
-    // A real local copy now exists, so the old stream-library entry (and
-    // every singer's assignment to it - both the ones just graduated above
-    // and any regulars not currently in tonight's rotation) is removed
-    // entirely. Without this, the old "unresolved stream" version keeps
-    // showing up as a separate, look-alike row in Song Matches search
-    // results alongside the new local song, and clicking Add Song on the
-    // wrong one attaches the stream version to a singer instead of the
-    // real downloaded file.
-    TableModelStreamSongs::deleteLibraryEntryByUrl(m_pendingDownloadUrl);
+    // A real local copy now exists. Mark the URL as downloaded (rather than
+    // deleting its stream-library row outright) so it's remembered: Song
+    // Matches stops showing it as a separate, look-alike "Stream" row (see
+    // TableModelKaraokeSongs::loadData()), and if this same URL gets pasted
+    // and "Add Song"'d again later, it's recognized as already downloaded
+    // and routed to the real queue instead of creating a fresh stream
+    // attachment (see addRequestPastedLinkSlot()). Every singer's existing
+    // assignment to it - both the ones just graduated above and any
+    // regulars not currently in tonight's rotation - is removed either way.
+    TableModelStreamSongs::markUrlDownloaded(m_pendingDownloadUrl, artist, title, durationSecs, songId);
     m_streamSongsModel.refresh();
 
     // The Incoming Requests dialog has its own separate, private copy of the
