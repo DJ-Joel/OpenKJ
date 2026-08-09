@@ -151,6 +151,14 @@ int main(int argc, char *argv[]) {
 
     //QLoggingCategory::setFilterRules("*.debug=true");
     qInstallMessageHandler(myMessageOutput);
+    // Must be set before the QApplication instance is constructed - Qt reads
+    // this attribute during construction to decide whether to auto-scale the
+    // whole UI (fonts, icons, widget sizes) to match the OS display scaling
+    // factor (e.g. Windows' 125%/150%/200% settings, common on 4K displays).
+    // Without it, OpenKJ renders at its literal pixel size regardless of the
+    // display's scale, appearing tiny next to other apps on a scaled-up
+    // high-resolution monitor.
+    QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication a(argc, argv);
 
 #ifdef MAC_OVERRIDE_GST

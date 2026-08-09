@@ -203,6 +203,7 @@ DlgSettings::DlgSettings(MediaBackend &AudioBackend, MediaBackend &BmAudioBacken
     ui->lineEditTickerMessage->setText(m_settings.tickerCustomString());
     ui->fontComboBox->setFont(m_settings.applicationFont());
     ui->spinBoxAppFontSize->setValue(m_settings.applicationFont().pointSize());
+    ui->checkBoxTickerTimerAutoScale->setChecked(m_settings.tickerTimerAutoScale());
     ui->checkBoxIncludeEmptySingers->setChecked(!m_settings.estimationSkipEmptySingers());
     ui->spinBoxDefaultPadTime->setValue(m_settings.estimationSingerPad());
     ui->spinBoxDefaultSongDuration->setValue(m_settings.estimationEmptySongLength());
@@ -829,6 +830,21 @@ void DlgSettings::on_spinBoxAppFontSize_valueChanged(int arg1) {
     m_settings.setApplicationFont(font);
     emit applicationFontChanged(font);
     setFont(font);
+}
+
+void DlgSettings::on_btnRestoreDefaultFont_clicked() {
+    QFont font = m_settings.resetApplicationFont();
+    ui->fontComboBox->setFont(font);
+    ui->spinBoxAppFontSize->setValue(font.pointSize());
+    emit applicationFontChanged(font);
+    setFont(font);
+}
+
+void DlgSettings::on_checkBoxTickerTimerAutoScale_toggled(bool checked) {
+    if (!m_pageSetupDone)
+        return;
+    m_settings.setTickerTimerAutoScale(checked);
+    emit tickerTimerAutoScaleChanged();
 }
 
 void DlgSettings::on_btnTestReqServer_clicked() {

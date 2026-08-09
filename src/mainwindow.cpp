@@ -2516,7 +2516,12 @@ void MainWindow::actionSettingsTriggered() {
     connect(settingsDialog, &DlgSettings::cdgOffsetsChanged, cdgWindow.get(), &DlgCdg::cdgOffsetsChanged);
     connect(settingsDialog, &DlgSettings::cdgRemainBgColorChanged, cdgWindow->durationWidget(), &TransparentWidget::setBackgroundColor);
     connect(settingsDialog, &DlgSettings::cdgRemainEnabledChanged, cdgWindow->durationWidget(), &TransparentWidget::setVisible);
-    connect(settingsDialog, &DlgSettings::cdgRemainFontChanged, cdgWindow->durationWidget(), &TransparentWidget::setTextFont);
+    // Routed through DlgCdg (rather than straight to the TransparentWidget)
+    // so it re-reads Settings::cdgRemainFont() fresh - the same font the
+    // Settings dialog just saved, but auto-scaled to the display's current
+    // size if that option is on. The signal's QFont argument is intentionally
+    // unused by the slot; Qt allows connecting to a slot with fewer params.
+    connect(settingsDialog, &DlgSettings::cdgRemainFontChanged, cdgWindow.get(), &DlgCdg::remainFontChanged);
     connect(settingsDialog, &DlgSettings::cdgRemainTextColorChanged, cdgWindow->durationWidget(), &TransparentWidget::setTextColor);
     connect(settingsDialog, &DlgSettings::durationPositionReset, cdgWindow->durationWidget(), &TransparentWidget::resetPosition);
     connect(settingsDialog, &DlgSettings::karaokeAAAlertFontChanged, cdgWindow.get(), &DlgCdg::alertFontChanged);
@@ -2525,6 +2530,7 @@ void MainWindow::actionSettingsTriggered() {
     connect(settingsDialog, &DlgSettings::tickerEnableChanged, cdgWindow.get(), &DlgCdg::tickerEnableChanged);
     connect(settingsDialog, &DlgSettings::tickerEnableChanged, this, &MainWindow::rotationDataChanged);
     connect(settingsDialog, &DlgSettings::tickerFontChanged, cdgWindow.get(), &DlgCdg::tickerFontChanged);
+    connect(settingsDialog, &DlgSettings::tickerTimerAutoScaleChanged, cdgWindow.get(), &DlgCdg::tickerTimerAutoScaleChanged);
     connect(settingsDialog, &DlgSettings::tickerSpeedChanged, cdgWindow.get(), &DlgCdg::tickerSpeedChanged);
     connect(settingsDialog, &DlgSettings::tickerTextColorChanged, cdgWindow.get(), &DlgCdg::tickerTextColorChanged);
     connect(settingsDialog, &DlgSettings::tickerOutputModeChanged, this, &MainWindow::rotationDataChanged);

@@ -111,6 +111,13 @@ public slots:
     void btnToggleFullscreenClicked();
     void cdgOffsetsChanged();
     void tickerFontChanged();
+    // Re-applies the remaining-time countdown font. Argument-less (mirrors
+    // tickerFontChanged() above) so it always re-reads the current effective
+    // font from Settings, which is what makes screen-size auto-scaling work.
+    void remainFontChanged();
+    // Recomputes both fonts above after the auto-scale toggle changes, so it
+    // takes effect immediately without waiting for the window to resize.
+    void tickerTimerAutoScaleChanged();
     void tickerSpeedChanged();
     void tickerTextColorChanged();
     void tickerBgColorChanged();
@@ -124,6 +131,11 @@ protected:
     void showEvent(QShowEvent *event) override;
     void hideEvent(QHideEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *e) override;
+    // Keeps Settings' cached display height current (used for ticker/timer
+    // auto-scaling) and re-applies both fonts whenever this window's size
+    // changes - covers manual resize, entering/leaving fullscreen, and being
+    // moved to a different monitor.
+    void resizeEvent(QResizeEvent *event) override;
 
     signals:
     void visibilityChanged(bool visible);

@@ -32,12 +32,20 @@
 #include <QFontDatabase>
 #include <QUuid>
 #include <fstream>
+#include <atomic>
 
 #ifdef Q_OS_WIN
     #include <windows.h>
     #include <sysinfoapi.h>
 #endif
 
+
+// Current height (in pixels) of the CDG/singer display window, kept up to
+// date by DlgCdg on the GUI thread and read by tickerFont()/cdgRemainFont()
+// below - including from the ticker's own worker thread - when auto-scale
+// is enabled. Plain atomic int rather than a Qt GUI type so it's safe to
+// read from a non-GUI thread.
+static std::atomic<int> s_cdgDisplayHeightPx{0};
 
 
 bool Settings::lastStartupOk() const
@@ -607,6 +615,21 @@ void Settings::setApplicationFont(const QFont &font)
     QApplication::setFont(font, "QMenu");
 }
 
+QFont Settings::resetApplicationFont()
+{
+    // Mirrors applicationFont()'s own fallback-default logic below, so
+    // "restore to default" always matches what a fresh install would use.
+    QFontDatabase fdb;
+    QFont defaultFont = QApplication::font();
+    if (fdb.hasFamily("Roboto"))
+        defaultFont = QFont("Roboto");
+    else if (fdb.hasFamily("Verdana"))
+        defaultFont = QFont("Verdana");
+    defaultFont.setPointSize(14);
+    setApplicationFont(defaultFont);
+    return defaultFont;
+}
+
 QFont Settings::tickerFont()
 {
     QFontDatabase fdb;
@@ -618,6 +641,13 @@ QFont Settings::tickerFont()
         defaultFont = QFont("Verdana");
     defaultFont.setPointSize(48);
     font.fromString(settings->value("tickerFont", defaultFont.toString()).toString());
+    if (tickerTimerAutoScale()) {
+        int displayHeight = s_cdgDisplayHeightPx.load(std::memory_order_relaxed);
+        // Ticker is a single-line banner strip - keep it a modest fraction
+        // of the screen height rather than the full-size countdown timer.
+        if (displayHeight > 0)
+            font.setPixelSize(qMax(10, static_cast<int>(displayHeight * 0.045)));
+    }
     return font;
 }
 
@@ -680,6 +710,13 @@ QFont Settings::cdgRemainFont()
         defaultFont = QFont("Verdana");
     defaultFont.setPointSize(48);
     font.fromString(settings->value("cdgRemainFont", defaultFont.toString()).toString());
+    if (tickerTimerAutoScale()) {
+        int displayHeight = s_cdgDisplayHeightPx.load(std::memory_order_relaxed);
+        // Countdown timer is a bigger, more prominent overlay than the
+        // ticker strip, so give it roughly double the height fraction.
+        if (displayHeight > 0)
+            font.setPixelSize(qMax(10, static_cast<int>(displayHeight * 0.09)));
+    }
     return font;
 }
 
@@ -819,6 +856,21 @@ bool Settings::rotationAltSortOrder() const
 bool Settings::treatAllSingersAsRegs()
 {
     return settings->value("treatAllSingersAsRegs", false).toBool();
+}
+
+bool Settings::tickerTimerAutoScale()
+{
+    return settings->value("tickerTimerAutoScale", false).toBool();
+}
+
+void Settings::setTickerTimerAutoScale(bool enabled)
+{
+    settings->setValue("tickerTimerAutoScale", enabled);
+}
+
+void Settings::setCdgDisplayHeightPx(int heightPx)
+{
+    s_cdgDisplayHeightPx.store(heightPx, std::memory_order_relaxed);
 }
 
 void Settings::setTreatAllSingersAsRegs(const bool enabled)
