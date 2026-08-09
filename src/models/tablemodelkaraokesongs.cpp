@@ -207,7 +207,11 @@ void TableModelKaraokeSongs::loadData() {
     // These aren't tied to any particular singer - that only happens when one
     // gets attached via drag-and-drop or double-click.
     QSqlQuery streamQuery;
-    streamQuery.exec("SELECT id, artist, title, url, duration FROM streamLibrary");
+    // Entries already downloaded to a real local file (downloadedSongId set)
+    // are excluded here - that local file is already in the dbsongs results
+    // above, and showing both would let a KJ accidentally attach the old
+    // "unresolved stream" version to a singer instead of the real download.
+    streamQuery.exec("SELECT id, artist, title, url, duration FROM streamLibrary WHERE downloadedSongId IS NULL");
     while (streamQuery.next()) {
         int libId = streamQuery.value(0).toInt();
         QString artist = streamQuery.value(1).toString();

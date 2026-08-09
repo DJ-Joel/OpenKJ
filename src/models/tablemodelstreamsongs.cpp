@@ -200,24 +200,52 @@ std::vector<std::pair<int, QString>> TableModelStreamSongs::findAssignmentsByUrl
     return results;
 }
 
-void TableModelStreamSongs::deleteLibraryEntryByUrl(const QString &url) {
+void TableModelStreamSongs::markUrlDownloaded(const QString &url, const QString &artist, const QString &title,
+                                               int durationSecs, int songId) {
     QSqlQuery findQuery;
-    findQuery.prepare("SELECT id FROM streamLibrary WHERE url = :url");
+    findQuery.prepare("SELECT id FROM streamLibrary WHERE url = :url LIMIT 1");
     findQuery.bindValue(":url", url);
     findQuery.exec();
-    if (!findQuery.next())
-        return;
-    int libraryId = findQuery.value(0).toInt();
+
+    int libraryId = -1;
+    if (findQuery.next()) {
+        libraryId = findQuery.value(0).toInt();
+        QSqlQuery updateQuery;
+        updateQuery.prepare("UPDATE streamLibrary SET downloadedSongId = :songId WHERE id = :id");
+        updateQuery.bindValue(":songId", songId);
+        updateQuery.bindValue(":id", libraryId);
+        updateQuery.exec();
+    } else {
+        // No prior library entry - this was a link downloaded directly
+        // rather than one that had already been attached to a singer.
+        // Create one anyway (with downloadedSongId already set) so a later
+        // paste of the same URL is still recognized as already downloaded.
+        QSqlQuery insertQuery;
+        insertQuery.prepare("INSERT INTO streamLibrary (artist, title, url, duration, downloadedSongId) "
+                            "VALUES (:artist, :title, :url, :duration, :songId)");
+        insertQuery.bindValue(":artist", artist);
+        insertQuery.bindValue(":title", title);
+        insertQuery.bindValue(":url", url);
+        insertQuery.bindValue(":duration", durationSecs);
+        insertQuery.bindValue(":songId", songId);
+        insertQuery.exec();
+        libraryId = insertQuery.lastInsertId().toInt();
+    }
 
     QSqlQuery deleteAssignments;
     deleteAssignments.prepare("DELETE FROM streamSongs WHERE libraryId = :lib");
     deleteAssignments.bindValue(":lib", libraryId);
     deleteAssignments.exec();
+}
 
-    QSqlQuery deleteLibrary;
-    deleteLibrary.prepare("DELETE FROM streamLibrary WHERE id = :id");
-    deleteLibrary.bindValue(":id", libraryId);
-    deleteLibrary.exec();
+int TableModelStreamSongs::downloadedSongIdForUrl(const QString &url) {
+    QSqlQuery query;
+    query.prepare("SELECT downloadedSongId FROM streamLibrary WHERE url = :url AND downloadedSongId IS NOT NULL LIMIT 1");
+    query.bindValue(":url", url);
+    query.exec();
+    if (query.next())
+        return query.value(0).toInt();
+    return -1;
 }
 
 int TableModelStreamSongs::attachExistingToSinger(const QString &singerName, int libraryId) {
