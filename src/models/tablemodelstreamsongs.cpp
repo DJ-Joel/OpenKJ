@@ -200,6 +200,26 @@ std::vector<std::pair<int, QString>> TableModelStreamSongs::findAssignmentsByUrl
     return results;
 }
 
+void TableModelStreamSongs::deleteLibraryEntryByUrl(const QString &url) {
+    QSqlQuery findQuery;
+    findQuery.prepare("SELECT id FROM streamLibrary WHERE url = :url");
+    findQuery.bindValue(":url", url);
+    findQuery.exec();
+    if (!findQuery.next())
+        return;
+    int libraryId = findQuery.value(0).toInt();
+
+    QSqlQuery deleteAssignments;
+    deleteAssignments.prepare("DELETE FROM streamSongs WHERE libraryId = :lib");
+    deleteAssignments.bindValue(":lib", libraryId);
+    deleteAssignments.exec();
+
+    QSqlQuery deleteLibrary;
+    deleteLibrary.prepare("DELETE FROM streamLibrary WHERE id = :id");
+    deleteLibrary.bindValue(":id", libraryId);
+    deleteLibrary.exec();
+}
+
 int TableModelStreamSongs::attachExistingToSinger(const QString &singerName, int libraryId) {
     int historySingerId = getHistorySingerId(singerName);
     if (historySingerId == -1)

@@ -84,6 +84,16 @@ public:
     // singer's name.
     static std::vector<std::pair<int, QString>> findAssignmentsByUrl(const QString &url);
 
+    // Removes a stream library entry entirely, along with every singer's
+    // assignment to it (regardless of played state or which night they were
+    // added). Used once a real local download exists for that URL, so the
+    // old "unresolved stream" version can no longer show up as a
+    // look-alike row in search results and get attached to a singer by
+    // mistake instead of the real downloaded song. A no-op if no library
+    // entry matches the URL. Callers displaying a singer's Stream tab
+    // should call refresh() afterward to pick up the removal.
+    static void deleteLibraryEntryByUrl(const QString &url);
+
     // Updates a shared library entry's artist/title in place. Affects every
     // singer currently assigned to it, and the caller is responsible for
     // refreshing the Database tab/Requests dialog caches and pushing the
