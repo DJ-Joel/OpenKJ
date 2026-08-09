@@ -186,6 +186,20 @@ std::optional<okj::StreamLibraryEntry> TableModelStreamSongs::findLibraryEntryBy
     return std::nullopt;
 }
 
+std::vector<std::pair<int, QString>> TableModelStreamSongs::findAssignmentsByUrl(const QString &url) {
+    std::vector<std::pair<int, QString>> results;
+    QSqlQuery query;
+    query.prepare("SELECT s.id, h.name FROM streamSongs s "
+                  "INNER JOIN streamLibrary l ON l.id = s.libraryId "
+                  "INNER JOIN historySingers h ON h.id = s.historySinger "
+                  "WHERE l.url = :url AND s.played = 0");
+    query.bindValue(":url", url);
+    query.exec();
+    while (query.next())
+        results.emplace_back(query.value(0).toInt(), query.value(1).toString());
+    return results;
+}
+
 int TableModelStreamSongs::attachExistingToSinger(const QString &singerName, int libraryId) {
     int historySingerId = getHistorySingerId(singerName);
     if (historySingerId == -1)

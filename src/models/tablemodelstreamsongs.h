@@ -5,6 +5,7 @@
 #include <QString>
 #include <optional>
 #include <vector>
+#include <utility>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
@@ -74,6 +75,14 @@ public:
     // Looks up a library entry by its exact original URL - used when only the
     // URL is available (e.g. from a history row) rather than a known id.
     static std::optional<okj::StreamLibraryEntry> findLibraryEntryByUrl(const QString &url);
+
+    // Finds every singer with an unplayed stream assignment pointing at the
+    // given URL, via the shared library entry. Used to "graduate" a stream
+    // song into a singer's real queue once it's been downloaded to a local
+    // file - see MainWindow::downloadFinishedSlot. Returns each
+    // assignment's streamSongs.id (for deleteSong()) paired with the
+    // singer's name.
+    static std::vector<std::pair<int, QString>> findAssignmentsByUrl(const QString &url);
 
     // Updates a shared library entry's artist/title in place. Affects every
     // singer currently assigned to it, and the caller is responsible for
