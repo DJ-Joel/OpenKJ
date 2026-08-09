@@ -6,6 +6,7 @@
 #include <QUuid>
 #include <QFile>
 #include <QTextStream>
+#include <QProcessEnvironment>
 
 YtDlpDownloader::YtDlpDownloader(QObject *parent) : QObject(parent)
 {
@@ -87,6 +88,16 @@ void YtDlpDownloader::download(const QString &ytDlpPath, const QString &url, con
     args += m_settings.ytDlpCookieArgs();
     args << url;
     m_logger->info("{} Starting download via yt-dlp: {}", m_loggingPrefix, url.toStdString());
+    // yt-dlp is itself a Python program - on Windows, Python's default text
+    // encoding for a piped (non-console) stdout is the system's legacy ANSI
+    // code page rather than UTF-8, so titles with accented or non-Latin
+    // characters can come through as mangled bytes even though the app
+    // decodes the output as UTF-8. Forcing Python's own I/O to UTF-8 here
+    // keeps the two sides in agreement.
+    QProcessEnvironment processEnv = QProcessEnvironment::systemEnvironment();
+    processEnv.insert("PYTHONIOENCODING", "utf-8");
+    processEnv.insert("PYTHONUTF8", "1");
+    m_process->setProcessEnvironment(processEnv);
     m_process->start(ytDlpPath, args);
 }
 

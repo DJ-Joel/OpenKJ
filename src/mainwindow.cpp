@@ -31,6 +31,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QProcess>
+#include <QProcessEnvironment>
 #include <QImageReader>
 #include <QDesktopServices>
 #include "mzarchive.h"
@@ -1722,6 +1723,14 @@ void MainWindow::downloadRequestedSlot(QString url, QString artist, QString titl
     // under a blank name.
     if (artist.trimmed().isEmpty() && title.trimmed().isEmpty()) {
         QProcess lookupProcess;
+        // Forces yt-dlp's own (Python) stdout encoding to UTF-8, matching
+        // the QString::fromUtf8() used to decode it below - on Windows,
+        // Python's default for piped output is the system's legacy ANSI
+        // code page instead, which mangles accented/non-Latin titles.
+        QProcessEnvironment lookupEnv = QProcessEnvironment::systemEnvironment();
+        lookupEnv.insert("PYTHONIOENCODING", "utf-8");
+        lookupEnv.insert("PYTHONUTF8", "1");
+        lookupProcess.setProcessEnvironment(lookupEnv);
         QStringList lookupArgs = QStringList() << "--no-playlist" << "--print" << "%(title)s";
         lookupArgs += m_settings.ytDlpCookieArgs();
         lookupArgs << url;
@@ -1787,7 +1796,12 @@ void MainWindow::downloadFinishedSlot(QString filePath, int durationSecs) {
             title.toLower(),
             "",
             "",
-            durationSecs,
+            // KaraokeSong::duration is stored in milliseconds everywhere
+            // else in the app (see KaraokeFileInfo::getDuration() and every
+            // display path in TableModelKaraokeSongs/TableModelQueueSongs) -
+            // durationSecs from yt-dlp is plain seconds, so it must be
+            // scaled up or it displays as 0:00 for anything under ~16.7 min.
+            durationSecs * 1000,
             fi.completeBaseName(),
             filePath,
             fi.completeBaseName() + " " + artist + " " + title + " ",
