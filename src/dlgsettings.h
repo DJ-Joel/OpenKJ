@@ -54,6 +54,9 @@ private:
     bool m_pageSetupDone;
     QStringList audioOutputDevices;
     void setupHotkeysForm();
+    // Shows/hides the browser-picker vs cookies-file sub-widgets to match
+    // the current Cookie source selection.
+    void updateCookieModeVisibility();
     struct KeyboardShortcut
     {
         QString description;
@@ -168,6 +171,10 @@ private slots:
     void on_btnDownloadPathBrowse_clicked();
     void on_btnYtDlpTest_clicked();
     void on_btnYtDlpUpdate_clicked();
+    void on_comboBoxCookieMode_currentIndexChanged(int index);
+    void on_comboBoxCookieBrowser_currentIndexChanged(int index);
+    void on_btnCookieProfilePathBrowse_clicked();
+    void on_btnCookieFilePathBrowse_clicked();
     void on_btnSingerAccountsRefresh_clicked();
     void on_btnSingerAccountsDelete_clicked();
     void on_btnSingerAccountsResetPassword_clicked();

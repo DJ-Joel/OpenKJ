@@ -2142,6 +2142,174 @@ For example, searching for &quot;im&quot; will find songs that contain &quot;I'm
              </widget>
             </item>
             <item>
+             <widget class="QGroupBox" name="groupBoxYtDlpCookies">
+              <property name="title">
+               <string>YouTube Cookies (for age-restricted videos)</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayoutCookies">
+               <item>
+                <widget class="QLabel" name="labelCookiesDesc">
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>Optional. YouTube sometimes requires being signed in to download or resolve a video (e.g. age-restricted content). If that happens, giving yt-dlp your browser's YouTube cookies works around it.</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayoutCookieMode">
+                 <item>
+                  <widget class="QLabel" name="labelCookieMode">
+                   <property name="text">
+                    <string>Cookie source</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QComboBox" name="comboBoxCookieMode"/>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacerCookieMode">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QWidget" name="widgetCookieBrowser" native="true">
+                 <layout class="QVBoxLayout" name="verticalLayoutCookieBrowser">
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayoutCookieBrowserPick">
+                    <item>
+                     <widget class="QLabel" name="labelCookieBrowser">
+                      <property name="text">
+                       <string>Browser</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QComboBox" name="comboBoxCookieBrowser"/>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacerCookieBrowser">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="labelCookieProfilePath">
+                    <property name="wordWrap">
+                     <bool>true</bool>
+                    </property>
+                    <property name="text">
+                     <string>Profile folder - required for an unlisted browser, optional (default profile used if blank) for a named one</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayoutCookieProfilePath">
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QLineEdit" name="lineEditCookieProfilePath">
+                      <property name="readOnly">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="btnCookieProfilePathBrowse">
+                      <property name="text">
+                       <string>Browse</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QWidget" name="widgetCookieFile" native="true">
+                 <layout class="QVBoxLayout" name="verticalLayoutCookieFile">
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="labelCookieFilePath">
+                    <property name="text">
+                     <string>Cookies file (Netscape format .txt)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayoutCookieFilePath">
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QLineEdit" name="lineEditCookieFilePath">
+                      <property name="readOnly">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="btnCookieFilePathBrowse">
+                      <property name="text">
+                       <string>Browse</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
              <spacer name="verticalSpacerExternal">
               <property name="orientation">
                <enum>Qt::Vertical</enum>

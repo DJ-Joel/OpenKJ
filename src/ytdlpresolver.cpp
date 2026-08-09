@@ -1,6 +1,7 @@
 #include "ytdlpresolver.h"
 #include <QFileInfo>
 #include <QStringList>
+#include <QProcessEnvironment>
 
 YtDlpResolver::YtDlpResolver(QObject *parent) : QObject(parent)
 {
@@ -50,8 +51,20 @@ void YtDlpResolver::resolve(const QString &ytDlpPath, const QString &url)
             this, &YtDlpResolver::processFinished);
     connect(m_process.get(), &QProcess::errorOccurred, this, &YtDlpResolver::processErrorOccurred);
 
-    QStringList args { "--no-playlist", "-f", "best[ext=mp4]/best", "-g", url };
+    QStringList args { "--no-playlist", "-f", "best[ext=mp4]/best" };
+    args += m_settings.ytDlpCookieArgs();
+    args << "-g" << url;
     m_logger->info("{} Resolving stream URL via yt-dlp: {}", m_loggingPrefix, url.toStdString());
+    // yt-dlp is itself a Python program - on Windows, Python's default text
+    // encoding for a piped (non-console) stdout is the system's legacy ANSI
+    // code page rather than UTF-8, so titles with accented or non-Latin
+    // characters can come through as mangled bytes even though the app
+    // decodes the output as UTF-8. Forcing Python's own I/O to UTF-8 here
+    // keeps the two sides in agreement.
+    QProcessEnvironment processEnv = QProcessEnvironment::systemEnvironment();
+    processEnv.insert("PYTHONIOENCODING", "utf-8");
+    processEnv.insert("PYTHONUTF8", "1");
+    m_process->setProcessEnvironment(processEnv);
     m_process->start(ytDlpPath, args);
 }
 

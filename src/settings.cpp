@@ -155,6 +155,58 @@ QString Settings::downloadPath()
     return settings->value("downloadPath", "").toString();
 }
 
+QString Settings::ytDlpCookieMode()
+{
+    return settings->value("ytDlpCookieMode", "none").toString();
+}
+
+QString Settings::ytDlpCookieBrowser()
+{
+    return settings->value("ytDlpCookieBrowser", "").toString();
+}
+
+QString Settings::ytDlpCookieProfilePath()
+{
+    return settings->value("ytDlpCookieProfilePath", "").toString();
+}
+
+QString Settings::ytDlpCookieFilePath()
+{
+    return settings->value("ytDlpCookieFilePath", "").toString();
+}
+
+QStringList Settings::ytDlpCookieArgs()
+{
+    QString mode = ytDlpCookieMode();
+    if (mode == "file") {
+        QString path = ytDlpCookieFilePath();
+        if (path.trimmed().isEmpty())
+            return {};
+        return { "--cookies", path };
+    }
+    if (mode == "browser") {
+        QString browser = ytDlpCookieBrowser();
+        if (browser.trimmed().isEmpty())
+            return {};
+        // "other-firefox"/"other-chromium" aren't real yt-dlp browser
+        // keywords - they exist so an unlisted Firefox/Chromium-based
+        // browser (e.g. Floorp, LibreWolf, Waterfox) can still work, by
+        // telling yt-dlp to use the matching engine's cookie format while
+        // pointing it at that browser's own profile folder.
+        QString engine = browser;
+        if (browser == "other-firefox")
+            engine = "firefox";
+        else if (browser == "other-chromium")
+            engine = "chrome";
+        QString profilePath = ytDlpCookieProfilePath();
+        QString spec = engine;
+        if (!profilePath.trimmed().isEmpty())
+            spec += ":" + profilePath;
+        return { "--cookies-from-browser", spec };
+    }
+    return {};
+}
+
 bool Settings::logShow()
 {
     return settings->value("logVisible", false).toBool();
@@ -193,6 +245,26 @@ void Settings::setYtDlpPath(QString path)
 void Settings::setDownloadPath(QString path)
 {
     settings->setValue("downloadPath", path);
+}
+
+void Settings::setYtDlpCookieMode(QString mode)
+{
+    settings->setValue("ytDlpCookieMode", mode);
+}
+
+void Settings::setYtDlpCookieBrowser(QString browser)
+{
+    settings->setValue("ytDlpCookieBrowser", browser);
+}
+
+void Settings::setYtDlpCookieProfilePath(QString path)
+{
+    settings->setValue("ytDlpCookieProfilePath", path);
+}
+
+void Settings::setYtDlpCookieFilePath(QString path)
+{
+    settings->setValue("ytDlpCookieFilePath", path);
 }
 
 void Settings::setCurrentRotationPosition(int position)

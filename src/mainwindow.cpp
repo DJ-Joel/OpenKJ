@@ -31,6 +31,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QProcess>
+#include <QProcessEnvironment>
 #include <QImageReader>
 #include <QDesktopServices>
 #include "mzarchive.h"
@@ -1364,6 +1365,17 @@ void MainWindow::dbInit(const QDir &okjDataDir) {
         query.exec("PRAGMA user_version = 108");
         m_logger->info("{} DB Schema update to v108 completed", m_loggingPrefix);
     }
+    if (schemaVersion < 109) {
+        m_logger->info("{} Updating database schema to version 109", m_loggingPrefix);
+        // Lets a streamLibrary row remember the local dbSongs id it was
+        // downloaded to (NULL until then). Once set, the entry is treated
+        // as "already downloaded" rather than a separate playable stream -
+        // see TableModelKaraokeSongs::loadData() and
+        // MainWindow::addRequestPastedLinkSlot().
+        query.exec("ALTER TABLE streamLibrary ADD COLUMN downloadedSongId INTEGER DEFAULT NULL");
+        query.exec("PRAGMA user_version = 109");
+        m_logger->info("{} DB Schema update to v109 completed", m_loggingPrefix);
+    }
 }
 
 
@@ -1592,6 +1604,19 @@ void MainWindow::addRequestStreamSongSlot(int libraryId, int singerId) {
 }
 
 void MainWindow::addRequestPastedLinkSlot(QString url, QString artist, QString title, int singerId) {
+    // If this exact URL has already been downloaded to a real local file,
+    // route straight to that singer's queue instead of creating a fresh
+    // stream attachment - otherwise the same song ends up reachable two
+    // different ways: the real file, and a stale "unresolved stream" entry
+    // that plays it by re-resolving the URL every time instead.
+    if (int downloadedSongId = TableModelStreamSongs::downloadedSongIdForUrl(url); downloadedSongId != -1) {
+        m_qModel.songAddSlot(downloadedSongId, singerId, 0);
+        requestsDialog->databaseUpdateComplete();
+        updateRotationDuration();
+        m_rotModel.layoutChanged();
+        return;
+    }
+
     QString singerName = m_rotModel.getSinger(singerId).name;
     int newAssignmentId = -1;
 
@@ -1661,6 +1686,20 @@ QString MainWindow::computeCollisionSafeDownloadPath(const QString &folder, cons
     return QDir(folder).filePath(candidate);
 }
 
+void MainWindow::guessArtistTitleSplit(const QString &rawTitle, QString &outArtist, QString &outTitle) {
+    outArtist.clear();
+    outTitle = rawTitle.trimmed();
+    int splitPos = rawTitle.indexOf(" - ");
+    if (splitPos == -1)
+        return;
+    QString candidateArtist = rawTitle.left(splitPos).trimmed();
+    QString candidateTitle = rawTitle.mid(splitPos + 3).trimmed();
+    if (candidateArtist.isEmpty() || candidateTitle.isEmpty())
+        return;
+    outArtist = candidateArtist;
+    outTitle = candidateTitle;
+}
+
 void MainWindow::downloadRequestedSlot(QString url, QString artist, QString title) {
     QString ytDlpPath = m_settings.ytDlpPath();
     if (ytDlpPath.trimmed().isEmpty() || !QFileInfo::exists(ytDlpPath)) {
@@ -1684,7 +1723,18 @@ void MainWindow::downloadRequestedSlot(QString url, QString artist, QString titl
     // under a blank name.
     if (artist.trimmed().isEmpty() && title.trimmed().isEmpty()) {
         QProcess lookupProcess;
-        lookupProcess.start(ytDlpPath, QStringList() << "--no-playlist" << "--print" << "%(title)s" << url);
+        // Forces yt-dlp's own (Python) stdout encoding to UTF-8, matching
+        // the QString::fromUtf8() used to decode it below - on Windows,
+        // Python's default for piped output is the system's legacy ANSI
+        // code page instead, which mangles accented/non-Latin titles.
+        QProcessEnvironment lookupEnv = QProcessEnvironment::systemEnvironment();
+        lookupEnv.insert("PYTHONIOENCODING", "utf-8");
+        lookupEnv.insert("PYTHONUTF8", "1");
+        lookupProcess.setProcessEnvironment(lookupEnv);
+        QStringList lookupArgs = QStringList() << "--no-playlist" << "--print" << "%(title)s";
+        lookupArgs += m_settings.ytDlpCookieArgs();
+        lookupArgs << url;
+        lookupProcess.start(ytDlpPath, lookupArgs);
         if (lookupProcess.waitForFinished(30000) && lookupProcess.exitStatus() == QProcess::NormalExit
                 && lookupProcess.exitCode() == 0) {
             QString lookedUpTitle = QString::fromUtf8(lookupProcess.readAllStandardOutput()).trimmed();
@@ -1695,9 +1745,24 @@ void MainWindow::downloadRequestedSlot(QString url, QString artist, QString titl
             title = "Unknown Title";
     }
 
+    // Still no Artist at this point (either nothing was supplied to begin
+    // with, or the lookup above only filled in Title)? Take a best-effort
+    // guess by splitting Title on the common "Artist - Title" pattern
+    // rather than leaving Artist permanently blank. The result is a
+    // perfectly normal, fully-editable song entry either way.
+    if (artist.trimmed().isEmpty()) {
+        QString guessedArtist, guessedTitle;
+        guessArtistTitleSplit(title, guessedArtist, guessedTitle);
+        if (!guessedArtist.isEmpty()) {
+            artist = guessedArtist;
+            title = guessedTitle;
+        }
+    }
+
     QString outputBase = computeCollisionSafeDownloadPath(downloadDir, artist, title);
     m_pendingDownloadArtist = artist;
     m_pendingDownloadTitle = title;
+    m_pendingDownloadUrl = url;
     m_ytDlpDownloader.download(ytDlpPath, url, outputBase);
 }
 
@@ -1731,7 +1796,12 @@ void MainWindow::downloadFinishedSlot(QString filePath, int durationSecs) {
             title.toLower(),
             "",
             "",
-            durationSecs,
+            // KaraokeSong::duration is stored in milliseconds everywhere
+            // else in the app (see KaraokeFileInfo::getDuration() and every
+            // display path in TableModelKaraokeSongs/TableModelQueueSongs) -
+            // durationSecs from yt-dlp is plain seconds, so it must be
+            // scaled up or it displays as 0:00 for anything under ~16.7 min.
+            durationSecs * 1000,
             fi.completeBaseName(),
             filePath,
             fi.completeBaseName() + " " + artist + " " + title + " ",
@@ -1743,6 +1813,35 @@ void MainWindow::downloadFinishedSlot(QString filePath, int durationSecs) {
         requestsDialog->downloadFailedUpdate("Downloaded successfully, but couldn't add the song to the local database.");
         return;
     }
+    // If any singer currently has this exact URL saved as an unplayed
+    // stream request, "graduate" it now that a real local copy exists:
+    // move it into that singer's actual queue in the same way a normal
+    // request add would.
+    auto graduatedAssignments = TableModelStreamSongs::findAssignmentsByUrl(m_pendingDownloadUrl);
+    for (const auto &assignment : graduatedAssignments) {
+        const QString &singerName = assignment.second;
+        if (!m_rotModel.singerExists(singerName))
+            continue;
+        int singerId = m_rotModel.getSingerByName(singerName).id;
+        m_qModel.songAddSlot(songId, singerId, 0);
+    }
+    if (!graduatedAssignments.empty()) {
+        updateRotationDuration();
+        m_rotModel.layoutChanged();
+    }
+
+    // A real local copy now exists. Mark the URL as downloaded (rather than
+    // deleting its stream-library row outright) so it's remembered: Song
+    // Matches stops showing it as a separate, look-alike "Stream" row (see
+    // TableModelKaraokeSongs::loadData()), and if this same URL gets pasted
+    // and "Add Song"'d again later, it's recognized as already downloaded
+    // and routed to the real queue instead of creating a fresh stream
+    // attachment (see addRequestPastedLinkSlot()). Every singer's existing
+    // assignment to it - both the ones just graduated above and any
+    // regulars not currently in tonight's rotation - is removed either way.
+    TableModelStreamSongs::markUrlDownloaded(m_pendingDownloadUrl, artist, title, durationSecs, songId);
+    m_streamSongsModel.refresh();
+
     // The Incoming Requests dialog has its own separate, private copy of the
     // song list for its "Song Matches" panel - same refresh already needed
     // elsewhere whenever the local song database changes.

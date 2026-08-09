@@ -5,6 +5,7 @@
 #include <QString>
 #include <optional>
 #include <vector>
+#include <utility>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
@@ -74,6 +75,32 @@ public:
     // Looks up a library entry by its exact original URL - used when only the
     // URL is available (e.g. from a history row) rather than a known id.
     static std::optional<okj::StreamLibraryEntry> findLibraryEntryByUrl(const QString &url);
+
+    // Finds every singer with an unplayed stream assignment pointing at the
+    // given URL, via the shared library entry. Used to "graduate" a stream
+    // song into a singer's real queue once it's been downloaded to a local
+    // file - see MainWindow::downloadFinishedSlot. Returns each
+    // assignment's streamSongs.id (for deleteSong()) paired with the
+    // singer's name.
+    static std::vector<std::pair<int, QString>> findAssignmentsByUrl(const QString &url);
+
+    // Marks a URL as downloaded: sets (or creates) its streamLibrary row's
+    // downloadedSongId to the local dbSongs id it was saved as, and removes
+    // every singer's assignment to it (regardless of played state or which
+    // night they were added - any that should move to a real queue instead
+    // must be graduated by the caller first, see
+    // MainWindow::downloadFinishedSlot). The library row itself is kept,
+    // not deleted, so a URL that gets pasted again later can be recognized
+    // as already downloaded instead of creating a second, redundant stream
+    // entry - see downloadedSongIdForUrl(). Callers displaying a singer's
+    // Stream tab should call refresh() afterward to pick up the removal.
+    static void markUrlDownloaded(const QString &url, const QString &artist, const QString &title,
+                                   int durationSecs, int songId);
+
+    // If the given URL has already been downloaded to a local library song
+    // (via markUrlDownloaded()), returns that song's dbSongs id. Returns -1
+    // if the URL has never been downloaded, or has no library entry at all.
+    static int downloadedSongIdForUrl(const QString &url);
 
     // Updates a shared library entry's artist/title in place. Affects every
     // singer currently assigned to it, and the caller is responsible for

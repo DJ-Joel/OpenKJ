@@ -223,6 +223,26 @@ DlgSettings::DlgSettings(MediaBackend &AudioBackend, MediaBackend &BmAudioBacken
     ui->lineEditLogDir->setText(m_settings.logDir());
     ui->lineEditYtDlpPath->setText(m_settings.ytDlpPath());
     ui->lineEditDownloadPath->setText(m_settings.downloadPath());
+    ui->comboBoxCookieMode->addItem("Don't use cookies", "none");
+    ui->comboBoxCookieMode->addItem("Get cookies from a browser", "browser");
+    ui->comboBoxCookieMode->addItem("Use a cookies file", "file");
+    ui->comboBoxCookieBrowser->addItem("Chrome", "chrome");
+    ui->comboBoxCookieBrowser->addItem("Firefox", "firefox");
+    ui->comboBoxCookieBrowser->addItem("Edge", "edge");
+    ui->comboBoxCookieBrowser->addItem("Brave", "brave");
+    ui->comboBoxCookieBrowser->addItem("Opera", "opera");
+    ui->comboBoxCookieBrowser->addItem("Vivaldi", "vivaldi");
+    ui->comboBoxCookieBrowser->addItem("Safari", "safari");
+    ui->comboBoxCookieBrowser->addItem("Chromium", "chromium");
+    ui->comboBoxCookieBrowser->addItem("Whale", "whale");
+    ui->comboBoxCookieBrowser->addItem("Other Firefox-based browser (e.g. Floorp, LibreWolf, Waterfox)", "other-firefox");
+    ui->comboBoxCookieBrowser->addItem("Other Chromium-based browser", "other-chromium");
+    ui->comboBoxCookieMode->setCurrentIndex(ui->comboBoxCookieMode->findData(m_settings.ytDlpCookieMode()));
+    int savedBrowserIdx = ui->comboBoxCookieBrowser->findData(m_settings.ytDlpCookieBrowser());
+    ui->comboBoxCookieBrowser->setCurrentIndex(savedBrowserIdx >= 0 ? savedBrowserIdx : 0);
+    ui->lineEditCookieProfilePath->setText(m_settings.ytDlpCookieProfilePath());
+    ui->lineEditCookieFilePath->setText(m_settings.ytDlpCookieFilePath());
+    updateCookieModeVisibility();
     ui->checkBoxEnforceAspectRatio->setChecked(m_settings.enforceAspectRatio());
     ui->checkBoxTreatAllSingersAsRegs->setChecked(m_settings.treatAllSingersAsRegs());
     ui->cbxCrossFade->setChecked(m_settings.bmKCrossFade());
@@ -1057,6 +1077,48 @@ void DlgSettings::on_btnYtDlpUpdate_clicked() {
             .split('\n', Qt::SkipEmptyParts);
     QString result = lines.isEmpty() ? "Update finished." : lines.last().trimmed();
     ui->labelYtDlpTestResult->setText(result);
+}
+
+void DlgSettings::on_comboBoxCookieMode_currentIndexChanged(int index) {
+    Q_UNUSED(index)
+    m_settings.setYtDlpCookieMode(ui->comboBoxCookieMode->currentData().toString());
+    updateCookieModeVisibility();
+}
+
+void DlgSettings::on_comboBoxCookieBrowser_currentIndexChanged(int index) {
+    Q_UNUSED(index)
+    m_settings.setYtDlpCookieBrowser(ui->comboBoxCookieBrowser->currentData().toString());
+}
+
+void DlgSettings::on_btnCookieProfilePathBrowse_clicked() {
+    QString dirName = QFileDialog::getExistingDirectory(
+            this,
+            "Select browser profile folder",
+            ui->lineEditCookieProfilePath->text()
+    );
+    if (dirName != "") {
+        m_settings.setYtDlpCookieProfilePath(dirName);
+        ui->lineEditCookieProfilePath->setText(dirName);
+    }
+}
+
+void DlgSettings::on_btnCookieFilePathBrowse_clicked() {
+    QString fileName = QFileDialog::getOpenFileName(
+            this,
+            "Select cookies file",
+            ui->lineEditCookieFilePath->text(),
+            "Text Files (*.txt);;All Files (*)"
+    );
+    if (fileName != "") {
+        m_settings.setYtDlpCookieFilePath(fileName);
+        ui->lineEditCookieFilePath->setText(fileName);
+    }
+}
+
+void DlgSettings::updateCookieModeVisibility() {
+    QString mode = ui->comboBoxCookieMode->currentData().toString();
+    ui->widgetCookieBrowser->setVisible(mode == "browser");
+    ui->widgetCookieFile->setVisible(mode == "file");
 }
 
 void DlgSettings::on_checkBoxProgressiveSearch_toggled(bool checked) {

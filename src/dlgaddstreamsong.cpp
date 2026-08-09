@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QMessageBox>
 #include <QProcess>
+#include <QProcessEnvironment>
 #include <QFileInfo>
 
 DlgAddStreamSong::DlgAddStreamSong(QString singerName, QWidget *parent) :
@@ -56,8 +57,19 @@ void DlgAddStreamSong::on_btnLookup_clicked() {
     // Metadata only - fast enough to do synchronously, and it avoids pulling
     // the whole async resolver in for what is a one-off dialog action.
     QProcess process;
-    process.start(ytDlpPath, QStringList() << "--no-playlist" << "--print" << "%(title)s"
-                                           << "--print" << "%(duration)s" << url);
+    // Forces yt-dlp's own (Python) stdout encoding to UTF-8, matching the
+    // QString::fromUtf8() used to decode it below - on Windows, Python's
+    // default for piped output is the system's legacy ANSI code page
+    // instead, which mangles accented/non-Latin titles.
+    QProcessEnvironment lookupEnv = QProcessEnvironment::systemEnvironment();
+    lookupEnv.insert("PYTHONIOENCODING", "utf-8");
+    lookupEnv.insert("PYTHONUTF8", "1");
+    process.setProcessEnvironment(lookupEnv);
+    QStringList lookupArgs = QStringList() << "--no-playlist" << "--print" << "%(title)s"
+                                           << "--print" << "%(duration)s";
+    lookupArgs += m_settings.ytDlpCookieArgs();
+    lookupArgs << url;
+    process.start(ytDlpPath, lookupArgs);
     bool finished = process.waitForFinished(30000);
     QApplication::restoreOverrideCursor();
     ui->btnLookup->setEnabled(true);

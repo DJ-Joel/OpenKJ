@@ -5,6 +5,7 @@
 #include <QProcess>
 #include <QString>
 #include <memory>
+#include "settings.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
@@ -37,6 +38,7 @@ private:
     QString m_durationTempFile;
     std::string m_loggingPrefix{"[YtDlpDownloader]"};
     std::shared_ptr<spdlog::logger> m_logger;
+    Settings m_settings;
 
 public:
     explicit YtDlpDownloader(QObject *parent = nullptr);
