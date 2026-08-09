@@ -165,9 +165,12 @@ private:
     YtDlpDownloader m_ytDlpDownloader;
     // Captured when a download starts, used when it finishes - the
     // downloader's own finished() signal only reports the resulting file
-    // path and duration, not the artist/title that were requested with it.
+    // path and duration, not the artist/title/url that were requested with
+    // it. m_pendingDownloadUrl is used to find and "graduate" any matching
+    // stream assignments once the download completes.
     QString m_pendingDownloadArtist;
     QString m_pendingDownloadTitle;
+    QString m_pendingDownloadUrl;
     QProgressDialog *m_ytDlpProgressDialog{nullptr};
     QTimer m_ytDlpTimeoutTimer;
     AudioRecorder audioRecorder;
@@ -222,6 +225,14 @@ private:
     void addSfxButton(const QString &filename, const QString &label, bool reset = false);
     void refreshSfxButtons();
     QString computeCollisionSafeDownloadPath(const QString &folder, const QString &artist, const QString &title);
+    // Best-effort split of a "Artist - Title" style string into separate
+    // fields, used when a download has no Artist supplied. Many YouTube
+    // karaoke/official uploads follow this convention, but it's only a
+    // guess - only the first " - " is used as the split point, since some
+    // titles legitimately contain more than one (e.g. "Artist - Song Title
+    // - Karaoke Version"). outArtist is left empty if no usable split is
+    // found, leaving the caller's existing fallback behavior untouched.
+    static void guessArtistTitleSplit(const QString &rawTitle, QString &outArtist, QString &outTitle);
 
 public:
     explicit MainWindow(QWidget *parent = nullptr);

@@ -1661,6 +1661,20 @@ QString MainWindow::computeCollisionSafeDownloadPath(const QString &folder, cons
     return QDir(folder).filePath(candidate);
 }
 
+void MainWindow::guessArtistTitleSplit(const QString &rawTitle, QString &outArtist, QString &outTitle) {
+    outArtist.clear();
+    outTitle = rawTitle.trimmed();
+    int splitPos = rawTitle.indexOf(" - ");
+    if (splitPos == -1)
+        return;
+    QString candidateArtist = rawTitle.left(splitPos).trimmed();
+    QString candidateTitle = rawTitle.mid(splitPos + 3).trimmed();
+    if (candidateArtist.isEmpty() || candidateTitle.isEmpty())
+        return;
+    outArtist = candidateArtist;
+    outTitle = candidateTitle;
+}
+
 void MainWindow::downloadRequestedSlot(QString url, QString artist, QString title) {
     QString ytDlpPath = m_settings.ytDlpPath();
     if (ytDlpPath.trimmed().isEmpty() || !QFileInfo::exists(ytDlpPath)) {
@@ -1695,9 +1709,24 @@ void MainWindow::downloadRequestedSlot(QString url, QString artist, QString titl
             title = "Unknown Title";
     }
 
+    // Still no Artist at this point (either nothing was supplied to begin
+    // with, or the lookup above only filled in Title)? Take a best-effort
+    // guess by splitting Title on the common "Artist - Title" pattern
+    // rather than leaving Artist permanently blank. The result is a
+    // perfectly normal, fully-editable song entry either way.
+    if (artist.trimmed().isEmpty()) {
+        QString guessedArtist, guessedTitle;
+        guessArtistTitleSplit(title, guessedArtist, guessedTitle);
+        if (!guessedArtist.isEmpty()) {
+            artist = guessedArtist;
+            title = guessedTitle;
+        }
+    }
+
     QString outputBase = computeCollisionSafeDownloadPath(downloadDir, artist, title);
     m_pendingDownloadArtist = artist;
     m_pendingDownloadTitle = title;
+    m_pendingDownloadUrl = url;
     m_ytDlpDownloader.download(ytDlpPath, url, outputBase);
 }
 
@@ -1743,6 +1772,25 @@ void MainWindow::downloadFinishedSlot(QString filePath, int durationSecs) {
         requestsDialog->downloadFailedUpdate("Downloaded successfully, but couldn't add the song to the local database.");
         return;
     }
+    // If any singer currently has this exact URL saved as an unplayed
+    // stream request, "graduate" it now that a real local copy exists:
+    // move it into that singer's actual queue in the same way a normal
+    // request add would, and remove the old stream entry so the song
+    // doesn't end up listed in both places.
+    auto graduatedAssignments = TableModelStreamSongs::findAssignmentsByUrl(m_pendingDownloadUrl);
+    for (const auto &assignment : graduatedAssignments) {
+        const QString &singerName = assignment.second;
+        if (!m_rotModel.singerExists(singerName))
+            continue;
+        int singerId = m_rotModel.getSingerByName(singerName).id;
+        m_qModel.songAddSlot(songId, singerId, 0);
+        m_streamSongsModel.deleteSong(assignment.first);
+    }
+    if (!graduatedAssignments.empty()) {
+        updateRotationDuration();
+        m_rotModel.layoutChanged();
+    }
+
     // The Incoming Requests dialog has its own separate, private copy of the
     // song list for its "Song Matches" panel - same refresh already needed
     // elsewhere whenever the local song database changes.
