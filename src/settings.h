@@ -25,6 +25,7 @@
 #include <QObject>
 #include <QSettings>
 #include <QSplitter>
+#include <QStringList>
 #include <QTableView>
 #include <QTreeView>
 #include <QWidget>
@@ -88,6 +89,29 @@ public:
     QString logDir();
     QString ytDlpPath();
     QString downloadPath();
+    // Cookie mode for yt-dlp invocations: "none", "browser", or "file". Used
+    // to work around YouTube requiring sign-in for age-restricted videos.
+    QString ytDlpCookieMode();
+    void setYtDlpCookieMode(QString mode);
+    // Browser keyword (e.g. "chrome", "firefox"), or "other-firefox" /
+    // "other-chromium" for an unlisted Firefox/Chromium-based browser -
+    // see ytDlpCookieArgs() for how those two get translated.
+    QString ytDlpCookieBrowser();
+    void setYtDlpCookieBrowser(QString browser);
+    // Optional browser profile folder override - required for
+    // "other-firefox"/"other-chromium", optional (default profile used if
+    // blank) for the named browsers.
+    QString ytDlpCookieProfilePath();
+    void setYtDlpCookieProfilePath(QString path);
+    // Path to a Netscape-format cookies.txt file, used when cookie mode is
+    // "file".
+    QString ytDlpCookieFilePath();
+    void setYtDlpCookieFilePath(QString path);
+    // Builds the --cookies-from-browser or --cookies argument pair to pass
+    // to yt-dlp based on the current cookie mode, or an empty list if
+    // cookies aren't configured. Every yt-dlp invocation in the app should
+    // append this to its argument list.
+    QStringList ytDlpCookieArgs();
     bool logShow();
     bool logEnabled();
     void setPassword(QString password);

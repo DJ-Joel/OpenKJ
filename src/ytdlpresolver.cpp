@@ -50,7 +50,9 @@ void YtDlpResolver::resolve(const QString &ytDlpPath, const QString &url)
             this, &YtDlpResolver::processFinished);
     connect(m_process.get(), &QProcess::errorOccurred, this, &YtDlpResolver::processErrorOccurred);
 
-    QStringList args { "--no-playlist", "-f", "best[ext=mp4]/best", "-g", url };
+    QStringList args { "--no-playlist", "-f", "best[ext=mp4]/best" };
+    args += m_settings.ytDlpCookieArgs();
+    args << "-g" << url;
     m_logger->info("{} Resolving stream URL via yt-dlp: {}", m_loggingPrefix, url.toStdString());
     m_process->start(ytDlpPath, args);
 }

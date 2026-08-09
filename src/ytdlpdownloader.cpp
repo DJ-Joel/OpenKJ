@@ -79,8 +79,13 @@ void YtDlpDownloader::download(const QString &ytDlpPath, const QString &url, con
         "-o", outputPathNoExt + ".%(ext)s",
         "--print-to-file", "after_move:filepath", m_filePathTempFile,
         "--print-to-file", "after_move:%(duration)s", m_durationTempFile,
-        url
     };
+    // Appended rather than built into the literal above so a signed-in
+    // cookie source (Settings -> External) works around YouTube requiring
+    // sign-in for some videos (e.g. age-restricted ones) - empty when
+    // cookies aren't configured.
+    args += m_settings.ytDlpCookieArgs();
+    args << url;
     m_logger->info("{} Starting download via yt-dlp: {}", m_loggingPrefix, url.toStdString());
     m_process->start(ytDlpPath, args);
 }

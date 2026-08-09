@@ -5,6 +5,7 @@
 #include <QProcess>
 #include <QString>
 #include <memory>
+#include "settings.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
@@ -23,6 +24,7 @@ private:
     bool m_cancelled{false};
     std::string m_loggingPrefix{"[YtDlpResolver]"};
     std::shared_ptr<spdlog::logger> m_logger;
+    Settings m_settings;
 
 public:
     explicit YtDlpResolver(QObject *parent = nullptr);

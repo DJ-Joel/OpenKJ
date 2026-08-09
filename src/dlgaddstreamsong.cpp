@@ -56,8 +56,11 @@ void DlgAddStreamSong::on_btnLookup_clicked() {
     // Metadata only - fast enough to do synchronously, and it avoids pulling
     // the whole async resolver in for what is a one-off dialog action.
     QProcess process;
-    process.start(ytDlpPath, QStringList() << "--no-playlist" << "--print" << "%(title)s"
-                                           << "--print" << "%(duration)s" << url);
+    QStringList lookupArgs = QStringList() << "--no-playlist" << "--print" << "%(title)s"
+                                           << "--print" << "%(duration)s";
+    lookupArgs += m_settings.ytDlpCookieArgs();
+    lookupArgs << url;
+    process.start(ytDlpPath, lookupArgs);
     bool finished = process.waitForFinished(30000);
     QApplication::restoreOverrideCursor();
     ui->btnLookup->setEnabled(true);

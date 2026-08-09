@@ -1698,7 +1698,10 @@ void MainWindow::downloadRequestedSlot(QString url, QString artist, QString titl
     // under a blank name.
     if (artist.trimmed().isEmpty() && title.trimmed().isEmpty()) {
         QProcess lookupProcess;
-        lookupProcess.start(ytDlpPath, QStringList() << "--no-playlist" << "--print" << "%(title)s" << url);
+        QStringList lookupArgs = QStringList() << "--no-playlist" << "--print" << "%(title)s";
+        lookupArgs += m_settings.ytDlpCookieArgs();
+        lookupArgs << url;
+        lookupProcess.start(ytDlpPath, lookupArgs);
         if (lookupProcess.waitForFinished(30000) && lookupProcess.exitStatus() == QProcess::NormalExit
                 && lookupProcess.exitCode() == 0) {
             QString lookedUpTitle = QString::fromUtf8(lookupProcess.readAllStandardOutput()).trimmed();
@@ -1775,8 +1778,7 @@ void MainWindow::downloadFinishedSlot(QString filePath, int durationSecs) {
     // If any singer currently has this exact URL saved as an unplayed
     // stream request, "graduate" it now that a real local copy exists:
     // move it into that singer's actual queue in the same way a normal
-    // request add would, and remove the old stream entry so the song
-    // doesn't end up listed in both places.
+    // request add would.
     auto graduatedAssignments = TableModelStreamSongs::findAssignmentsByUrl(m_pendingDownloadUrl);
     for (const auto &assignment : graduatedAssignments) {
         const QString &singerName = assignment.second;
@@ -1784,12 +1786,22 @@ void MainWindow::downloadFinishedSlot(QString filePath, int durationSecs) {
             continue;
         int singerId = m_rotModel.getSingerByName(singerName).id;
         m_qModel.songAddSlot(songId, singerId, 0);
-        m_streamSongsModel.deleteSong(assignment.first);
     }
     if (!graduatedAssignments.empty()) {
         updateRotationDuration();
         m_rotModel.layoutChanged();
     }
+
+    // A real local copy now exists, so the old stream-library entry (and
+    // every singer's assignment to it - both the ones just graduated above
+    // and any regulars not currently in tonight's rotation) is removed
+    // entirely. Without this, the old "unresolved stream" version keeps
+    // showing up as a separate, look-alike row in Song Matches search
+    // results alongside the new local song, and clicking Add Song on the
+    // wrong one attaches the stream version to a singer instead of the
+    // real downloaded file.
+    TableModelStreamSongs::deleteLibraryEntryByUrl(m_pendingDownloadUrl);
+    m_streamSongsModel.refresh();
 
     // The Incoming Requests dialog has its own separate, private copy of the
     // song list for its "Song Matches" panel - same refresh already needed
