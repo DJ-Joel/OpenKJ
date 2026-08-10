@@ -84,6 +84,10 @@ private:
     MediaBackend &m_bmb;
     std::unique_ptr<TransparentWidget> m_tWidget;
     Settings m_settings;
+    // Guards resizeEvent() below so it only re-applies ticker/timer fonts
+    // when the height actually changed, not on every redundant resize
+    // callback Qt may fire for a single logical resize.
+    int m_lastAppliedDisplayHeight{-1};
 
 public:
     explicit DlgCdg(MediaBackend &KaraokeBackend, MediaBackend &BreakBackend, QWidget *parent = nullptr,

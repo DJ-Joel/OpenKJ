@@ -130,7 +130,20 @@ void DlgCdg::tickerTimerAutoScaleChanged()
 void DlgCdg::resizeEvent(QResizeEvent *event)
 {
     QDialog::resizeEvent(event);
-    Settings::setCdgDisplayHeightPx(height());
+    // Qt can fire several resize events for a single logical resize (e.g.
+    // during a fullscreen transition). Only react once the height has
+    // actually settled on a new value, and only if auto-scale is even
+    // turned on - otherwise this is a no-op, identical to before this
+    // feature existed. Refreshing the ticker unconditionally on every
+    // resize callback was spawning a new re-render faster than the ticker
+    // thread could settle, which stopped it from scrolling.
+    int newHeight = height();
+    if (newHeight == m_lastAppliedDisplayHeight)
+        return;
+    m_lastAppliedDisplayHeight = newHeight;
+    Settings::setCdgDisplayHeightPx(newHeight);
+    if (!m_settings.tickerTimerAutoScale())
+        return;
     tickerFontChanged();
     remainFontChanged();
 }
