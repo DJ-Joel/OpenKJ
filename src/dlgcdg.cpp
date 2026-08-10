@@ -26,6 +26,7 @@
 #include <QDir>
 #include <QImageReader>
 #include <QScreen>
+#include <QResizeEvent>
 
 
 VideoDisplay *DlgCdg::getVideoDisplay()
@@ -57,7 +58,7 @@ DlgCdg::DlgCdg(MediaBackend &KaraokeBackend, MediaBackend &BreakBackend, QWidget
     m_tWidget->setVisible(m_settings.cdgRemainEnabled());
     tickerFontChanged();
     ui->scroll->setSpeed(m_settings.tickerSpeed());
-    m_tWidget->setTextFont(m_settings.cdgRemainFont());
+    remainFontChanged();
     QPalette palette = ui->scroll->palette();
     palette.setColor(ui->scroll->foregroundRole(), m_settings.tickerTextColor());
     ui->scroll->setPalette(palette);
@@ -111,6 +112,27 @@ void DlgCdg::tickerFontChanged()
     ui->scroll->setMinimumHeight(QFontMetrics(m_settings.tickerFont()).height());
     ui->scroll->setMaximumHeight(QFontMetrics(m_settings.tickerFont()).height());
     ui->scroll->refresh();
+}
+
+void DlgCdg::remainFontChanged()
+{
+    m_tWidget->setTextFont(m_settings.cdgRemainFont());
+}
+
+void DlgCdg::tickerTimerAutoScaleChanged()
+{
+    // Toggling the setting should take effect right away, not wait for the
+    // window to next be resized.
+    tickerFontChanged();
+    remainFontChanged();
+}
+
+void DlgCdg::resizeEvent(QResizeEvent *event)
+{
+    QDialog::resizeEvent(event);
+    Settings::setCdgDisplayHeightPx(height());
+    tickerFontChanged();
+    remainFontChanged();
 }
 
 void DlgCdg::tickerSpeedChanged()

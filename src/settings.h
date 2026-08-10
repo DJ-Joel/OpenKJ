@@ -155,6 +155,10 @@ public:
     void setApplicationFont(const QFont &font);
     QFont tickerFont();
     [[nodiscard]] QFont applicationFont() const;
+    // Resets the application font/size back to OpenKJ's built-in default,
+    // persists it, applies it live, and returns the resulting font so the
+    // caller (the Settings dialog) can update its own font controls.
+    QFont resetApplicationFont();
     int tickerHeight();
     void setTickerHeight(int height);
     int tickerSpeed();
@@ -321,6 +325,20 @@ public:
     bool cdgPrescalingEnabled();
     [[nodiscard]] bool rotationAltSortOrder() const;
     bool treatAllSingersAsRegs();
+
+    // When enabled, tickerFont() and cdgRemainFont() below return a version
+    // of the saved font resized to fit whatever screen the CDG/singer display
+    // window is currently on, instead of the literal saved point size. This
+    // lets the same install look right on a small HD monitor or a big 4K TV
+    // without the user manually re-tuning font sizes per venue/screen.
+    bool tickerTimerAutoScale();
+    void setTickerTimerAutoScale(bool enabled);
+    // Called by DlgCdg (main/GUI thread) whenever the CDG display window's
+    // size changes, so tickerFont()/cdgRemainFont() have a current reference
+    // height to scale against. Safe to call/read from any thread (plain
+    // atomic int, no Qt GUI objects touched) since the ticker's rendering
+    // runs on its own worker thread and reads tickerFont() from there.
+    static void setCdgDisplayHeightPx(int heightPx);
 
 signals:
     void treatAllSingersAsRegsChanged(bool enabled);
