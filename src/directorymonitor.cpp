@@ -13,7 +13,10 @@ DirectoryMonitor::DirectoryMonitor(QObject *parent, QStringList pathsToWatch) : 
     connect(&m_scanTimer, &QTimer::timeout, this, &DirectoryMonitor::scanPaths);
 
     connect(&m_pathsEnumeratedWatcher, &QFutureWatcher<int>::finished, this, &DirectoryMonitor::directoriesEnumerated);
-    auto future = QtConcurrent::run(this, &DirectoryMonitor::enumeratePathsAsync, pathsToWatch);
+    // Qt 6 changed QtConcurrent::run()'s member-function overload: the
+    // member function pointer now comes first, followed by the instance
+    // (it used to be instance-then-pointer in Qt 5).
+    auto future = QtConcurrent::run(&DirectoryMonitor::enumeratePathsAsync, this, pathsToWatch);
     m_pathsEnumeratedWatcher.setFuture(future);
 }
 

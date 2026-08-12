@@ -467,7 +467,8 @@ TransparentWidget::TransparentWidget(QWidget *parent)
     setWindowFlags(Qt::FramelessWindowHint);
     auto layout = new QHBoxLayout(this);
     setLayout(layout);
-    layout->setMargin(0);
+    // QLayout::setMargin() was removed in Qt 6; setContentsMargins() below
+    // already sets all margins to 0, so the old call is simply dropped.
     layout->setSpacing(0);
     layout->setContentsMargins(0,0,0,0);
     setContentsMargins(0,0,0,0);
