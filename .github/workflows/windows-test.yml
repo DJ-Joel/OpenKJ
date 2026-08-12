@@ -8,13 +8,12 @@ env:
   # value to upgrade. Available versions:
   # https://gstreamer.freedesktop.org/data/pkg/windows/
   #
-  # IMPORTANT: stay on the 1.26.x series for now. From 1.28.0 onward GStreamer
-  # switched Windows packaging to a single combined .exe installer and dropped
-  # the .msi packages entirely (there is no separate -devel- package any more).
-  # The install step below downloads two .msi files and drives them with
-  # msiexec, so moving to 1.28+ requires rewriting that step, not just changing
-  # this version number.
-  GSTREAMER_VERSION: '1.26.11'
+  # NOTE: from 1.28.0 onward GStreamer switched Windows packaging to a single
+  # combined .exe (Inno Setup) installer that bundles both the runtime and
+  # the devel headers/libs by default, and dropped the separate .msi /
+  # -devel- packages entirely. The install step below reflects that: one
+  # download, one silent .exe install, no msiexec.
+  GSTREAMER_VERSION: '1.28.6'
 
 jobs:
   build:
@@ -59,16 +58,8 @@ jobs:
       uses: carlosperate/download-file-action@v2
       id: download-gst
       with:
-        file-url: 'https://gstreamer.freedesktop.org/data/pkg/windows/${{ env.GSTREAMER_VERSION }}/msvc/gstreamer-1.0-msvc-x86_64-${{ env.GSTREAMER_VERSION }}.msi'
-        file-name: 'gstreamer.msi'
-        location: './downloads'
-
-    - name: Download GST-Dev Installer
-      uses: carlosperate/download-file-action@v2
-      id: download-gst-dev
-      with:
-        file-url: 'https://gstreamer.freedesktop.org/data/pkg/windows/${{ env.GSTREAMER_VERSION }}/msvc/gstreamer-1.0-devel-msvc-x86_64-${{ env.GSTREAMER_VERSION }}.msi'
-        file-name: 'gstreamer-devel.msi'
+        file-url: 'https://gstreamer.freedesktop.org/data/pkg/windows/${{ env.GSTREAMER_VERSION }}/msvc/gstreamer-1.0-msvc-x86_64-${{ env.GSTREAMER_VERSION }}.exe'
+        file-name: 'gstreamer.exe'
         location: './downloads'
 
     - name: Install GStreamer
@@ -77,19 +68,15 @@ jobs:
         $installRoot = "C:\gstreamer"
         $installDir = "C:\gstreamer\1.0\msvc_x86_64"
 
-        Write-Host "Installing GStreamer runtime..."
-        $p1 = Start-Process msiexec.exe -ArgumentList "/i", "downloads\gstreamer.msi", "/quiet", "/norestart", "ADDLOCAL=ALL", "INSTALLDIR=$installRoot", "/l*v", "gst-runtime-install.log" -Wait -PassThru
+        # 1.28+ ships one combined Inno Setup installer (runtime + devel
+        # headers/libs together by default - there's also a "Compact" install
+        # type that skips devel, but we don't request it, so the default
+        # full install is what we get). No more msiexec / separate -devel-
+        # package.
+        Write-Host "Installing GStreamer..."
+        $p1 = Start-Process "downloads\gstreamer.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=`"$installDir`"" -Wait -PassThru
         if ($p1.ExitCode -ne 0) {
-          Write-Host "::error::GStreamer runtime install failed with exit code $($p1.ExitCode)"
-          Get-Content gst-runtime-install.log -Tail 40
-          exit 1
-        }
-
-        Write-Host "Installing GStreamer devel..."
-        $p2 = Start-Process msiexec.exe -ArgumentList "/i", "downloads\gstreamer-devel.msi", "/quiet", "/norestart", "ADDLOCAL=ALL", "INSTALLDIR=$installRoot", "/l*v", "gst-devel-install.log" -Wait -PassThru
-        if ($p2.ExitCode -ne 0) {
-          Write-Host "::error::GStreamer devel install failed with exit code $($p2.ExitCode)"
-          Get-Content gst-devel-install.log -Tail 40
+          Write-Host "::error::GStreamer install failed with exit code $($p1.ExitCode)"
           exit 1
         }
 
@@ -106,8 +93,8 @@ jobs:
         Write-Host ""
 
         # Report the version actually installed, so the build log makes it
-        # obvious what shipped - and catches a silent mismatch if the MSI
-        # ever stops matching GSTREAMER_VERSION.
+        # obvious what shipped - and catches a silent mismatch if the
+        # installer ever stops matching GSTREAMER_VERSION.
         $gstInspect = Join-Path $installDir "bin\gst-inspect-1.0.exe"
         if (Test-Path $gstInspect) {
           Write-Host "Installed GStreamer version:"
@@ -129,6 +116,19 @@ jobs:
           } else {
             Write-Host "::warning::Expected layout '$sub' not found under $installDir - packaging may be incomplete for this GStreamer version."
           }
+        }
+
+        # The 1.28+ installer bundles devel headers/libs by default, but it
+        # does still offer a "Compact" (runtime-only) install type. We don't
+        # request Compact, but verify a devel header is actually present so a
+        # future installer default change fails loudly here instead of
+        # showing up later as a confusing CMake "GStreamer not found" error.
+        $develMarker = Join-Path $installDir "include\gstreamer-1.0\gst\gst.h"
+        if (Test-Path $develMarker) {
+          Write-Host "OK: devel headers present ($develMarker found)"
+        } else {
+          Write-Host "::error::Devel header not found at $develMarker - this looks like a runtime-only (Compact) install. CMake configure will fail."
+          exit 1
         }
 
     - name: Configure CMake
