@@ -23,27 +23,23 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#if defined(HAVE_ZLIB)
-# include <zlib.h>
-#elif defined(HAVE_BOOST_ZLIB)
-# include <boost/iostreams/filtering_streambuf.hpp>
-# include <boost/iostreams/filter/zlib.hpp>
-#endif
-
-#include <tstring.h>
-#include <tdebug.h>
-
 #include "tzlib.h"
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
+#ifdef HAVE_ZLIB
+# include <zlib.h>
+# include "tstring.h"
+# include "tdebug.h"
+#endif
 
 using namespace TagLib;
 
 bool zlib::isAvailable()
 {
-#if defined(HAVE_ZLIB) || defined(HAVE_BOOST_ZLIB)
+#ifdef HAVE_ZLIB
 
   return true;
 
@@ -54,36 +50,34 @@ bool zlib::isAvailable()
 #endif
 }
 
-ByteVector zlib::decompress(const ByteVector &data)
+ByteVector zlib::decompress([[maybe_unused]] const ByteVector &data)
 {
-#if defined(HAVE_ZLIB)
+#ifdef HAVE_ZLIB
 
   z_stream stream = {};
 
   if(inflateInit(&stream) != Z_OK) {
-    debug("zlib::decompress() - Failed to initizlize zlib.");
+    debug("zlib::decompress() - Failed to initialize zlib.");
     return ByteVector();
   }
 
   ByteVector inData = data;
 
-  stream.avail_in = static_cast<uInt>(inData.size());
+  stream.avail_in = inData.size();
   stream.next_in  = reinterpret_cast<Bytef *>(inData.data());
-
-  const unsigned int chunkSize = 1024;
 
   ByteVector outData;
 
   do {
+    constexpr unsigned int chunkSize = 1024;
     const size_t offset = outData.size();
     outData.resize(outData.size() + chunkSize);
 
     stream.avail_out = static_cast<uInt>(chunkSize);
     stream.next_out  = reinterpret_cast<Bytef *>(outData.data() + offset);
 
-    const int result = inflate(&stream, Z_NO_FLUSH);
-
-    if(result == Z_STREAM_ERROR ||
+    if(const int result = inflate(&stream, Z_NO_FLUSH);
+       result == Z_STREAM_ERROR ||
        result == Z_NEED_DICT ||
        result == Z_DATA_ERROR ||
        result == Z_MEM_ERROR)
@@ -101,38 +95,6 @@ ByteVector zlib::decompress(const ByteVector &data)
   inflateEnd(&stream);
 
   return outData;
-
-#elif defined(HAVE_BOOST_ZLIB)
-
-  using namespace boost::iostreams;
-
-  struct : public sink
-  {
-    ByteVector data;
-
-    typedef char     char_type;
-    typedef sink_tag category;
-
-    std::streamsize write(char const* s, std::streamsize n)
-    {
-      const unsigned int originalSize = data.size();
-
-      data.resize(static_cast<unsigned int>(originalSize + n));
-      ::memcpy(data.data() + originalSize, s, static_cast<size_t>(n));
-
-      return n;
-    }
-  } sink;
-
-  try {
-    zlib_decompressor().write(sink, data.data(), data.size());
-  }
-  catch(const zlib_error &) {
-    debug("zlib::decompress() - Error reading compressed stream.");
-    return ByteVector();
-  }
-
-  return sink.data;
 
 #else
 

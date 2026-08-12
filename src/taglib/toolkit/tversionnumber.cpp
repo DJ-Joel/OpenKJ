@@ -1,6 +1,9 @@
 /***************************************************************************
-    copyright            : (C) 2002 - 2008 by Scott Wheeler
-    email                : wheeler@kde.org
+    copyright            : (C) 2020 by Kevin Andre
+    email                : hyperquantum@gmail.com
+
+    copyright            : (C) 2023 by Urs Fleisch
+    email                : ufleisch@users.sourceforge.net
  ***************************************************************************/
 
 /***************************************************************************
@@ -23,52 +26,29 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#ifndef TAGLIB_DEBUG_H
-#define TAGLIB_DEBUG_H
+#include "tversionnumber.h"
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "tstring.h"
+#include "taglib.h"
 
-namespace TagLib {
+using namespace TagLib;
 
-  class String;
-  class ByteVector;
+////////////////////////////////////////////////////////////////////////////////
+// public methods
+////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DO_NOT_DOCUMENT
-#if !defined(NDEBUG) || defined(TRACE_IN_RELEASE)
+String VersionNumber::toString() const
+{
+  return String::number(majorVersion()) + '.' +
+         String::number(minorVersion()) + '.' +
+         String::number(patchVersion());
+}
 
-  /*!
-   * A simple function that outputs the debug messages to the listener.
-   * The default listener redirects the messages to \a stderr when NDEBUG is
-   * not defined.
-   *
-   * \warning Do not use this outside of TagLib, it could lead to undefined
-   * symbols in your build if TagLib is built with NDEBUG defined and your
-   * application is not.
-   *
-   * \internal
-   */
-  void debug(const String &s);
+////////////////////////////////////////////////////////////////////////////////
+// related functions
+////////////////////////////////////////////////////////////////////////////////
 
-  /*!
-   * For debugging binary data.
-   *
-   * \warning Do not use this outside of TagLib, it could lead to undefined
-   * symbols in your build if TagLib is built with NDEBUG defined and your
-   * application is not.
-   *
-   * \internal
-   */
-  void debugData(const ByteVector &v);
-
-#else
-
-  #define debug(x)      ((void)0)
-  #define debugData(x)  ((void)0)
-
-#endif
-}  // namespace TagLib
-
-#endif
-#endif
+VersionNumber TagLib::runtimeVersion()
+{
+  return VersionNumber(TAGLIB_MAJOR_VERSION, TAGLIB_MINOR_VERSION, TAGLIB_PATCH_VERSION);
+}

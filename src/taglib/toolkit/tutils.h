@@ -30,13 +30,16 @@
 
 #ifndef DO_NOT_DOCUMENT  // tell Doxygen not to document this header
 
+#include <cstdint>
+#include <cstdio>
+#include <cstdarg>
+#include <cstring>
+
 #ifdef HAVE_CONFIG_H
-# include <config.h>
+# include "config.h"
 #endif
 
-#if defined(HAVE_BOOST_BYTESWAP)
-# include <boost/endian/conversion.hpp>
-#elif defined(HAVE_MSC_BYTESWAP)
+#if defined(HAVE_MSC_BYTESWAP)
 # include <stdlib.h>
 #elif defined(HAVE_GLIBC_BYTESWAP)
 # include <byteswap.h>
@@ -46,10 +49,7 @@
 # include <sys/endian.h>
 #endif
 
-#include <tstring.h>
-#include <cstdio>
-#include <cstdarg>
-#include <cstring>
+#include "tstring.h"
 
 namespace TagLib
 {
@@ -59,15 +59,11 @@ namespace TagLib
     {
 
       /*!
-       * Reverses the order of bytes in an 16-bit integer.
+       * Reverses the order of bytes in a 16-bit integer.
        */
-      inline unsigned short byteSwap(unsigned short x)
+      inline uint16_t byteSwap(uint16_t x)
       {
-#if defined(HAVE_BOOST_BYTESWAP)
-
-        return boost::endian::endian_reverse(static_cast<uint16_t>(x));
-
-#elif defined(HAVE_GCC_BYTESWAP)
+#if defined(HAVE_GCC_BYTESWAP)
 
         return __builtin_bswap16(x);
 
@@ -95,15 +91,11 @@ namespace TagLib
       }
 
       /*!
-       * Reverses the order of bytes in an 32-bit integer.
+       * Reverses the order of bytes in a 32-bit integer.
        */
-      inline unsigned int byteSwap(unsigned int x)
+      inline uint32_t byteSwap(uint32_t x)
       {
-#if defined(HAVE_BOOST_BYTESWAP)
-
-        return boost::endian::endian_reverse(static_cast<uint32_t>(x));
-
-#elif defined(HAVE_GCC_BYTESWAP)
+#if defined(HAVE_GCC_BYTESWAP)
 
         return __builtin_bswap32(x);
 
@@ -134,15 +126,11 @@ namespace TagLib
       }
 
       /*!
-       * Reverses the order of bytes in an 64-bit integer.
+       * Reverses the order of bytes in a 64-bit integer.
        */
-      inline unsigned long long byteSwap(unsigned long long x)
+      inline uint64_t byteSwap(uint64_t x)
       {
-#if defined(HAVE_BOOST_BYTESWAP)
-
-        return boost::endian::endian_reverse(static_cast<uint64_t>(x));
-
-#elif defined(HAVE_GCC_BYTESWAP)
+#if defined(HAVE_GCC_BYTESWAP)
 
         return __builtin_bswap64(x);
 
@@ -193,49 +181,13 @@ namespace TagLib
         char buf[BufferSize];
         int length;
 
-#if defined(HAVE_VSNPRINTF)
-
-        length = vsnprintf(buf, BufferSize, format, args);
-
-#elif defined(HAVE_VSPRINTF_S)
-
-        length = vsprintf_s(buf, format, args);
-
-#else
-
-        // The last resort. May cause a buffer overflow.
-
-        length = vsprintf(buf, format, args);
-        if(length >= BufferSize) {
-          debug("Utils::formatString() - Buffer overflow! Returning an empty string.");
-          length = -1;
-        }
-
-#endif
+        length = std::vsnprintf(buf, BufferSize, format, args);
 
         va_end(args);
 
         if(length > 0)
           return String(buf);
-        else
-          return String();
-      }
-
-      /*!
-       * Returns whether the two strings s1 and s2 are equal, ignoring the case of
-       * the characters.
-       *
-       * We took the trouble to define this one here, since there are some
-       * incompatible variations of case insensitive strcmp().
-       */
-      inline bool equalsIgnoreCase(const char *s1, const char *s2)
-      {
-        while(*s1 != '\0' && *s2 != '\0' && ::tolower(*s1) == ::tolower(*s2)) {
-          s1++;
-          s2++;
-        }
-
-        return (*s1 == '\0' && *s2 == '\0');
+        return String();
       }
 
       /*!
@@ -250,44 +202,23 @@ namespace TagLib
       };
 
       /*!
-       * Returns the integer byte order of the system.
+       * Returns the byte order of the system.
        */
-      inline ByteOrder systemByteOrder()
+      constexpr ByteOrder systemByteOrder()
       {
-        union {
+        constexpr union IntCharUnion {
           int  i;
           char c;
-        } u;
+          constexpr IntCharUnion(int j) : i(j) {}
+        } u{1};
 
-        u.i = 1;
         if(u.c == 1)
           return LittleEndian;
-        else
-          return BigEndian;
+        return BigEndian;
       }
-
-      /*!
-       * Returns the IEEE754 byte order of the system.
-       */
-      inline ByteOrder floatByteOrder()
-      {
-        union {
-          double d;
-          char   c;
-        } u;
-
-        // 1.0 is stored in memory like 0x3FF0000000000000 in canonical form.
-        // So the first byte is zero if little endian.
-
-        u.d = 1.0;
-        if(u.c == 0)
-          return LittleEndian;
-        else
-          return BigEndian;
-      }
-    }
-  }
-}
+    }  // namespace
+  }  // namespace Utils
+}  // namespace TagLib
 
 #endif
 

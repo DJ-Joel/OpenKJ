@@ -1,6 +1,6 @@
 /***************************************************************************
-    copyright            : (C) 2002 - 2008 by Scott Wheeler
-    email                : wheeler@kde.org
+    copyright            : (C) 2023 by Urs Fleisch
+    email                : ufleisch@users.sourceforge.net
  ***************************************************************************/
 
 /***************************************************************************
@@ -23,52 +23,54 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#ifndef TAGLIB_DEBUG_H
-#define TAGLIB_DEBUG_H
+#include "tpicturetype.h"
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "tstring.h"
 
-namespace TagLib {
+using namespace TagLib;
 
-  class String;
-  class ByteVector;
+namespace {
 
-#ifndef DO_NOT_DOCUMENT
-#if !defined(NDEBUG) || defined(TRACE_IN_RELEASE)
+  constexpr const char *typeStrs[] = {
+    "Other",
+    "File Icon",
+    "Other File Icon",
+    "Front Cover",
+    "Back Cover",
+    "Leaflet Page",
+    "Media",
+    "Lead Artist",
+    "Artist",
+    "Conductor",
+    "Band",
+    "Composer",
+    "Lyricist",
+    "Recording Location",
+    "During Recording",
+    "During Performance",
+    "Movie Screen Capture",
+    "Coloured Fish",
+    "Illustration",
+    "Band Logo",
+    "Publisher Logo",
+  };
 
-  /*!
-   * A simple function that outputs the debug messages to the listener.
-   * The default listener redirects the messages to \a stderr when NDEBUG is
-   * not defined.
-   *
-   * \warning Do not use this outside of TagLib, it could lead to undefined
-   * symbols in your build if TagLib is built with NDEBUG defined and your
-   * application is not.
-   *
-   * \internal
-   */
-  void debug(const String &s);
+}  // namespace
 
-  /*!
-   * For debugging binary data.
-   *
-   * \warning Do not use this outside of TagLib, it could lead to undefined
-   * symbols in your build if TagLib is built with NDEBUG defined and your
-   * application is not.
-   *
-   * \internal
-   */
-  void debugData(const ByteVector &v);
+String Utils::pictureTypeToString(int type)
+{
+  if(type >= 0 && type < static_cast<int>(std::size(typeStrs))) {
+    return typeStrs[type];
+  }
+  return "";
+}
 
-#else
-
-  #define debug(x)      ((void)0)
-  #define debugData(x)  ((void)0)
-
-#endif
-}  // namespace TagLib
-
-#endif
-#endif
+int Utils::pictureTypeFromString(const String& str)
+{
+  for(int i = 0; i < static_cast<int>(std::size(typeStrs)); ++i) {
+    if(str == typeStrs[i]) {
+      return i;
+    }
+  }
+  return 0;
+}
