@@ -20,6 +20,7 @@
 
 
 #include "mzarchive.h"
+#include "spdlogqstringformatter.h"
 #include <QFile>
 #include <QBuffer>
 #include <QTemporaryDir>

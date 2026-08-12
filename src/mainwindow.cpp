@@ -20,6 +20,7 @@
 
 #include <qglobal.h>
 #include "mainwindow.h"
+#include "spdlogqstringformatter.h"
 #include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <QMenu>

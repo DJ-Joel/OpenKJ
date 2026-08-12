@@ -19,6 +19,7 @@
 */
 
 #include "mediabackend.h"
+#include "spdlogqstringformatter.h"
 #include <QApplication>
 #include <cmath>
 #include <QFile>

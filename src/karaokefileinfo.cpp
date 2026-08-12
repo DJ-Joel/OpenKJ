@@ -1,4 +1,5 @@
 #include "karaokefileinfo.h"
+#include "spdlogqstringformatter.h"
 #include <QRegularExpression>
 #include <QTemporaryDir>
 #include "tagreader.h"

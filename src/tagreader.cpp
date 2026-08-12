@@ -1,4 +1,5 @@
 #include "tagreader.h"
+#include "spdlogqstringformatter.h"
 #include <tag.h>
 #include <taglib/fileref.h>
 

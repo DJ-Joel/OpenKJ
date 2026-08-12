@@ -20,6 +20,7 @@
 
 
 #include "okarchive.h"
+#include "spdlogqstringformatter.h"
 #include <QFile>
 #include <QBuffer>
 #include <QTemporaryDir>

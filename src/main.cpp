@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <QApplication>
 #include "mainwindow.h"
+#include "spdlogqstringformatter.h"
 #include <QStyleFactory>
 #include <QSplashScreen>
 #include <QStringList>

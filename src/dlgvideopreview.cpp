@@ -1,4 +1,5 @@
 #include "dlgvideopreview.h"
+#include "spdlogqstringformatter.h"
 #include "ui_dlgvideopreview.h"
 #include <QMessageBox>
 #include <utility>
