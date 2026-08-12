@@ -2,6 +2,7 @@
 #include "spdlogqstringformatter.h"
 
 #include <QApplication>
+#include <QFile>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QPainter>

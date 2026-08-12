@@ -1,6 +1,7 @@
 #include "tablemodelplaylistsongs.h"
 #include "spdlogqstringformatter.h"
 
+#include <QDataStream>
 #include <QFileInfo>
 #include <QPainter>
 #include <QSqlQuery>
