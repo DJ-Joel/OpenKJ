@@ -19,6 +19,7 @@
 */
 
 #include "dlgrequests.h"
+#include "spdlogqstringformatter.h"
 #include "ui_dlgrequests.h"
 #include <QDesktopServices>
 #include <QMenu>

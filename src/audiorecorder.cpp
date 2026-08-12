@@ -1,4 +1,5 @@
 #include "audiorecorder.h"
+#include "spdlogqstringformatter.h"
 #include <QDir>
 #include <QDateTime>
 #include <spdlog/spdlog.h>

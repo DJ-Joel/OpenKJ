@@ -1,4 +1,4 @@
-FROM fedora:latest
+FROM fedora:44
 
 RUN dnf upgrade -y && \
     dnf install -y \
@@ -16,6 +16,6 @@ RUN dnf upgrade -y && \
 
 COPY ./ /openkj/
 WORKDIR /openkj/
-RUN cmake -DSPDLOG_USE_BUNDLED=true -DTAGLIB_USE_BUNDLED=true . -B build -G Ninja
+RUN cmake . -B build -G Ninja
 RUN ninja -C build
 

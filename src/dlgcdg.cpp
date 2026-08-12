@@ -20,7 +20,7 @@
 
 #include "dlgcdg.h"
 #include "ui_dlgcdg.h"
-#include <QDesktopWidget>
+#include <QGuiApplication>
 #include <QSvgRenderer>
 #include <QPainter>
 #include <QDir>
@@ -187,8 +187,11 @@ void DlgCdg::mouseDoubleClickEvent([[maybe_unused]]QMouseEvent *e)
     cdgOffsetsChanged();
     m_settings.setCdgWindowFullscreen(m_fullScreen);
     m_settings.saveWindowState(this);
-    QDesktopWidget widget;
-    m_settings.setCdgWindowFullscreenMonitor(widget.screenNumber(this));
+    // QDesktopWidget was removed in Qt 6 - QScreen is the modern
+    // replacement. screens().indexOf(...) reproduces the same "index of
+    // the screen this window is mostly on" value QDesktopWidget::screenNumber()
+    // used to return, which is what Settings expects to store here.
+    m_settings.setCdgWindowFullscreenMonitor(QGuiApplication::screens().indexOf(this->screen()));
 }
 
 QFileInfoList DlgCdg::getSlideShowImages()
@@ -368,8 +371,11 @@ void DlgCdg::btnToggleFullscreenClicked()
         showNormal();
     m_settings.setCdgWindowFullscreen(m_fullScreen);
     m_settings.saveWindowState(this);
-    QDesktopWidget widget;
-    m_settings.setCdgWindowFullscreenMonitor(widget.screenNumber(this));
+    // QDesktopWidget was removed in Qt 6 - QScreen is the modern
+    // replacement. screens().indexOf(...) reproduces the same "index of
+    // the screen this window is mostly on" value QDesktopWidget::screenNumber()
+    // used to return, which is what Settings expects to store here.
+    m_settings.setCdgWindowFullscreenMonitor(QGuiApplication::screens().indexOf(this->screen()));
     cdgOffsetsChanged();
 }
 

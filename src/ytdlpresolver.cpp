@@ -1,4 +1,5 @@
 #include "ytdlpresolver.h"
+#include "spdlogqstringformatter.h"
 #include <QFileInfo>
 #include <QStringList>
 #include <QProcessEnvironment>

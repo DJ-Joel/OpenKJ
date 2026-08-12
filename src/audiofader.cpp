@@ -19,6 +19,7 @@
 */
 
 #include "audiofader.h"
+#include "spdlogqstringformatter.h"
 #include <gst/audio/streamvolume.h>
 #include <QApplication>
 #include <spdlog/spdlog.h>

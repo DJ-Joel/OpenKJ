@@ -1,4 +1,5 @@
 #include "songshop.h"
+#include "spdlogqstringformatter.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>

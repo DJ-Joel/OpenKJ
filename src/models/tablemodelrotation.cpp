@@ -19,6 +19,7 @@
 */
 
 #include "tablemodelrotation.h"
+#include "spdlogqstringformatter.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDateTime>

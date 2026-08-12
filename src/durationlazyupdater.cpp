@@ -1,4 +1,5 @@
 #include "durationlazyupdater.h"
+#include "spdlogqstringformatter.h"
 
 #include <QSqlQuery>
 #include <QVariant>

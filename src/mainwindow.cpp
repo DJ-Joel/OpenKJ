@@ -20,9 +20,9 @@
 
 #include <qglobal.h>
 #include "mainwindow.h"
+#include "spdlogqstringformatter.h"
 #include "ui_mainwindow.h"
 #include <QMessageBox>
-#include <QDesktopWidget>
 #include <QMenu>
 #include <QInputDialog>
 #include <QUrl>

@@ -1,6 +1,7 @@
 
 
 #include "tablemodelhistorysongs.h"
+#include "spdlogqstringformatter.h"
 #include <QApplication>
 #include <QDateTime>
 #include <QSqlError>

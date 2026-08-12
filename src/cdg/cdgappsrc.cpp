@@ -1,4 +1,5 @@
 #include "cdgappsrc.h"
+#include "spdlogqstringformatter.h"
 #include <gst/app/gstappsrc.h>
 #include "cdg/cdgfilereader.h"
 #include <QMutex>

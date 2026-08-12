@@ -1,4 +1,5 @@
 #include "tablemodelplaylistsongs.h"
+#include "spdlogqstringformatter.h"
 
 #include <QFileInfo>
 #include <QPainter>

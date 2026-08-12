@@ -1,4 +1,5 @@
 #include "cdgfilereader.h"
+#include "spdlogqstringformatter.h"
 #include <QFile>
 #include <spdlog/spdlog.h>
 

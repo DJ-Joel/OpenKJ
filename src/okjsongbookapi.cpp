@@ -1,4 +1,5 @@
 #include "okjsongbookapi.h"
+#include "spdlogqstringformatter.h"
 
 #include <QNetworkReply>
 #include <QNetworkRequest>

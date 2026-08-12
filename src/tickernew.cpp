@@ -1,4 +1,5 @@
 #include "tickernew.h"
+#include "spdlogqstringformatter.h"
 
 #include <QPainter>
 #include <QFontMetrics>

@@ -19,6 +19,7 @@
 */
 
 #include "okjtypes.h"
+#include "spdlogqstringformatter.h"
 #include "src/models/tablemodelstreamsongs.h"
 #include <QSqlQuery>
 #include <QSqlError>

@@ -1,4 +1,5 @@
 #include "tablemodelstreamsongs.h"
+#include "spdlogqstringformatter.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QVariant>

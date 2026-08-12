@@ -1,4 +1,5 @@
 #include "ytdlpdownloader.h"
+#include "spdlogqstringformatter.h"
 #include <QFileInfo>
 #include <QStringList>
 #include <QStandardPaths>

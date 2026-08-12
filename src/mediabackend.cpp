@@ -19,6 +19,7 @@
 */
 
 #include "mediabackend.h"
+#include "spdlogqstringformatter.h"
 #include <QApplication>
 #include <cmath>
 #include <QFile>
@@ -707,11 +708,16 @@ void MediaBackend::gstBusFunc(GstMessage *message)
             break;
 
         default:
+            // message->type is a GstMessageType enum. The newer bundled fmt
+            // library (pulled in via spdlog 1.17.0) no longer formats
+            // arbitrary enums implicitly, so it's cast to its underlying
+            // integer here. gst_message_type_get_name() already gives the
+            // human-readable name above.
             m_logger->debug("{} Unhandled GStreamer message received - element: {} - type: {} - name: {}",
                           m_loggingPrefix,
                           message->src->name,
                           gst_message_type_get_name(message->type),
-                          message->type);
+                          static_cast<int>(message->type));
             break;
     }
 }

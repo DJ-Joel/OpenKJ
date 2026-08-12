@@ -26,10 +26,10 @@ jobs:
         QT_DIR: "/opt/homebrew/opt/qt@5/"
         Qt5_DIR: "/opt/homebrew/opt/qt@5/"
       run: |
-        cmake -DSPDLOG_USE_BUNDLED=true . -B build -G Ninja
+        cmake . -B build -G Ninja
         ninja -C build
     - name: Upload app
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         path: build/openkj.app
         name: openkj.app

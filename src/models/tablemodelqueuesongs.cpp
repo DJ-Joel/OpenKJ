@@ -1,4 +1,5 @@
 #include "tablemodelqueuesongs.h"
+#include "spdlogqstringformatter.h"
 
 #include <QSqlQuery>
 #include <QSqlError>
