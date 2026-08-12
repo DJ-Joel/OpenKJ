@@ -38,16 +38,14 @@ public:
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
-UnknownFrame::UnknownFrame(const ByteVector &data) : Frame(data)
+UnknownFrame::UnknownFrame(const ByteVector &data) :
+  Frame(data),
+  d(std::make_unique<UnknownFramePrivate>())
 {
-  d = new UnknownFramePrivate;
   setData(data);
 }
 
-UnknownFrame::~UnknownFrame()
-{
-  delete d;
-}
+UnknownFrame::~UnknownFrame() = default;
 
 String UnknownFrame::toString() const
 {
@@ -77,8 +75,9 @@ ByteVector UnknownFrame::renderFields() const
 // private members
 ////////////////////////////////////////////////////////////////////////////////
 
-UnknownFrame::UnknownFrame(const ByteVector &data, Header *h) : Frame(h)
+UnknownFrame::UnknownFrame(const ByteVector &data, Header *h) :
+  Frame(h),
+  d(std::make_unique<UnknownFramePrivate>())
 {
-  d = new UnknownFramePrivate;
   parseFields(fieldData(data));
 }

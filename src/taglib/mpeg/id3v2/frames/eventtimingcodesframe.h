@@ -26,8 +26,8 @@
 #ifndef TAGLIB_EVENTTIMINGCODESFRAME_H
 #define TAGLIB_EVENTTIMINGCODESFRAME_H
 
-#include "id3v2frame.h"
 #include "tlist.h"
+#include "id3v2frame.h"
 
 namespace TagLib {
 
@@ -58,7 +58,9 @@ namespace TagLib {
       };
 
       /*!
-       * Event types defined in id3v2.4.0-frames.txt 4.5. Event timing codes.
+       * Event types defined in
+       * <a href="https://github.com/taglib/taglib/blob/master/taglib/mpeg/id3v2/id3v2.4.0-frames.txt">
+       * id3v2.4.0-frames.txt</a> 4.5. Event timing codes.
        */
       enum EventType {
         Padding                = 0x00,
@@ -116,7 +118,7 @@ namespace TagLib {
       /*!
        * List of synchronized events.
        */
-      typedef TagLib::List<SynchedEvent> SynchedEventList;
+      using SynchedEventList = TagLib::List<SynchedEvent>;
 
       /*!
        * Construct an empty event timing codes frame.
@@ -124,19 +126,22 @@ namespace TagLib {
       explicit EventTimingCodesFrame();
 
       /*!
-       * Construct a event timing codes frame based on the data in \a data.
+       * Construct an event timing codes frame based on the data in \a data.
        */
       explicit EventTimingCodesFrame(const ByteVector &data);
 
       /*!
        * Destroys this EventTimingCodesFrame instance.
        */
-      virtual ~EventTimingCodesFrame();
+      ~EventTimingCodesFrame() override;
+
+      EventTimingCodesFrame(const EventTimingCodesFrame &) = delete;
+      EventTimingCodesFrame &operator=(const EventTimingCodesFrame &) = delete;
 
       /*!
-       * Returns a null string.
+       * Returns an empty string.
        */
-      virtual String toString() const;
+      String toString() const override;
 
       /*!
        * Returns the timestamp format.
@@ -165,21 +170,20 @@ namespace TagLib {
     protected:
       // Reimplementations.
 
-      virtual void parseFields(const ByteVector &data);
-      virtual ByteVector renderFields() const;
+      void parseFields(const ByteVector &data) override;
+      ByteVector renderFields() const override;
 
     private:
       /*!
        * The constructor used by the FrameFactory.
        */
       EventTimingCodesFrame(const ByteVector &data, Header *h);
-      EventTimingCodesFrame(const EventTimingCodesFrame &);
-      EventTimingCodesFrame &operator=(const EventTimingCodesFrame &);
 
       class EventTimingCodesFramePrivate;
-      EventTimingCodesFramePrivate *d;
+      TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
+      std::unique_ptr<EventTimingCodesFramePrivate> d;
     };
 
-  }
-}
+  }  // namespace ID3v2
+}  // namespace TagLib
 #endif

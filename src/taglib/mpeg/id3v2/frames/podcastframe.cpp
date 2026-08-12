@@ -25,6 +25,8 @@
 
 #include "podcastframe.h"
 
+#include "tpropertymap.h"
+
 using namespace TagLib;
 using namespace ID3v2;
 
@@ -38,20 +40,25 @@ public:
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
-PodcastFrame::PodcastFrame() : Frame("PCST")
+PodcastFrame::PodcastFrame() :
+  Frame("PCST"),
+  d(std::make_unique<PodcastFramePrivate>())
 {
-  d = new PodcastFramePrivate;
   d->fieldData = ByteVector(4, '\0');
 }
 
-PodcastFrame::~PodcastFrame()
-{
-  delete d;
-}
+PodcastFrame::~PodcastFrame() = default;
 
 String PodcastFrame::toString() const
 {
   return String();
+}
+
+PropertyMap PodcastFrame::asProperties() const
+{
+  PropertyMap map;
+  map.insert("PODCAST", StringList());
+  return map;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -72,8 +79,9 @@ ByteVector PodcastFrame::renderFields() const
 // private members
 ////////////////////////////////////////////////////////////////////////////////
 
-PodcastFrame::PodcastFrame(const ByteVector &data, Header *h) : Frame(h)
+PodcastFrame::PodcastFrame(const ByteVector &data, Header *h) :
+  Frame(h),
+  d(std::make_unique<PodcastFramePrivate>())
 {
-  d = new PodcastFramePrivate;
   parseFields(fieldData(data));
 }

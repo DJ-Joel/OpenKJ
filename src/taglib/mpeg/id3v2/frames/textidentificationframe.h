@@ -29,7 +29,6 @@
 #include "tstringlist.h"
 #include "tmap.h"
 #include "taglib_export.h"
-
 #include "id3v2frame.h"
 
 namespace TagLib {
@@ -37,7 +36,7 @@ namespace TagLib {
   namespace ID3v2 {
 
     class Tag;
-    typedef Map<String, String> KeyConversionMap;
+    using KeyConversionMap = Map<String, String>;
 
     //! An ID3v2 text identification frame implementation
 
@@ -46,52 +45,53 @@ namespace TagLib {
      * identification frames.  There are a number of variations on this.  Those
      * enumerated in the ID3v2.4 standard are:
      *
-     * <ul>
-     *   <li><b>TALB</b> Album/Movie/Show title</li>
-     *   <li><b>TBPM</b> BPM (beats per minute)</li>
-     *   <li><b>TCOM</b> Composer</li>
-     *   <li><b>TCON</b> Content type</li>
-     *   <li><b>TCOP</b> Copyright message</li>
-     *   <li><b>TDEN</b> Encoding time</li>
-     *   <li><b>TDLY</b> Playlist delay</li>
-     *   <li><b>TDOR</b> Original release time</li>
-     *   <li><b>TDRC</b> Recording time</li>
-     *   <li><b>TDRL</b> Release time</li>
-     *   <li><b>TDTG</b> Tagging time</li>
-     *   <li><b>TENC</b> Encoded by</li>
-     *   <li><b>TEXT</b> Lyricist/Text writer</li>
-     *   <li><b>TFLT</b> File type</li>
-     *   <li><b>TIPL</b> Involved people list</li>
-     *   <li><b>TIT1</b> Content group description</li>
-     *   <li><b>TIT2</b> Title/songname/content description</li>
-     *   <li><b>TIT3</b> Subtitle/Description refinement</li>
-     *   <li><b>TKEY</b> Initial key</li>
-     *   <li><b>TLAN</b> Language(s)</li>
-     *   <li><b>TLEN</b> Length</li>
-     *   <li><b>TMCL</b> Musician credits list</li>
-     *   <li><b>TMED</b> Media type</li>
-     *   <li><b>TMOO</b> Mood</li>
-     *   <li><b>TOAL</b> Original album/movie/show title</li>
-     *   <li><b>TOFN</b> Original filename</li>
-     *   <li><b>TOLY</b> Original lyricist(s)/text writer(s)</li>
-     *   <li><b>TOPE</b> Original artist(s)/performer(s)</li>
-     *   <li><b>TOWN</b> File owner/licensee</li>
-     *   <li><b>TPE1</b> Lead performer(s)/Soloist(s)</li>
-     *   <li><b>TPE2</b> Band/orchestra/accompaniment</li>
-     *   <li><b>TPE3</b> Conductor/performer refinement</li>
-     *   <li><b>TPE4</b> Interpreted, remixed, or otherwise modified by</li>
-     *   <li><b>TPOS</b> Part of a set</li>
-     *   <li><b>TPRO</b> Produced notice</li>
-     *   <li><b>TPUB</b> Publisher</li>
-     *   <li><b>TRCK</b> Track number/Position in set</li>
-     *   <li><b>TRSN</b> Internet radio station name</li>
-     *   <li><b>TRSO</b> Internet radio station owner</li>
-     *   <li><b>TSOA</b> Album sort order</li>
-     *   <li><b>TSOP</b> Performer sort order</li>
-     *   <li><b>TSOT</b> Title sort order</li>
-     *   <li><b>TSRC</b> ISRC (international standard recording code)</li>
-     *   <li><b>TSSE</b> Software/Hardware and settings used for encoding</li>
-     *   <li><b>TSST</b> Set subtitle</li>
+     * %Frame | Description
+     * :----: | :-----------------------------------------------
+     *  TALB  | Album/Movie/Show title
+     *  TBPM  | BPM (beats per minute)
+     *  TCOM  | Composer
+     *  TCON  | Content type
+     *  TCOP  | Copyright message
+     *  TDEN  | Encoding time
+     *  TDLY  | Playlist delay
+     *  TDOR  | Original release time
+     *  TDRC  | Recording time
+     *  TDRL  | Release time
+     *  TDTG  | Tagging time
+     *  TENC  | Encoded by
+     *  TEXT  | Lyricist/Text writer
+     *  TFLT  | %File type
+     *  TIPL  | Involved people list
+     *  TIT1  | Content group description
+     *  TIT2  | Title/songname/content description
+     *  TIT3  | Subtitle/Description refinement
+     *  TKEY  | Initial key
+     *  TLAN  | Language(s)
+     *  TLEN  | Length
+     *  TMCL  | Musician credits list
+     *  TMED  | Media type
+     *  TMOO  | Mood
+     *  TOAL  | Original album/movie/show title
+     *  TOFN  | Original filename
+     *  TOLY  | Original lyricist(s)/text writer(s)
+     *  TOPE  | Original artist(s)/performer(s)
+     *  TOWN  | %File owner/licensee
+     *  TPE1  | Lead performer(s)/Soloist(s)
+     *  TPE2  | Band/orchestra/accompaniment
+     *  TPE3  | Conductor/performer refinement
+     *  TPE4  | Interpreted, remixed, or otherwise modified by
+     *  TPOS  | Part of a set
+     *  TPRO  | Produced notice
+     *  TPUB  | Publisher
+     *  TRCK  | Track number/Position in set
+     *  TRSN  | Internet radio station name
+     *  TRSO  | Internet radio station owner
+     *  TSOA  | Album sort order
+     *  TSOP  | Performer sort order
+     *  TSOT  | Title sort order
+     *  TSRC  | ISRC (international standard recording code)
+     *  TSSE  | Software/Hardware and settings used for encoding
+     *  TSST  | Set subtitle
      * </ul>
      *
      * The ID3v2 Frames document gives a description of each of these formats
@@ -142,7 +142,10 @@ namespace TagLib {
       /*!
        * Destroys this TextIdentificationFrame instance.
        */
-      virtual ~TextIdentificationFrame();
+      ~TextIdentificationFrame() override;
+
+      TextIdentificationFrame(const TextIdentificationFrame &) = delete;
+      TextIdentificationFrame &operator=(const TextIdentificationFrame &) = delete;
 
       /*!
        * Text identification frames are a list of string fields.
@@ -158,8 +161,9 @@ namespace TagLib {
 
       // Reimplementations.
 
-      virtual void setText(const String &s);
-      virtual String toString() const;
+      void setText(const String &s) override;
+      String toString() const override;
+      StringList toStringList() const override;
 
       /*!
        * Returns the text encoding that will be used in rendering this frame.
@@ -195,13 +199,13 @@ namespace TagLib {
        */
       static const KeyConversionMap &involvedPeopleMap();
 
-      PropertyMap asProperties() const;
+      PropertyMap asProperties() const override;
 
     protected:
       // Reimplementations.
 
-      virtual void parseFields(const ByteVector &data);
-      virtual ByteVector renderFields() const;
+      void parseFields(const ByteVector &data) override;
+      ByteVector renderFields() const override;
 
       /*!
        * The constructor used by the FrameFactory.
@@ -209,9 +213,6 @@ namespace TagLib {
       TextIdentificationFrame(const ByteVector &data, Header *h);
 
     private:
-      TextIdentificationFrame(const TextIdentificationFrame &);
-      TextIdentificationFrame &operator=(const TextIdentificationFrame &);
-
       /*!
        * Parses the special structure of a TIPL frame
        * Only the whitelisted roles "ARRANGER", "ENGINEER", "PRODUCER",
@@ -223,7 +224,8 @@ namespace TagLib {
        */
       PropertyMap makeTMCLProperties() const;
       class TextIdentificationFramePrivate;
-      TextIdentificationFramePrivate *d;
+      TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
+      std::unique_ptr<TextIdentificationFramePrivate> d;
     };
 
     /*!
@@ -258,7 +260,12 @@ namespace TagLib {
        */
       UserTextIdentificationFrame(const String &description, const StringList &values, String::Type encoding = String::UTF8);
 
-      virtual String toString() const;
+      ~UserTextIdentificationFrame() override;
+
+      UserTextIdentificationFrame(const UserTextIdentificationFrame &) = delete;
+      UserTextIdentificationFrame &operator=(const UserTextIdentificationFrame &) = delete;
+
+      String toString() const override;
 
       /*!
        * Returns the description for this frame.
@@ -272,8 +279,7 @@ namespace TagLib {
        */
       void setDescription(const String &s);
 
-      StringList fieldList() const;
-      void setText(const String &text);
+      void setText(const String &text) override;
       void setText(const StringList &fields);
 
       /*!
@@ -289,25 +295,34 @@ namespace TagLib {
        *   in the value list, in order to be compatible with TagLib which copies
        *   the description() into the fieldList().
        */
-      PropertyMap asProperties() const;
+      PropertyMap asProperties() const override;
 
       /*!
        * Searches for the user defined text frame with the description \a description
        * in \a tag.  This returns null if no matching frames were found.
        */
-      static UserTextIdentificationFrame *find(Tag *tag, const String &description);
+      static UserTextIdentificationFrame *find(const Tag *tag, const String &description);
+
+      /*!
+       * Returns an appropriate TXXX frame description for the given free-form tag key.
+       */
+      static String keyToTXXX(const String &);
+
+      /*!
+       * Returns a free-form tag name for the given ID3 frame description.
+       */
+      static String txxxToKey(const String &);
 
     private:
       UserTextIdentificationFrame(const ByteVector &data, Header *h);
-      UserTextIdentificationFrame(const TextIdentificationFrame &);
-      UserTextIdentificationFrame &operator=(const UserTextIdentificationFrame &);
 
       void checkFields();
 
       class UserTextIdentificationFramePrivate;
-      UserTextIdentificationFramePrivate *d;
+      TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
+      std::unique_ptr<UserTextIdentificationFramePrivate> d;
     };
 
-  }
-}
+  }  // namespace ID3v2
+}  // namespace TagLib
 #endif

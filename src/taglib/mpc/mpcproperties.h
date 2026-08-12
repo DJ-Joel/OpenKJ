@@ -26,6 +26,7 @@
 #ifndef TAGLIB_MPCPROPERTIES_H
 #define TAGLIB_MPCPROPERTIES_H
 
+#include "tbytevector.h"
 #include "taglib_export.h"
 #include "audioproperties.h"
 
@@ -35,7 +36,7 @@ namespace TagLib {
 
     class File;
 
-    static const unsigned int HeaderSize = 8 * 7;
+    static constexpr unsigned int HeaderSize = 8 * 7;
 
     //! An implementation of audio property reading for MPC
 
@@ -48,65 +49,40 @@ namespace TagLib {
     {
     public:
       /*!
-       * Create an instance of MPC::Properties with the data read from the
-       * ByteVector \a data.
-       *
-       * This constructor is deprecated. It only works for MPC version up to 7.
-       */
-      Properties(const ByteVector &data, long streamLength, ReadStyle style = Average);
-
-      /*!
        * Create an instance of MPC::Properties with the data read directly
-       * from a MPC::File.
+       * from an MPC::File.
        */
-      Properties(File *file, long streamLength, ReadStyle style = Average);
+      Properties(File *file, offset_t streamLength, ReadStyle style = Average);
 
       /*!
        * Destroys this MPC::Properties instance.
        */
-      virtual ~Properties();
+      ~Properties() override;
 
-      /*!
-       * Returns the length of the file in seconds.  The length is rounded down to
-       * the nearest whole second.
-       *
-       * \note This method is just an alias of lengthInSeconds().
-       *
-       * \deprecated
-       */
-      virtual int length() const;
-
-      /*!
-       * Returns the length of the file in seconds.  The length is rounded down to
-       * the nearest whole second.
-       *
-       * \see lengthInMilliseconds()
-       */
-      // BIC: make virtual
-      int lengthInSeconds() const;
+      Properties(const Properties &) = delete;
+      Properties &operator=(const Properties &) = delete;
 
       /*!
        * Returns the length of the file in milliseconds.
        *
        * \see lengthInSeconds()
        */
-      // BIC: make virtual
-      int lengthInMilliseconds() const;
+      int lengthInMilliseconds() const override;
 
       /*!
        * Returns the average bit rate of the file in kb/s.
        */
-      virtual int bitrate() const;
+      int bitrate() const override;
 
       /*!
        * Returns the sample rate in Hz.
        */
-      virtual int sampleRate() const;
+      int sampleRate() const override;
 
       /*!
        * Returns the number of audio channels.
        */
-      virtual int channels() const;
+      int channels() const override;
 
       /*!
        * Returns the version of the bitstream (SV4-SV8)
@@ -114,45 +90,47 @@ namespace TagLib {
       int mpcVersion() const;
 
       unsigned int totalFrames() const;
-      unsigned int sampleFrames() const;
+      unsigned long sampleFrames() const;
 
       /*!
-      * Returns the track gain as an integer value,
-      * to convert to dB: trackGain in dB = 64.82 - (trackGain / 256)
+      * Returns the track gain as an integer value.
+      *
+      * To convert to dB: trackGain in dB = 64.82 - (trackGain / 256)
       */
       int trackGain() const;
 
       /*!
-      * Returns the track peak as an integer value,
-      * to convert to dB: trackPeak in dB = trackPeak / 256
-      * to convert to floating [-1..1]: trackPeak = 10^(trackPeak / 256 / 20)/32768
+      * Returns the track peak as an integer value.
+      *
+      * To convert to dB: trackPeak in dB = trackPeak / 256 \n
+      * To convert to floating [-1..1]: trackPeak = 10^(trackPeak / 256 / 20)/32768
       */
       int trackPeak() const;
 
       /*!
-      * Returns the album gain as an integer value,
-      * to convert to dB: albumGain in dB = 64.82 - (albumGain / 256)
+      * Returns the album gain as an integer value.
+      *
+      * To convert to dB: albumGain in dB = 64.82 - (albumGain / 256)
       */
       int albumGain() const;
 
       /*!
-      * Returns the album peak as an integer value,
-      * to convert to dB: albumPeak in dB = albumPeak / 256
-      * to convert to floating [-1..1]: albumPeak = 10^(albumPeak / 256 / 20)/32768
+      * Returns the album peak as an integer value.
+      *
+      * To convert to dB: albumPeak in dB = albumPeak / 256 \n
+      * To convert to floating [-1..1]: albumPeak = 10^(albumPeak / 256 / 20)/32768
       */
       int albumPeak() const;
 
     private:
-      Properties(const Properties &);
-      Properties &operator=(const Properties &);
-
-      void readSV7(const ByteVector &data, long streamLength);
-      void readSV8(File *file, long streamLength);
+      void readSV7(const ByteVector &data, offset_t streamLength);
+      void readSV8(File *file, offset_t streamLength);
 
       class PropertiesPrivate;
-      PropertiesPrivate *d;
+      TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
+      std::unique_ptr<PropertiesPrivate> d;
     };
-  }
-}
+  }  // namespace MPC
+}  // namespace TagLib
 
 #endif

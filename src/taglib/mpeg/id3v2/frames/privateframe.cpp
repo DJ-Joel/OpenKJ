@@ -24,11 +24,11 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevectorlist.h>
-#include <id3v2tag.h>
-#include <tdebug.h>
-
 #include "privateframe.h"
+
+#include "tbytevectorlist.h"
+#include "tdebug.h"
+#include "id3v2tag.h"
 
 using namespace TagLib;
 using namespace ID3v2;
@@ -45,21 +45,20 @@ public:
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
-PrivateFrame::PrivateFrame() : Frame("PRIV")
+PrivateFrame::PrivateFrame() :
+  Frame("PRIV"),
+  d(std::make_unique<PrivateFramePrivate>())
 {
-  d = new PrivateFramePrivate;
 }
 
-PrivateFrame::PrivateFrame(const ByteVector &data) : Frame(data)
+PrivateFrame::PrivateFrame(const ByteVector &data) :
+  Frame(data),
+  d(std::make_unique<PrivateFramePrivate>())
 {
-  d = new PrivateFramePrivate;
-  setData(data);
+  Frame::setData(data);
 }
 
-PrivateFrame::~PrivateFrame()
-{
-  delete d;
-}
+PrivateFrame::~PrivateFrame() = default;
 
 String PrivateFrame::toString() const
 {
@@ -99,7 +98,7 @@ void PrivateFrame::parseFields(const ByteVector &data)
 
   // Owner identifier is assumed to be Latin1
 
-  const int byteAlign =  1;
+  constexpr int byteAlign =  1;
   const int endOfOwner = data.find(textDelimiter(String::Latin1), 0, byteAlign);
 
   d->owner =  String(data.mid(0, endOfOwner));
@@ -121,8 +120,9 @@ ByteVector PrivateFrame::renderFields() const
 // private members
 ////////////////////////////////////////////////////////////////////////////////
 
-PrivateFrame::PrivateFrame(const ByteVector &data, Header *h) : Frame(h)
+PrivateFrame::PrivateFrame(const ByteVector &data, Header *h) :
+  Frame(h),
+  d(std::make_unique<PrivateFramePrivate>())
 {
-  d = new PrivateFramePrivate();
   parseFields(fieldData(data));
 }
