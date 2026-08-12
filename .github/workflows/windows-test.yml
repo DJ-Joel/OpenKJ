@@ -28,13 +28,13 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
         fetch-depth: 0
 
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
 
@@ -138,7 +138,6 @@ jobs:
         cmake -B build -G Ninja `
           -DCMAKE_BUILD_TYPE=Release `
           -DCMAKE_CXX_STANDARD=20 `
-          -DSPDLOG_USE_BUNDLED=ON `
           -DCMAKE_PREFIX_PATH="C:\gstreamer\1.0\msvc_x86_64"
 
     - name: Build Project
@@ -252,7 +251,7 @@ jobs:
         "%programfiles(x86)%\Inno Setup 6\iscc.exe" inst.iss /Oinstaller\
 
     - name: Upload installer artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: OpenKJ-Windows-Installer
         path: installer\*.exe
