@@ -19,6 +19,7 @@
 */
 
 #include "tablemodelkaraokesourcedirs.h"
+#include "spdlogqstringformatter.h"
 #include <QDir>
 #include <QFileInfo>
 #include <QSqlQuery>
@@ -209,7 +210,10 @@ SourceDir TableModelKaraokeSourceDirs::getDirByPath(const QString& path)
         {
             if (i.getPath() == dir.absolutePath())
             {
-                m_logger->debug("{} Match found - {} - {}", m_loggingPrefix, i.getPath(), i.getPattern());
+                // i.getPattern() returns a NamingPattern enum, which the newer
+                // bundled fmt library (via spdlog 1.17.0) can't format implicitly,
+                // so it's cast to its underlying integer here.
+                m_logger->debug("{} Match found - {} - {}", m_loggingPrefix, i.getPath(), static_cast<int>(i.getPattern()));
                 return i;
             }
         }

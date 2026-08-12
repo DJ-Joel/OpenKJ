@@ -1,4 +1,5 @@
 #include "tablemodelkaraokesongs.h"
+#include "spdlogqstringformatter.h"
 
 #include <QApplication>
 #include <QSqlQuery>
