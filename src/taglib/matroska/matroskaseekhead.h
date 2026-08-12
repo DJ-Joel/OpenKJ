@@ -1,8 +1,3 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
-
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Lesser General Public License version   *
@@ -23,47 +18,40 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#ifndef TAGLIB_MATROSKASEEKHEAD_H
+#define TAGLIB_MATROSKASEEKHEAD_H
+#ifndef DO_NOT_DOCUMENT
 
-using namespace TagLib;
+#include "matroskaelement.h"
+#include "tlist.h"
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
-{
-public:
-  int code { 0 };
-  ByteVector data;
-};
+namespace TagLib {
+  class File;
+  class ByteVector;
 
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
+  namespace Matroska {
+    class SeekHead : public Element
+    {
+    public:
+      explicit SeekHead(offset_t segmentDataOffset);
+      ~SeekHead() override;
+
+      bool isValid(TagLib::File &file) const;
+      void addEntry(const Element &element);
+      void addEntry(ID id, offset_t offset);
+      void updateEntry(ID id, offset_t offset);
+      const List<std::pair<unsigned int, offset_t>> &entryList() const;
+      void write(TagLib::File &file) override;
+      void sort();
+      bool sizeChanged(Element &caller, offset_t delta) override;
+
+    private:
+      ByteVector renderInternal() override;
+      List<std::pair<unsigned int, offset_t>> entries;
+      const offset_t segmentDataOffset;
+    };
+  }
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
-{
-  return d->code;
-}
-
-void FLAC::UnknownMetadataBlock::setCode(int code)
-{
-  d->code = code;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::data() const
-{
-  return d->data;
-}
-
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
-{
-  d->data = data;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::render() const
-{
-  return d->data;
-}
+#endif
+#endif

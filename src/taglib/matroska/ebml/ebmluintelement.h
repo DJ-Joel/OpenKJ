@@ -1,8 +1,3 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
-
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Lesser General Public License version   *
@@ -23,47 +18,33 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#ifndef TAGLIB_EBMLUINTELEMENT_H
+#define TAGLIB_EBMLUINTELEMENT_H
+#ifndef DO_NOT_DOCUMENT
 
-using namespace TagLib;
+#include "ebmlelement.h"
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
-{
-public:
-  int code { 0 };
-  ByteVector data;
-};
+namespace TagLib {
+  class File;
 
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
+  namespace EBML {
+    class UIntElement : public Element
+    {
+    public:
+      UIntElement(Id id, int sizeLength, offset_t dataSize);
+      UIntElement(Id id, int sizeLength, offset_t dataSize, offset_t);
+      explicit UIntElement(Id id);
+
+      unsigned long long getValue() const;
+      void setValue(unsigned long long val);
+      bool read(File &file) override;
+      ByteVector render() override;
+
+    private:
+      unsigned long long value = 0;
+    };
+  }
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
-{
-  return d->code;
-}
-
-void FLAC::UnknownMetadataBlock::setCode(int code)
-{
-  d->code = code;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::data() const
-{
-  return d->data;
-}
-
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
-{
-  d->data = data;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::render() const
-{
-  return d->data;
-}
+#endif
+#endif

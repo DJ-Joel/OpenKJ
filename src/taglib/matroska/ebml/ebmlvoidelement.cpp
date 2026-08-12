@@ -1,8 +1,3 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
-
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Lesser General Public License version   *
@@ -23,47 +18,56 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#include "ebmlvoidelement.h"
+#include <algorithm>
+#include "ebmlutils.h"
+#include "tbytevector.h"
 
 using namespace TagLib;
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
+EBML::VoidElement::VoidElement(int sizeLength, offset_t dataSize):
+  Element(Id::VoidElement, sizeLength, dataSize)
 {
-public:
-  int code { 0 };
-  ByteVector data;
-};
-
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
+EBML::VoidElement::VoidElement(Id, int sizeLength, offset_t dataSize, offset_t):
+  Element(Id::VoidElement, sizeLength, dataSize)
 {
-  return d->code;
 }
 
-void FLAC::UnknownMetadataBlock::setCode(int code)
+EBML::VoidElement::VoidElement():
+  Element(Id::VoidElement, 0, 0)
 {
-  d->code = code;
 }
 
-ByteVector FLAC::UnknownMetadataBlock::data() const
+ByteVector EBML::VoidElement::render()
 {
-  return d->data;
+  offset_t bytesNeeded = targetSize;
+  ByteVector buffer = renderId();
+  bytesNeeded -= buffer.size();
+  sizeLength = static_cast<int>(std::min(bytesNeeded, static_cast<offset_t>(8)));
+  bytesNeeded -= sizeLength;
+  dataSize = bytesNeeded;
+  buffer.append(renderVINT(dataSize, sizeLength));
+  if(dataSize)
+    buffer.append(ByteVector(static_cast<unsigned int>(dataSize), 0));
+
+  return buffer;
 }
 
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
+offset_t EBML::VoidElement::getTargetSize() const
 {
-  d->data = data;
+  return targetSize;
 }
 
-ByteVector FLAC::UnknownMetadataBlock::render() const
+void EBML::VoidElement::setTargetSize(offset_t size)
 {
-  return d->data;
+  this->targetSize = std::max(size, MIN_VOID_ELEMENT_SIZE);
+}
+
+ByteVector EBML::VoidElement::renderSize(offset_t targetSize)
+{
+  VoidElement element;
+  element.setTargetSize(targetSize);
+  return element.render();
 }

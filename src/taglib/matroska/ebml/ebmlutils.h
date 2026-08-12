@@ -1,8 +1,3 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
-
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Lesser General Public License version   *
@@ -23,47 +18,61 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#ifndef TAGLIB_EBMLUTILS_H
+#define TAGLIB_EBMLUTILS_H
+#ifndef DO_NOT_DOCUMENT
 
-using namespace TagLib;
+#include <utility>
+#include "taglib.h"
+#include "ebmlelement.h"
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
-{
-public:
-  int code { 0 };
-  ByteVector data;
-};
+namespace TagLib {
+  class File;
+  class ByteVector;
 
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
+  namespace EBML {
+    std::unique_ptr<Element> findElement(File &file, Element::Id id, offset_t maxOffset);
+    std::unique_ptr<Element> findNextElement(File &file, offset_t maxOffset);
+
+    template <int maxSizeLength>
+    unsigned int VINTSizeLength(uint8_t firstByte);
+
+    std::pair<unsigned int, uint64_t> readVINT(File &file);
+
+    std::pair<unsigned int, uint64_t> parseVINT(const ByteVector &buffer);
+
+    ByteVector renderVINT(uint64_t number, int minSizeLength);
+
+    unsigned long long randomUID();
+
+    constexpr int minSize(uint64_t data)
+    {
+      if(data <= 0x7Fu)
+        return 1;
+      if(data <= 0x3FFFu)
+        return 2;
+      if(data <= 0x1FFFFFu)
+        return 3;
+      if(data <= 0xFFFFFFFu)
+        return 4;
+      if(data <= 0x7FFFFFFFFu)
+        return 5;
+      return 0;
+    }
+
+    constexpr int idSize(Element::Id id)
+    {
+      const auto uintId = static_cast<unsigned int>(id);
+      if(uintId <= 0xFF)
+        return 1;
+      if(uintId <= 0xFFFF)
+        return 2;
+      if(uintId <= 0xFFFFFF)
+        return 3;
+      return 4;
+    }
+  }
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
-{
-  return d->code;
-}
-
-void FLAC::UnknownMetadataBlock::setCode(int code)
-{
-  d->code = code;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::data() const
-{
-  return d->data;
-}
-
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
-{
-  d->data = data;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::render() const
-{
-  return d->data;
-}
+#endif
+#endif

@@ -1,7 +1,7 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
+/***************************************************************************
+    copyright            : (C) 2025 by Urs Fleisch
+    email                : ufleisch@users.sourceforge.net
+ ***************************************************************************/
 
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
@@ -23,47 +23,37 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#ifndef TAGLIB_EBMLFLOATELEMENT_H
+#define TAGLIB_EBMLFLOATELEMENT_H
+#ifndef DO_NOT_DOCUMENT
 
-using namespace TagLib;
+#include <variant>
+#include "ebmlelement.h"
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
-{
-public:
-  int code { 0 };
-  ByteVector data;
-};
+namespace TagLib {
+  class File;
 
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
+  namespace EBML {
+    class FloatElement : public Element
+    {
+    public:
+      using FloatVariantType = std::variant<std::monostate, float, double>;
+
+      FloatElement(Id id, int sizeLength, offset_t dataSize);
+      FloatElement(Id id, int sizeLength, offset_t dataSize, offset_t);
+      explicit FloatElement(Id id);
+
+      FloatVariantType getValue() const;
+      double getValueAsDouble(double defaultValue = 0.0) const;
+      void setValue(FloatVariantType val);
+      bool read(File &file) override;
+      ByteVector render() override;
+
+    private:
+      FloatVariantType value;
+    };
+  }
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
-{
-  return d->code;
-}
-
-void FLAC::UnknownMetadataBlock::setCode(int code)
-{
-  d->code = code;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::data() const
-{
-  return d->data;
-}
-
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
-{
-  d->data = data;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::render() const
-{
-  return d->data;
-}
+#endif
+#endif

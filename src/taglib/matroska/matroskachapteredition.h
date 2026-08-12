@@ -1,6 +1,6 @@
 /***************************************************************************
-    copyright            : (C) 2003 by Allan Sandfeld Jensen
-    email                : kde@carewolf.org
+    copyright            : (C) 2025 by Urs Fleisch
+    email                : ufleisch@users.sourceforge.net
  ***************************************************************************/
 
 /***************************************************************************
@@ -23,88 +23,86 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#ifndef TAGLIB_FLACPROPERTIES_H
-#define TAGLIB_FLACPROPERTIES_H
+#ifndef TAGLIB_MATROSKACHAPTEREDITION_H
+#define TAGLIB_MATROSKACHAPTEREDITION_H
 
-#include "tbytevector.h"
-#include "taglib_export.h"
-#include "audioproperties.h"
+#include "matroskachapter.h"
 
 namespace TagLib {
+  class String;
+  class ByteVector;
 
-  namespace FLAC {
-
-    //! An implementation of audio property reading for FLAC
-
-    /*!
-     * This reads the data from a FLAC stream found in the AudioProperties
-     * API.
-     */
-
-    class TAGLIB_EXPORT Properties : public AudioProperties
+  namespace Matroska {
+    //! Edition of chapters.
+    class TAGLIB_EXPORT ChapterEdition
     {
     public:
-      /*!
-       * Create an instance of FLAC::Properties with the data read from the
-       * ByteVector \a data.
-       */
-      Properties(const ByteVector &data, offset_t streamLength, ReadStyle style = Average);
+      //! Unique identifier.
+      using UID = unsigned long long;
 
       /*!
-       * Destroys this FLAC::Properties instance.
+       * Construct an edition.
        */
-      ~Properties() override;
-
-      Properties(const Properties &) = delete;
-      Properties &operator=(const Properties &) = delete;
+      ChapterEdition(const List<Chapter> &chapterList,
+        bool isDefault, bool isOrdered = false, UID uid = 0);
 
       /*!
-       * Returns the length of the file in milliseconds.
-       *
-       * \see lengthInSeconds()
+       * Construct an edition as a copy of \a other.
        */
-      int lengthInMilliseconds() const override;
+      ChapterEdition(const ChapterEdition &other);
 
       /*!
-       * Returns the average bit rate of the file in kb/s.
+       * Construct an edition moving from \a other.
        */
-      int bitrate() const override;
+      ChapterEdition(ChapterEdition &&other) noexcept;
 
       /*!
-       * Returns the sample rate in Hz.
+       * Destroys this edition.
        */
-      int sampleRate() const override;
+      ~ChapterEdition();
 
       /*!
-       * Returns the number of audio channels.
+       * Copies the contents of \a other into this object.
        */
-      int channels() const override;
+      ChapterEdition &operator=(const ChapterEdition &other);
 
       /*!
-       * Returns the number of bits per audio sample as read from the FLAC
-       * identification header.
+       * Moves the contents of \a other into this object.
        */
-      int bitsPerSample() const;
+      ChapterEdition &operator=(ChapterEdition &&other) noexcept;
 
       /*!
-       * Returns the number of sample frames.
+       * Exchanges the content of the object with the content of \a other.
        */
-      unsigned long long sampleFrames() const;
+      void swap(ChapterEdition &other) noexcept;
 
       /*!
-       * Returns the MD5 signature of the uncompressed audio stream as read
-       * from the stream info header.
+       * Returns the UID of the edition.
        */
-      ByteVector signature() const;
+      UID uid() const;
+
+      /*!
+       * Check if this edition should be used as the default one.
+       */
+      bool isDefault() const;
+
+      /*!
+       * Check if the chapters can be defined multiple times and the order to
+       * play them is enforced.
+       */
+      bool isOrdered() const;
+
+      /*!
+       * Get the list of all chapters.
+       */
+      const List<Chapter> &chapterList() const;
 
     private:
-      void read(const ByteVector &data, offset_t streamLength);
-
-      class PropertiesPrivate;
+      class ChapterEditionPrivate;
       TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
-      std::unique_ptr<PropertiesPrivate> d;
+      std::unique_ptr<ChapterEditionPrivate> d;
     };
-  }  // namespace FLAC
-}  // namespace TagLib
+  }
+}
 
 #endif

@@ -1,7 +1,7 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
+/***************************************************************************
+    copyright            : (C) 2025 by Urs Fleisch
+    email                : ufleisch@users.sourceforge.net
+ ***************************************************************************/
 
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
@@ -23,47 +23,30 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#ifndef TAGLIB_EBMLMKCHAPTERS_H
+#define TAGLIB_EBMLMKCHAPTERS_H
+#ifndef DO_NOT_DOCUMENT
 
-using namespace TagLib;
+#include "ebmlmasterelement.h"
+#include "taglib.h"
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
-{
-public:
-  int code { 0 };
-  ByteVector data;
-};
+namespace TagLib {
+  namespace Matroska {
+    class Chapters;
+  }
 
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
+  namespace EBML {
+    class MkChapters : public MasterElement
+    {
+    public:
+      MkChapters(int sizeLength, offset_t dataSize, offset_t offset);
+      MkChapters(Id, int sizeLength, offset_t dataSize, offset_t offset);
+      MkChapters();
+
+      std::unique_ptr<Matroska::Chapters> parse() const;
+    };
+  }
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
-{
-  return d->code;
-}
-
-void FLAC::UnknownMetadataBlock::setCode(int code)
-{
-  d->code = code;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::data() const
-{
-  return d->data;
-}
-
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
-{
-  d->data = data;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::render() const
-{
-  return d->data;
-}
+#endif
+#endif

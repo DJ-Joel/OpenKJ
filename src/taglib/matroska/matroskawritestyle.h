@@ -1,7 +1,7 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
+/***************************************************************************
+    copyright            : (C) 2026 by Urs Fleisch
+    email                : ufleisch@users.sourceforge.net
+ ***************************************************************************/
 
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
@@ -23,47 +23,27 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#ifndef TAGLIB_MATROSKAWRITESTYLE_H
+#define TAGLIB_MATROSKAWRITESTYLE_H
 
-using namespace TagLib;
-
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
-{
-public:
-  int code { 0 };
-  ByteVector data;
-};
-
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
+namespace TagLib::Matroska {
+  /*!
+   * Controls the trade-off between file size and write speed when saving.
+   * Mode of writing tags, attachments and chapters to the file.
+   * For very large files and/or slow (network) filesystems, using
+   * \c AvoidInsert will reduce write time significantly.
+   */
+  enum class WriteStyle {
+    //! Write tags, attachments and chapters as compact as possible (default).
+    Compact,
+    //! Do not shrink elements; add void padding when content gets smaller.
+    //! Allow inserts when content gets larger.
+    DoNotShrink,
+    //! Like \c DoNotShrink but also avoid inserts for non-last elements:
+    //! replace a growing non-last element with a void of the old size and
+    //! append the new element at the end of the segment.
+    AvoidInsert
+  };
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
-{
-  return d->code;
-}
-
-void FLAC::UnknownMetadataBlock::setCode(int code)
-{
-  d->code = code;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::data() const
-{
-  return d->data;
-}
-
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
-{
-  d->data = data;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::render() const
-{
-  return d->data;
-}
+#endif //TAGLIB_MATROSKAWRITESTYLE_H

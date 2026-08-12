@@ -1,8 +1,3 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
-
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Lesser General Public License version   *
@@ -23,47 +18,59 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#include "matroskasegment.h"
+#include "ebmlutils.h"
+#include "tbytevector.h"
 
 using namespace TagLib;
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
+Matroska::Segment::Segment(offset_t sizeLength, offset_t dataSize, offset_t lengthOffset) :
+  Element(static_cast<ID>(EBML::Element::Id::MkSegment)),
+  sizeLength(sizeLength), dataSize(dataSize)
 {
-public:
-  int code { 0 };
-  ByteVector data;
-};
-
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
+  setOffset(lengthOffset);
+  setSize(sizeLength);
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
+Matroska::Segment::~Segment() = default;
 
-int FLAC::UnknownMetadataBlock::code() const
+ByteVector Matroska::Segment::renderInternal()
 {
-  return d->code;
+  return EBML::renderVINT(dataSize, static_cast<int>(sizeLength));
 }
 
-void FLAC::UnknownMetadataBlock::setCode(int code)
+bool Matroska::Segment::render()
 {
-  d->code = code;
+  const auto beforeSize = sizeLength;
+  auto data = renderInternal();
+  setNeedsRender(false);
+  if(auto afterSize = data.size(); afterSize != beforeSize) {
+    sizeLength = 8;
+    data = renderInternal();
+    setNeedsRender(false);
+    afterSize = data.size();
+    if(!emitSizeChanged(afterSize - beforeSize)) {
+      return false;
+    }
+  }
+
+  setData(data);
+  return true;
 }
 
-ByteVector FLAC::UnknownMetadataBlock::data() const
+bool Matroska::Segment::sizeChanged(Element &, offset_t delta)
 {
-  return d->data;
+  dataSize += delta;
+  setNeedsRender(true);
+  return true;
 }
 
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
+offset_t Matroska::Segment::dataOffset() const
 {
-  d->data = data;
+  return offset() + sizeLength;
 }
 
-ByteVector FLAC::UnknownMetadataBlock::render() const
+offset_t Matroska::Segment::endOffset() const
 {
-  return d->data;
+  return dataOffset() + dataSize;
 }

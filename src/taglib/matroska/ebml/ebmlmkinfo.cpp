@@ -1,7 +1,7 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
+/***************************************************************************
+    copyright            : (C) 2025 by Urs Fleisch
+    email                : ufleisch@users.sourceforge.net
+ ***************************************************************************/
 
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
@@ -23,47 +23,50 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#include "ebmlmkinfo.h"
+#include "ebmlstringelement.h"
+#include "ebmluintelement.h"
+#include "ebmlfloatelement.h"
+#include "matroskaproperties.h"
 
 using namespace TagLib;
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
+EBML::MkInfo::MkInfo(int sizeLength, offset_t dataSize, offset_t offset):
+  MasterElement(Id::MkInfo, sizeLength, dataSize, offset)
 {
-public:
-  int code { 0 };
-  ByteVector data;
-};
-
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
+EBML::MkInfo::MkInfo(Id, int sizeLength, offset_t dataSize, offset_t offset):
+  MasterElement(Id::MkInfo, sizeLength, dataSize, offset)
 {
-  return d->code;
 }
 
-void FLAC::UnknownMetadataBlock::setCode(int code)
+EBML::MkInfo::MkInfo():
+  MasterElement(Id::MkInfo, 0, 0, 0)
 {
-  d->code = code;
 }
 
-ByteVector FLAC::UnknownMetadataBlock::data() const
+void EBML::MkInfo::parse(Matroska::Properties *properties) const
 {
-  return d->data;
-}
+  if(!properties)
+    return;
 
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
-{
-  d->data = data;
-}
+  unsigned long long timestampScale = 1000000;
+  double duration = 0.0;
+  String title;
+  for(const auto &element : elements) {
+    if(const Id id = element->getId(); id == Id::MkTimestampScale) {
+      timestampScale = element_cast<Id::MkTimestampScale>(element)->getValue();
+    }
+    else if(id == Id::MkDuration) {
+      duration = element_cast<Id::MkDuration>(element)->getValueAsDouble();
+    }
+    else if(id == Id::MkTitle) {
+      title = element_cast<Id::MkTitle>(element)->getValue();
+    }
+  }
 
-ByteVector FLAC::UnknownMetadataBlock::render() const
-{
-  return d->data;
+  properties->setLengthInMilliseconds(
+    static_cast<int>(duration * static_cast<double>(timestampScale) / 1000000.0));
+  properties->setTitle(title);
 }

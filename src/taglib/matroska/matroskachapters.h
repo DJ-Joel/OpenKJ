@@ -1,7 +1,7 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
+/***************************************************************************
+    copyright            : (C) 2025 by Urs Fleisch
+    email                : ufleisch@users.sourceforge.net
+ ***************************************************************************/
 
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
@@ -23,56 +23,65 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#ifndef TAGLIB_FLACUNKNOWNMETADATABLOCK_H
-#define TAGLIB_FLACUNKNOWNMETADATABLOCK_H
+#ifndef TAGLIB_MATROSKACHAPTERS_H
+#define TAGLIB_MATROSKACHAPTERS_H
 
-#include "tlist.h"
-#include "tbytevector.h"
+#include <memory>
 #include "taglib_export.h"
-#include "flacmetadatablock.h"
+#include "tlist.h"
+#include "matroskaelement.h"
 
 namespace TagLib {
-  namespace FLAC {
-    //! Unknown FLAC metadata block
-    class TAGLIB_EXPORT UnknownMetadataBlock : public MetadataBlock
+  class File;
+
+  namespace EBML {
+    class MkChapters;
+  }
+
+  namespace Matroska {
+    class ChapterEdition;
+    class File;
+
+    //! Collection of chapter editions.
+    class TAGLIB_EXPORT Chapters
+#ifndef DO_NOT_DOCUMENT
+      : private Element
+#endif
     {
     public:
-      UnknownMetadataBlock(int code, const ByteVector &data);
-      ~UnknownMetadataBlock() override;
+      //! List of chapter editions.
+      using ChapterEditionList = List<ChapterEdition>;
 
-      UnknownMetadataBlock(const UnknownMetadataBlock &item) = delete;
-      UnknownMetadataBlock &operator=(const UnknownMetadataBlock &item) = delete;
+      //! Construct chapters.
+      Chapters();
 
-      /*!
-       * Returns the FLAC metadata block type.
-       */
-      int code() const override;
+      //! Destroy chapters.
+      virtual ~Chapters();
 
-      /*!
-       * Sets the FLAC metadata block type.
-       */
-      void setCode(int code);
+      //! Add a chapter edition.
+      void addChapterEdition(const ChapterEdition &edition);
 
-      /*!
-       * Returns the FLAC metadata block type.
-       */
-      ByteVector data() const;
+      //! Remove a chapter edition.
+      void removeChapterEdition(unsigned long long uid);
 
-      /*!
-       * Sets the FLAC metadata block type.
-       */
-      void setData(const ByteVector &data);
+      //! Remove all chapter editions.
+      void clear();
 
-      /*!
-       * Render the content of the block.
-       */
-      ByteVector render() const override;
+      //! Get list of all chapter editions.
+      const ChapterEditionList &chapterEditionList() const;
 
     private:
-      class UnknownMetadataBlockPrivate;
+      friend class EBML::MkChapters;
+      friend class File;
+      class ChaptersPrivate;
+
+      // private Element implementation
+      ByteVector renderInternal() override;
+
       TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
-      std::unique_ptr<UnknownMetadataBlockPrivate> d;
+      std::unique_ptr<ChaptersPrivate> d;
     };
-  }  // namespace FLAC
-}  // namespace TagLib
+  }
+}
+
 #endif

@@ -1,8 +1,3 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
-
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Lesser General Public License version   *
@@ -23,47 +18,53 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#include "ebmlbinaryelement.h"
+#include "ebmlutils.h"
+#include "tfile.h"
+#include "tdebug.h"
 
 using namespace TagLib;
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
+EBML::BinaryElement::BinaryElement(Id id, int sizeLength, offset_t dataSize):
+  Element(id, sizeLength, dataSize)
 {
-public:
-  int code { 0 };
-  ByteVector data;
-};
-
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
+EBML::BinaryElement::BinaryElement(Id id, int sizeLength, offset_t dataSize, offset_t):
+  Element(id, sizeLength, dataSize)
 {
-  return d->code;
 }
 
-void FLAC::UnknownMetadataBlock::setCode(int code)
+EBML::BinaryElement::BinaryElement(Id id):
+  Element(id, 0, 0)
 {
-  d->code = code;
 }
 
-ByteVector FLAC::UnknownMetadataBlock::data() const
+const ByteVector& EBML::BinaryElement::getValue() const
 {
-  return d->data;
+  return value;
 }
 
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
+void EBML::BinaryElement::setValue(const ByteVector& val)
 {
-  d->data = data;
+  value = val;
 }
 
-ByteVector FLAC::UnknownMetadataBlock::render() const
+bool EBML::BinaryElement::read(File &file)
 {
-  return d->data;
+  value = file.readBlock(dataSize);
+  if(value.size() != dataSize) {
+    debug("Failed to read binary element");
+    return false;
+  }
+  return true;
+}
+
+ByteVector EBML::BinaryElement::render()
+{
+  ByteVector buffer = renderId();
+  dataSize = value.size();
+  buffer.append(renderVINT(dataSize, 0));
+  buffer.append(value);
+  return buffer;
 }

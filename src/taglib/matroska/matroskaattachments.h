@@ -1,8 +1,3 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
-
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Lesser General Public License version   *
@@ -23,47 +18,66 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#ifndef TAGLIB_MATROSKAATTACHMENTS_H
+#define TAGLIB_MATROSKAATTACHMENTS_H
 
-using namespace TagLib;
+#include <memory>
+#include "taglib_export.h"
+#include "tlist.h"
+#include "matroskaelement.h"
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
-{
-public:
-  int code { 0 };
-  ByteVector data;
-};
+namespace TagLib {
+  class File;
 
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
+  namespace EBML {
+    class MkAttachments;
+  }
+
+  namespace Matroska {
+    class AttachedFile;
+    class File;
+
+    //! Collection of attached files.
+    class TAGLIB_EXPORT Attachments
+#ifndef DO_NOT_DOCUMENT
+      : private Element
+#endif
+    {
+    public:
+      //! List of attached files.
+      using AttachedFileList = List<AttachedFile>;
+
+      //! Construct attachments.
+      Attachments();
+
+      //! Destroy attachments.
+      virtual ~Attachments();
+
+      //! Add an attached file.
+      void addAttachedFile(const AttachedFile &file);
+
+      //! Remove an attached file.
+      void removeAttachedFile(unsigned long long uid);
+
+      //! Remove all attached files.
+      void clear();
+
+      //! Get list of all attached files.
+      const AttachedFileList &attachedFileList() const;
+
+    private:
+      friend class EBML::MkAttachments;
+      friend class File;
+      class AttachmentsPrivate;
+
+      // private Element implementation
+      ByteVector renderInternal() override;
+      AttachedFileList &attachedFiles();
+
+      TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
+      std::unique_ptr<AttachmentsPrivate> d;
+    };
+  }
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
-{
-  return d->code;
-}
-
-void FLAC::UnknownMetadataBlock::setCode(int code)
-{
-  d->code = code;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::data() const
-{
-  return d->data;
-}
-
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
-{
-  d->data = data;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::render() const
-{
-  return d->data;
-}
+#endif

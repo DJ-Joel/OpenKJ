@@ -1,8 +1,3 @@
-/**************************************************************************
-    copyright            : (C) 2010 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
- **************************************************************************/
-
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Lesser General Public License version   *
@@ -23,47 +18,53 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "flacunknownmetadatablock.h"
+#ifndef TAGLIB_EBMLMASTERELEMENT_H
+#define TAGLIB_EBMLMASTERELEMENT_H
+#ifndef DO_NOT_DOCUMENT
 
-using namespace TagLib;
+#include <list>
 
-class FLAC::UnknownMetadataBlock::UnknownMetadataBlockPrivate
+#include "ebmlelement.h"
+#include "taglib.h"
+
+namespace TagLib
 {
-public:
-  int code { 0 };
-  ByteVector data;
-};
+  class ByteVector;
 
-FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(std::make_unique<UnknownMetadataBlockPrivate>())
-{
-  d->code = code;
-  d->data = data;
+  namespace EBML {
+    class MasterElement : public Element
+    {
+    public:
+      MasterElement(Id id, int sizeLength, offset_t dataSize, offset_t offset);
+      explicit MasterElement(Id id);
+      ~MasterElement() override;
+
+      offset_t getOffset() const;
+      bool read(File &file) override;
+      ByteVector render() override;
+      void appendElement(std::unique_ptr<Element> &&element);
+      std::list<std::unique_ptr<Element>>::iterator begin();
+      std::list<std::unique_ptr<Element>>::iterator end();
+      std::list<std::unique_ptr<Element>>::const_iterator begin() const;
+      std::list<std::unique_ptr<Element>>::const_iterator end() const;
+      std::list<std::unique_ptr<Element>>::const_iterator cbegin() const;
+      std::list<std::unique_ptr<Element>>::const_iterator cend() const;
+      offset_t getPadding() const;
+      void setPadding(offset_t numBytes);
+      offset_t getMinRenderSize() const;
+      void setMinRenderSize(offset_t minimumSize);
+
+    protected:
+      bool read(File &file, int depth);
+
+      offset_t offset;
+      offset_t padding = 0;
+      offset_t minRenderSize = 0;
+      std::list<std::unique_ptr<Element>> elements;
+    };
+
+  }
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
-
-int FLAC::UnknownMetadataBlock::code() const
-{
-  return d->code;
-}
-
-void FLAC::UnknownMetadataBlock::setCode(int code)
-{
-  d->code = code;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::data() const
-{
-  return d->data;
-}
-
-void FLAC::UnknownMetadataBlock::setData(const ByteVector &data)
-{
-  d->data = data;
-}
-
-ByteVector FLAC::UnknownMetadataBlock::render() const
-{
-  return d->data;
-}
+#endif
+#endif
