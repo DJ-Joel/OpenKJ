@@ -119,10 +119,15 @@ void AudioRecorder::processGstMessage() {
                     g_free(debug);
                     break;
                 default:
+                    // GST_MESSAGE_TYPE(message) is a GstMessageType enum. The
+                    // newer bundled fmt library (pulled in via spdlog 1.17.0)
+                    // no longer formats arbitrary enums implicitly, so it's
+                    // cast to its underlying integer here. GST_MESSAGE_TYPE_NAME
+                    // already gives the human-readable name below.
                     logger->debug("{} [gstreamer] Unhandled GStreamer msg received - Element: {} - Type: {} - Name: {}",
                                   m_loggingPrefix,
                                   message->src->name,
-                                  GST_MESSAGE_TYPE(message),
+                                  static_cast<int>(GST_MESSAGE_TYPE(message)),
                                   GST_MESSAGE_TYPE_NAME(message)
                     );
             }
