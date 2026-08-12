@@ -90,9 +90,9 @@ QVariant TableModelPlaylistSongs::data(const QModelIndex &index, int role) const
     if (role == Qt::TextAlignmentRole) {
         switch (index.column()) {
             case COL_DURATION:
-                return Qt::AlignRight | Qt::AlignVCenter;
+                return QVariant(Qt::AlignRight | Qt::AlignVCenter);
             default:
-                return Qt::AlignLeft | Qt::AlignVCenter;
+                return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
         }
     }
     return {};

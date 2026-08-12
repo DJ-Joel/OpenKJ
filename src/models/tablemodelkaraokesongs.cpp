@@ -138,9 +138,9 @@ QVariant TableModelKaraokeSongs::getColumnTextAlignmentHint(int column) {
         case COL_DURATION:
         case COL_PLAYS:
         case COL_LASTPLAY:
-            return Qt::AlignRight | Qt::AlignVCenter;
+            return QVariant(Qt::AlignRight | Qt::AlignVCenter);
         default:
-            return Qt::AlignLeft | Qt::AlignVCenter;
+            return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
     }
 }
 
