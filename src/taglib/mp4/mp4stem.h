@@ -1,7 +1,7 @@
-/***************************************************************************
-    copyright           : (C) 2011 by Mathias Panzenböck
-    email               : grosser.meister.morti@gmx.net
- ***************************************************************************/
+/**************************************************************************
+    copyright            : (C) 2026 by Antoine Colombier
+    email                : antoine@mixxx.org
+ **************************************************************************/
 
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
@@ -23,63 +23,56 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "modproperties.h"
+#ifndef TAGLIB_MP4STEM_H
+#define TAGLIB_MP4STEM_H
 
-using namespace TagLib;
-using namespace Mod;
+#include "tbytevector.h"
+#include "taglib_export.h"
 
-class Mod::Properties::PropertiesPrivate
-{
-public:
-  int channels { 0 };
-  unsigned int instrumentCount { 0 };
-  unsigned char lengthInPatterns { 0 };
-};
+namespace TagLib::MP4 {
+  //! STEM
+  class StemPrivate
+  {
+  public:
+    ByteVector data;
+  };
 
-Mod::Properties::Properties(AudioProperties::ReadStyle propertiesStyle) :
-  AudioProperties(propertiesStyle),
-  d(std::make_unique<PropertiesPrivate>())
-{
-}
+  class TAGLIB_EXPORT Stem
+  {
+  public:
+    Stem();
+    explicit Stem(const ByteVector &data);
+    ~Stem();
 
-Mod::Properties::~Properties() = default;
+    Stem(const Stem &item);
 
-int Mod::Properties::bitrate() const
-{
-  return 0;
-}
+    /*!
+     * Copies the contents of \a item into this Stem.
+     */
+    Stem &operator=(const Stem &item);
 
-int Mod::Properties::sampleRate() const
-{
-  return 0;
-}
+    /*!
+     * Exchanges the content of the Stem with the content of \a item.
+     */
+    void swap(Stem &item) noexcept;
 
-int Mod::Properties::channels() const
-{
-  return d->channels;
-}
+    //! The Stem data
+    ByteVector data() const;
 
-unsigned int Mod::Properties::instrumentCount() const
-{
-  return d->instrumentCount;
-}
+    /*!
+     * Returns \c true if the Stem and \a other contain the same data.
+     */
+    bool operator==(const Stem &other) const;
 
-unsigned char Mod::Properties::lengthInPatterns() const
-{
-  return d->lengthInPatterns;
-}
+    /*!
+     * Returns \c true if the Stem and \a other have different data.
+     */
+    bool operator!=(const Stem &other) const;
 
-void Mod::Properties::setChannels(int channels)
-{
-  d->channels = channels;
-}
+  private:
+    TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
+    std::shared_ptr<StemPrivate> d;
+  };
+} // namespace TagLib::MP4
 
-void Mod::Properties::setInstrumentCount(unsigned int instrumentCount)
-{
-  d->instrumentCount = instrumentCount;
-}
-
-void Mod::Properties::setLengthInPatterns(unsigned char lengthInPatterns)
-{
-  d->lengthInPatterns = lengthInPatterns;
-}
+#endif

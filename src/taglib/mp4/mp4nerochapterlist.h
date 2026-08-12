@@ -1,7 +1,6 @@
-/***************************************************************************
-    copyright           : (C) 2011 by Mathias Panzenböck
-    email               : grosser.meister.morti@gmx.net
- ***************************************************************************/
+/**************************************************************************
+    copyright            : (C) 2026 by Ryan Francesconi
+ **************************************************************************/
 
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
@@ -23,63 +22,45 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "modproperties.h"
+#ifndef TAGLIB_MP4CHAPTERLIST_H
+#define TAGLIB_MP4CHAPTERLIST_H
 
-using namespace TagLib;
-using namespace Mod;
+#include "mp4chapterholder.h"
 
-class Mod::Properties::PropertiesPrivate
-{
-public:
-  int channels { 0 };
-  unsigned int instrumentCount { 0 };
-  unsigned char lengthInPatterns { 0 };
-};
+namespace TagLib {
+  class File;
+  namespace MP4 {
 
-Mod::Properties::Properties(AudioProperties::ReadStyle propertiesStyle) :
-  AudioProperties(propertiesStyle),
-  d(std::make_unique<PropertiesPrivate>())
-{
-}
+    /*!
+     * Reads, writes, and removes Nero-style chapter markers (chpl atom)
+     * from MP4 files.  Operates independently of MP4::Tag -- the chpl atom
+     * lives at moov/udta/chpl, a sibling of the metadata ilst path.
+     */
+    class NeroChapterList : public ChapterHolder
+    {
+    public:
+      /*!
+       * Reads chapter markers from the already-opened \a file.
+       * Returns \c false if the file has no chpl atom.
+       */
+      bool read(TagLib::File *file);
 
-Mod::Properties::~Properties() = default;
+      /*!
+       * Writes chapter markers to the already-opened \a file,
+       * replacing any existing chpl atom.
+       * The chapter count is capped at 255 (Nero format limit).
+       * Returns \c true on success.
+       */
+      bool write(TagLib::File *file);
 
-int Mod::Properties::bitrate() const
-{
-  return 0;
-}
+      /*!
+       * Removes the chpl atom from the already-opened \a file.
+       * Returns \c true on success, or if no chpl atom exists.
+       */
+      bool remove(TagLib::File *file);
+    };
 
-int Mod::Properties::sampleRate() const
-{
-  return 0;
-}
+  }  // namespace MP4
+}  // namespace TagLib
 
-int Mod::Properties::channels() const
-{
-  return d->channels;
-}
-
-unsigned int Mod::Properties::instrumentCount() const
-{
-  return d->instrumentCount;
-}
-
-unsigned char Mod::Properties::lengthInPatterns() const
-{
-  return d->lengthInPatterns;
-}
-
-void Mod::Properties::setChannels(int channels)
-{
-  d->channels = channels;
-}
-
-void Mod::Properties::setInstrumentCount(unsigned int instrumentCount)
-{
-  d->instrumentCount = instrumentCount;
-}
-
-void Mod::Properties::setLengthInPatterns(unsigned char lengthInPatterns)
-{
-  d->lengthInPatterns = lengthInPatterns;
-}
+#endif

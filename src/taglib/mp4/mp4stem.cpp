@@ -1,7 +1,7 @@
-/***************************************************************************
-    copyright           : (C) 2011 by Mathias Panzenböck
-    email               : grosser.meister.morti@gmx.net
- ***************************************************************************/
+/**************************************************************************
+    copyright            : (C) 2026 by Antoine Colombier
+    email                : antoine@mixxx.org
+ **************************************************************************/
 
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
@@ -23,63 +23,42 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "modproperties.h"
+#include "mp4stem.h"
 
 using namespace TagLib;
-using namespace Mod;
 
-class Mod::Properties::PropertiesPrivate
+MP4::Stem::Stem(const ByteVector &data) :
+  d(std::make_shared<StemPrivate>())
 {
-public:
-  int channels { 0 };
-  unsigned int instrumentCount { 0 };
-  unsigned char lengthInPatterns { 0 };
-};
-
-Mod::Properties::Properties(AudioProperties::ReadStyle propertiesStyle) :
-  AudioProperties(propertiesStyle),
-  d(std::make_unique<PropertiesPrivate>())
-{
+  d->data = data;
 }
 
-Mod::Properties::~Properties() = default;
+MP4::Stem::Stem() = default;
+MP4::Stem::Stem(const Stem &) = default;
+MP4::Stem &MP4::Stem::operator=(const Stem &) = default;
 
-int Mod::Properties::bitrate() const
+void
+MP4::Stem::swap(Stem &item) noexcept
 {
-  return 0;
+  using std::swap;
+
+  swap(d, item.d);
 }
 
-int Mod::Properties::sampleRate() const
+MP4::Stem::~Stem() = default;
+
+ByteVector
+MP4::Stem::data() const
 {
-  return 0;
+  return d->data;
 }
 
-int Mod::Properties::channels() const
+bool MP4::Stem::operator==(const Stem &other) const
 {
-  return d->channels;
+  return data() == other.data();
 }
 
-unsigned int Mod::Properties::instrumentCount() const
+bool MP4::Stem::operator!=(const Stem &other) const
 {
-  return d->instrumentCount;
-}
-
-unsigned char Mod::Properties::lengthInPatterns() const
-{
-  return d->lengthInPatterns;
-}
-
-void Mod::Properties::setChannels(int channels)
-{
-  d->channels = channels;
-}
-
-void Mod::Properties::setInstrumentCount(unsigned int instrumentCount)
-{
-  d->instrumentCount = instrumentCount;
-}
-
-void Mod::Properties::setLengthInPatterns(unsigned char lengthInPatterns)
-{
-  d->lengthInPatterns = lengthInPatterns;
+  return !(*this == other);
 }

@@ -1,7 +1,6 @@
-/***************************************************************************
-    copyright           : (C) 2011 by Mathias Panzenböck
-    email               : grosser.meister.morti@gmx.net
- ***************************************************************************/
+/**************************************************************************
+    copyright            : (C) 2026 by Ryan Francesconi
+ **************************************************************************/
 
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
@@ -23,63 +22,68 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "modproperties.h"
+#include "mp4chapter.h"
+#include "tstring.h"
 
 using namespace TagLib;
-using namespace Mod;
 
-class Mod::Properties::PropertiesPrivate
+class MP4::Chapter::ChapterPrivate
 {
 public:
-  int channels { 0 };
-  unsigned int instrumentCount { 0 };
-  unsigned char lengthInPatterns { 0 };
+  ChapterPrivate() = default;
+  ~ChapterPrivate() = default;
+  String title;
+  long long startTime {0};
 };
 
-Mod::Properties::Properties(AudioProperties::ReadStyle propertiesStyle) :
-  AudioProperties(propertiesStyle),
-  d(std::make_unique<PropertiesPrivate>())
+MP4::Chapter::Chapter(const String &title, long long startTime) :
+  d(std::make_unique<ChapterPrivate>())
+{
+  d->title = title;
+  d->startTime = startTime;
+}
+
+MP4::Chapter::Chapter(const Chapter &other) :
+  d(std::make_unique<ChapterPrivate>(*other.d))
 {
 }
 
-Mod::Properties::~Properties() = default;
+MP4::Chapter::Chapter(Chapter &&other) noexcept = default;
 
-int Mod::Properties::bitrate() const
+MP4::Chapter::Chapter::~Chapter() = default;
+
+MP4::Chapter &MP4::Chapter::Chapter::operator=(const Chapter &other)
 {
-  return 0;
+  Chapter(other).swap(*this);
+  return *this;
 }
 
-int Mod::Properties::sampleRate() const
+MP4::Chapter &MP4::Chapter::Chapter::operator=(
+  Chapter &&other) noexcept = default;
+
+bool MP4::Chapter::operator==(const Chapter &other) const
 {
-  return 0;
+  return title() == other.title() && startTime() == other.startTime();
 }
 
-int Mod::Properties::channels() const
+bool MP4::Chapter::operator!=(const Chapter &other) const
 {
-  return d->channels;
+  return !(*this == other);
 }
 
-unsigned int Mod::Properties::instrumentCount() const
+void MP4::Chapter::swap(Chapter &other) noexcept
 {
-  return d->instrumentCount;
+  using std::swap;
+
+  swap(d, other.d);
 }
 
-unsigned char Mod::Properties::lengthInPatterns() const
+const String &MP4::Chapter::title() const
 {
-  return d->lengthInPatterns;
+  return d->title;
 }
 
-void Mod::Properties::setChannels(int channels)
+long long MP4::Chapter::startTime() const
 {
-  d->channels = channels;
-}
-
-void Mod::Properties::setInstrumentCount(unsigned int instrumentCount)
-{
-  d->instrumentCount = instrumentCount;
-}
-
-void Mod::Properties::setLengthInPatterns(unsigned char lengthInPatterns)
-{
-  d->lengthInPatterns = lengthInPatterns;
+  return d->startTime;
 }

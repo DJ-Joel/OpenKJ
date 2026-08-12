@@ -1,6 +1,5 @@
 /**************************************************************************
-    copyright            : (C) 2009 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
+    copyright            : (C) 2026 by Ryan Francesconi
  **************************************************************************/
 
 /***************************************************************************
@@ -23,70 +22,87 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#ifndef TAGLIB_MP4COVERART_H
-#define TAGLIB_MP4COVERART_H
+#ifndef TAGLIB_MP4CHAPTER_H
+#define TAGLIB_MP4CHAPTER_H
 
-#include "tlist.h"
-#include "tbytevector.h"
+#include <memory>
 #include "taglib_export.h"
-#include "mp4atom.h"
+#include "tlist.h"
 
 namespace TagLib {
+  class String;
   namespace MP4 {
-    //! MP4 picture
-    class TAGLIB_EXPORT CoverArt
-    {
+
+    /*!
+     * A single Nero-style chapter marker.
+     */
+    class TAGLIB_EXPORT Chapter {
     public:
       /*!
-       * This describes the image type.
+       * Construct a chapter.
        */
-      enum Format {
-        JPEG    = TypeJPEG,
-        PNG     = TypePNG,
-        BMP     = TypeBMP,
-        GIF     = TypeGIF,
-        Unknown = TypeImplicit,
-      };
-
-      CoverArt(Format format, const ByteVector &data);
-      ~CoverArt();
-
-      CoverArt(const CoverArt &item);
+      Chapter(const String &title, long long startTime);
 
       /*!
-       * Copies the contents of \a item into this CoverArt.
+       * Construct a chapter as a copy of \a other.
        */
-      CoverArt &operator=(const CoverArt &item);
+      Chapter(const Chapter &other);
 
       /*!
-       * Exchanges the content of the CoverArt with the content of \a item.
+       * Construct a chapter moving from \a other.
        */
-      void swap(CoverArt &item) noexcept;
-
-      //! Format of the image
-      Format format() const;
-
-      //! The image data
-      ByteVector data() const;
+      Chapter(Chapter &&other) noexcept;
 
       /*!
-       * Returns \c true if the CoverArt and \a other are of the same format and
-       * contain the same data.
+       * Destroys this chapter.
        */
-      bool operator==(const CoverArt &other) const;
+      ~Chapter();
 
       /*!
-       * Returns \c true if the CoverArt and \a other  differ in format or data.
+       * Copies the contents of \a other into this object.
        */
-      bool operator!=(const CoverArt &other) const;
+      Chapter &operator=(const Chapter &other);
+
+      /*!
+       * Moves the contents of \a other into this object.
+       */
+      Chapter &operator=(Chapter &&other) noexcept;
+
+      /*!
+       * Returns \c true if the chapter and \a other contain the same data.
+       */
+      bool operator==(const Chapter &other) const;
+
+      /*!
+       * Returns \c true if the chapter and \a other differ in data.
+       */
+      bool operator!=(const Chapter &other) const;
+
+      /*!
+       * Exchanges the content of the object with the content of \a other.
+       */
+      void swap(Chapter &other) noexcept;
+
+      /*!
+       * Returns the title representing the chapter.
+       */
+      const String &title() const;
+
+      /*!
+       * Returns the start time in milliseconds.
+       */
+      long long startTime() const;
 
     private:
-      class CoverArtPrivate;
+      class ChapterPrivate;
       TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
-      std::shared_ptr<CoverArtPrivate> d;
+      std::unique_ptr<ChapterPrivate> d;
     };
 
-    using CoverArtList = List<CoverArt>;
+    //! List of chapters.
+    using ChapterList = List<Chapter>;
+
   }  // namespace MP4
 }  // namespace TagLib
+
 #endif

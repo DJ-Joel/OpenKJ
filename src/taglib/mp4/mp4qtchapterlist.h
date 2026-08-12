@@ -1,6 +1,5 @@
 /**************************************************************************
-    copyright            : (C) 2009 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
+    copyright            : (C) 2026 by Ryan Francesconi
  **************************************************************************/
 
 /***************************************************************************
@@ -23,70 +22,57 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#ifndef TAGLIB_MP4COVERART_H
-#define TAGLIB_MP4COVERART_H
+#ifndef TAGLIB_MP4QTCHAPTERLIST_H
+#define TAGLIB_MP4QTCHAPTERLIST_H
 
-#include "tlist.h"
-#include "tbytevector.h"
-#include "taglib_export.h"
-#include "mp4atom.h"
+#include "mp4chapterholder.h"
 
 namespace TagLib {
+  class File;
   namespace MP4 {
-    //! MP4 picture
-    class TAGLIB_EXPORT CoverArt
+
+    /*!
+     * Reads, writes, and removes QuickTime-style chapter tracks from MP4
+     * files.  A QT chapter track is a disabled text track (\c hdlr type
+     * \c "text") referenced by a \c chap track-reference in the audio
+     * track's \c tref box.  This format is understood by QuickTime,
+     * iTunes, Final Cut, Logic, DaVinci Resolve, Twisted Wave, and most
+     * other Apple/macOS software.
+     *
+     * The existing \c MP4ChapterList class handles Nero-style \c chpl
+     * atoms, which are a different (and less widely supported) chapter
+     * format.
+     *
+     * Chapter times use the same 100-nanosecond unit convention as
+     * \c MP4ChapterList so that existing \c Chapter / \c ChapterList
+     * types can be shared.
+     */
+    class QtChapterList : public ChapterHolder
     {
     public:
       /*!
-       * This describes the image type.
+       * Reads chapter markers from the QuickTime chapter track in the
+       * already-opened \a file.
+       * Returns \c false if the file has no chapter track.
        */
-      enum Format {
-        JPEG    = TypeJPEG,
-        PNG     = TypePNG,
-        BMP     = TypeBMP,
-        GIF     = TypeGIF,
-        Unknown = TypeImplicit,
-      };
-
-      CoverArt(Format format, const ByteVector &data);
-      ~CoverArt();
-
-      CoverArt(const CoverArt &item);
+      bool read(TagLib::File *file);
 
       /*!
-       * Copies the contents of \a item into this CoverArt.
+       * Writes chapter markers as a QuickTime chapter track to the
+       * already-opened \a file, replacing any existing chapter track.
+       * Returns \c true on success.
        */
-      CoverArt &operator=(const CoverArt &item);
+      bool write(TagLib::File *file);
 
       /*!
-       * Exchanges the content of the CoverArt with the content of \a item.
+       * Removes the QuickTime chapter track and its \c tref/chap
+       * reference from the already-opened \a file.
+       * Returns \c true on success, or if no chapter track exists.
        */
-      void swap(CoverArt &item) noexcept;
-
-      //! Format of the image
-      Format format() const;
-
-      //! The image data
-      ByteVector data() const;
-
-      /*!
-       * Returns \c true if the CoverArt and \a other are of the same format and
-       * contain the same data.
-       */
-      bool operator==(const CoverArt &other) const;
-
-      /*!
-       * Returns \c true if the CoverArt and \a other  differ in format or data.
-       */
-      bool operator!=(const CoverArt &other) const;
-
-    private:
-      class CoverArtPrivate;
-      TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
-      std::shared_ptr<CoverArtPrivate> d;
+      bool remove(TagLib::File *file);
     };
 
-    using CoverArtList = List<CoverArt>;
   }  // namespace MP4
 }  // namespace TagLib
+
 #endif
