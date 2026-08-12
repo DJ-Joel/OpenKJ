@@ -24,6 +24,7 @@
 #include <QSvgRenderer>
 #include <QPainter>
 #include <QDir>
+#include <QFile>
 #include <QImageReader>
 #include <QScreen>
 #include <QResizeEvent>

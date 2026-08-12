@@ -22,6 +22,7 @@
 #include "spdlogqstringformatter.h"
 #include "ui_dlgrequests.h"
 #include <QDesktopServices>
+#include <QDir>
 #include <QMenu>
 #include <QMessageBox>
 #include "okjsongbookapi.h"

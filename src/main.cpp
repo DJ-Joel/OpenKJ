@@ -19,6 +19,7 @@
 */
 #include <algorithm>
 #include <QApplication>
+#include <QDir>
 #include "mainwindow.h"
 #include "spdlogqstringformatter.h"
 #include <QStyleFactory>

@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QCryptographicHash>
 #include <QEventLoop>
+#include <QFile>
 #include <QFileInfo>
 #include <QDir>
 

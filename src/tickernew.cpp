@@ -1,6 +1,7 @@
 #include "tickernew.h"
 #include "spdlogqstringformatter.h"
 
+#include <QFile>
 #include <QPainter>
 #include <QFontMetrics>
 #include <QResizeEvent>

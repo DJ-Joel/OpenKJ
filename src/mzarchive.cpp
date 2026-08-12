@@ -22,6 +22,7 @@
 #include "mzarchive.h"
 #include "spdlogqstringformatter.h"
 #include <QFile>
+#include <QDir>
 #include <QBuffer>
 #include <QTemporaryDir>
 #include "src/miniz/miniz.h"

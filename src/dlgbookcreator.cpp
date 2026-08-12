@@ -1,6 +1,7 @@
 #include "dlgbookcreator.h"
 #include "spdlogqstringformatter.h"
 #include "ui_dlgbookcreator.h"
+#include <QDir>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QPainter>

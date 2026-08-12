@@ -1,5 +1,8 @@
 #include "directorymonitor.h"
 #include "dbupdater.h"
+#include <QDir>
+#include <QDirIterator>
+#include <QFileInfo>
 #include <QFutureWatcher>
 #include <QtConcurrent>
 

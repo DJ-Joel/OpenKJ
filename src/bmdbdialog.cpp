@@ -22,6 +22,7 @@
 #include "ui_bmdbdialog.h"
 #include "bmdbupdatethread.h"
 #include <QFileDialog>
+#include <QStandardPaths>
 #include <QMessageBox>
 #include <QSqlQuery>
 

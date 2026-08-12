@@ -21,6 +21,7 @@
 #include "dlgdatabase.h"
 #include "ui_dlgdatabase.h"
 #include <QDebug>
+#include <QFile>
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QSqlQuery>

@@ -22,6 +22,7 @@
 #include "ui_dlgregularexport.h"
 #include <QFileDialog>
 #include <QFile>
+#include <QDir>
 #include <QStandardPaths>
 #include <QMessageBox>
 #include <QXmlStreamWriter>

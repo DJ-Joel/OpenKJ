@@ -21,6 +21,7 @@
 
 #include "okarchive.h"
 #include "spdlogqstringformatter.h"
+#include <QDir>
 #include <QFile>
 #include <QRegularExpression>
 #include <QBuffer>

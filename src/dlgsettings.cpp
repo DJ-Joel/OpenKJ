@@ -25,6 +25,8 @@
 #include <QColorDialog>
 #include <QFileDialog>
 #include <QProcess>
+#include <QDir>
+#include <QFileInfo>
 #include <QStandardPaths>
 #include <QMessageBox>
 #include <QTableWidgetItem>

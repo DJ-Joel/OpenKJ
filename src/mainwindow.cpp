@@ -30,6 +30,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QStandardPaths>
+#include <QTextStream>
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QImageReader>

@@ -1,5 +1,8 @@
 #include "karaokefileinfo.h"
 #include "spdlogqstringformatter.h"
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QRegularExpression>
 #include <QTemporaryDir>
 #include "tagreader.h"

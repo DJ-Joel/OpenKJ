@@ -1,6 +1,8 @@
 #include "dlgvideopreview.h"
 #include "spdlogqstringformatter.h"
 #include "ui_dlgvideopreview.h"
+#include <QDir>
+#include <QFile>
 #include <QMessageBox>
 #include <utility>
 #include "mzarchive.h"
