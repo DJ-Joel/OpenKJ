@@ -234,6 +234,15 @@ target_include_directories(openkj PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/trueaudio
     ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/wavpack
     ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/xm
+    # New in the TagLib 2.x upgrade: DSD audio, Matroska/WebM, and Shorten
+    # support, plus utf8cpp (a small header-only library TagLib's String
+    # class now uses internally for Unicode handling).
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/dsdiff
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/dsf
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/matroska
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/matroska/ebml
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/shorten
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/taglib/utf8cpp
     ${GSTREAMER_INCLUDE_DIRS}
 )
 
