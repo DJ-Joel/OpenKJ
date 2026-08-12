@@ -23,35 +23,29 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <taglib.h>
-#include <tdebug.h>
-#include <trefcounter.h>
-
 #include "asfattribute.h"
+
+#include "tdebug.h"
+
 #include "asffile.h"
 #include "asfutils.h"
 
 using namespace TagLib;
 
-class ASF::Attribute::AttributePrivate : public RefCounter
+class ASF::Attribute::AttributePrivate
 {
 public:
-  AttributePrivate()
-    : pictureValue(ASF::Picture::fromInvalid()),
-      stream(0),
-      language(0) {}
-  AttributeTypes type;
+  AttributePrivate() :
+    pictureValue(ASF::Picture::fromInvalid())
+  {
+  }
+  AttributeTypes type { UnicodeType };
   String stringValue;
   ByteVector byteVectorValue;
   ASF::Picture pictureValue;
-  union {
-    unsigned int intValue;
-    unsigned short shortValue;
-    unsigned long long longLongValue;
-    bool boolValue;
-  };
-  int stream;
-  int language;
+  unsigned long long numericValue { 0 };
+  int stream { 0 };
+  int language { 0 };
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -59,84 +53,72 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 ASF::Attribute::Attribute() :
-  d(new AttributePrivate())
+  d(std::make_shared<AttributePrivate>())
 {
   d->type = UnicodeType;
 }
 
-ASF::Attribute::Attribute(const ASF::Attribute &other) :
-  d(other.d)
-{
-  d->ref();
-}
+ASF::Attribute::Attribute(const ASF::Attribute &) = default;
 
 ASF::Attribute::Attribute(const String &value) :
-  d(new AttributePrivate())
+  d(std::make_shared<AttributePrivate>())
 {
   d->type = UnicodeType;
   d->stringValue = value;
 }
 
 ASF::Attribute::Attribute(const ByteVector &value) :
-  d(new AttributePrivate())
+  d(std::make_shared<AttributePrivate>())
 {
   d->type = BytesType;
   d->byteVectorValue = value;
 }
 
 ASF::Attribute::Attribute(const ASF::Picture &value) :
-  d(new AttributePrivate())
+  d(std::make_shared<AttributePrivate>())
 {
   d->type = BytesType;
   d->pictureValue = value;
 }
 
 ASF::Attribute::Attribute(unsigned int value) :
-  d(new AttributePrivate())
+  d(std::make_shared<AttributePrivate>())
 {
   d->type = DWordType;
-  d->intValue = value;
+  d->numericValue = value;
 }
 
 ASF::Attribute::Attribute(unsigned long long value) :
-  d(new AttributePrivate())
+  d(std::make_shared<AttributePrivate>())
 {
   d->type = QWordType;
-  d->longLongValue = value;
+  d->numericValue = value;
 }
 
 ASF::Attribute::Attribute(unsigned short value) :
-  d(new AttributePrivate())
+  d(std::make_shared<AttributePrivate>())
 {
   d->type = WordType;
-  d->shortValue = value;
+  d->numericValue = value;
 }
 
 ASF::Attribute::Attribute(bool value) :
-  d(new AttributePrivate())
+  d(std::make_shared<AttributePrivate>())
 {
   d->type = BoolType;
-  d->boolValue = value;
+  d->numericValue = value;
 }
 
-ASF::Attribute &ASF::Attribute::operator=(const ASF::Attribute &other)
-{
-  Attribute(other).swap(*this);
-  return *this;
-}
+ASF::Attribute &ASF::Attribute::operator=(const ASF::Attribute &) = default;
 
-void ASF::Attribute::swap(Attribute &other)
+void ASF::Attribute::swap(Attribute &other) noexcept
 {
   using std::swap;
 
   swap(d, other.d);
 }
 
-ASF::Attribute::~Attribute()
-{
-  if(d->deref())
-    delete d;
-}
+ASF::Attribute::~Attribute() = default;
 
 ASF::Attribute::AttributeTypes ASF::Attribute::type() const
 {
@@ -157,22 +139,22 @@ ByteVector ASF::Attribute::toByteVector() const
 
 unsigned short ASF::Attribute::toBool() const
 {
-  return d->shortValue;
+  return d->numericValue ? 1 : 0;
 }
 
 unsigned short ASF::Attribute::toUShort() const
 {
-  return d->shortValue;
+  return static_cast<unsigned short>(d->numericValue);
 }
 
 unsigned int ASF::Attribute::toUInt() const
 {
-  return d->intValue;
+  return static_cast<unsigned int>(d->numericValue);
 }
 
 unsigned long long ASF::Attribute::toULongLong() const
 {
-  return d->longLongValue;
+  return d->numericValue;
 }
 
 ASF::Picture ASF::Attribute::toPicture() const
@@ -180,30 +162,30 @@ ASF::Picture ASF::Attribute::toPicture() const
   return d->pictureValue;
 }
 
-String ASF::Attribute::parse(ASF::File &f, int kind)
+String ASF::Attribute::parse(ASF::File &file, int kind)
 {
   unsigned int size, nameLength;
   String name;
   d->pictureValue = Picture::fromInvalid();
   // extended content descriptor
   if(kind == 0) {
-    nameLength = readWORD(&f);
-    name = readString(&f, nameLength);
-    d->type = ASF::Attribute::AttributeTypes(readWORD(&f));
-    size = readWORD(&f);
+    nameLength = readWORD(&file);
+    name = readString(&file, nameLength);
+    d->type = static_cast<ASF::Attribute::AttributeTypes>(readWORD(&file));
+    size = readWORD(&file);
   }
   // metadata & metadata library
   else {
-    int temp = readWORD(&f);
+    int temp = readWORD(&file);
     // metadata library
     if(kind == 2) {
       d->language = temp;
     }
-    d->stream = readWORD(&f);
-    nameLength = readWORD(&f);
-    d->type = ASF::Attribute::AttributeTypes(readWORD(&f));
-    size = readDWORD(&f);
-    name = readString(&f, nameLength);
+    d->stream = readWORD(&file);
+    nameLength = readWORD(&file);
+    d->type = static_cast<ASF::Attribute::AttributeTypes>(readWORD(&file));
+    size = readDWORD(&file);
+    name = readString(&file, nameLength);
   }
 
   if(kind != 2 && size > 65535) {
@@ -212,33 +194,33 @@ String ASF::Attribute::parse(ASF::File &f, int kind)
 
   switch(d->type) {
   case WordType:
-    d->shortValue = readWORD(&f);
+    d->numericValue = readWORD(&file);
     break;
 
   case BoolType:
     if(kind == 0) {
-      d->boolValue = (readDWORD(&f) == 1);
+      d->numericValue = readDWORD(&file) != 0;
     }
     else {
-      d->boolValue = (readWORD(&f) == 1);
+      d->numericValue = readWORD(&file) != 0;
     }
     break;
 
   case DWordType:
-    d->intValue = readDWORD(&f);
+    d->numericValue = readDWORD(&file);
     break;
 
   case QWordType:
-    d->longLongValue = readQWORD(&f);
+    d->numericValue = readQWORD(&file);
     break;
 
   case UnicodeType:
-    d->stringValue = readString(&f, size);
+    d->stringValue = readString(&file, size);
     break;
 
   case BytesType:
   case GuidType:
-    d->byteVectorValue = f.readBlock(size);
+    d->byteVectorValue = file.readBlock(size);
     break;
   }
 
@@ -258,7 +240,6 @@ int ASF::Attribute::dataSize() const
   case WordType:
     return 2;
   case BoolType:
-    return 4;
   case DWordType:
     return 4;
   case QWordType:
@@ -266,8 +247,10 @@ int ASF::Attribute::dataSize() const
   case UnicodeType:
     return d->stringValue.size() * 2 + 2;
   case BytesType:
-    if(d->pictureValue.isValid())
+    if(d->pictureValue.isValid()) {
       return d->pictureValue.dataSize();
+    }
+    return d->byteVectorValue.size();
   case GuidType:
     return d->byteVectorValue.size();
   }
@@ -280,24 +263,24 @@ ByteVector ASF::Attribute::render(const String &name, int kind) const
 
   switch (d->type) {
   case WordType:
-    data.append(ByteVector::fromShort(d->shortValue, false));
+    data.append(ByteVector::fromShort(toUShort(), false));
     break;
 
   case BoolType:
     if(kind == 0) {
-      data.append(ByteVector::fromUInt(d->boolValue ? 1 : 0, false));
+      data.append(ByteVector::fromUInt(toBool(), false));
     }
     else {
-      data.append(ByteVector::fromShort(d->boolValue ? 1 : 0, false));
+      data.append(ByteVector::fromShort(toBool(), false));
     }
     break;
 
   case DWordType:
-    data.append(ByteVector::fromUInt(d->intValue, false));
+    data.append(ByteVector::fromUInt(toUInt(), false));
     break;
 
   case QWordType:
-    data.append(ByteVector::fromLongLong(d->longLongValue, false));
+    data.append(ByteVector::fromLongLong(toULongLong(), false));
     break;
 
   case UnicodeType:
@@ -307,8 +290,11 @@ ByteVector ASF::Attribute::render(const String &name, int kind) const
   case BytesType:
     if(d->pictureValue.isValid()) {
       data.append(d->pictureValue.render());
-      break;
     }
+    else {
+      data.append(d->byteVectorValue);
+    }
+    break;
   case GuidType:
     data.append(d->byteVectorValue);
     break;
@@ -316,16 +302,16 @@ ByteVector ASF::Attribute::render(const String &name, int kind) const
 
   if(kind == 0) {
     data = renderString(name, true) +
-           ByteVector::fromShort((int)d->type, false) +
-           ByteVector::fromShort(data.size(), false) +
+           ByteVector::fromShort(static_cast<short>(d->type), false) +
+           ByteVector::fromShort(static_cast<short>(data.size()), false) +
            data;
   }
   else {
     ByteVector nameData = renderString(name);
-    data = ByteVector::fromShort(kind == 2 ? d->language : 0, false) +
-           ByteVector::fromShort(d->stream, false) +
-           ByteVector::fromShort(nameData.size(), false) +
-           ByteVector::fromShort((int)d->type, false) +
+    data = ByteVector::fromShort(static_cast<short>(kind == 2 ? d->language : 0), false) +
+           ByteVector::fromShort(static_cast<short>(d->stream), false) +
+           ByteVector::fromShort(static_cast<short>(nameData.size()), false) +
+           ByteVector::fromShort(static_cast<short>(d->type), false) +
            ByteVector::fromUInt(data.size(), false) +
            nameData +
            data;
