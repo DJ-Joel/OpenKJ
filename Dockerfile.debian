@@ -8,9 +8,8 @@ RUN apt-get -qq update && \
 	cmake \
 	ninja-build \
 	git \
-	qtbase5-dev \
-	libqt5svg5-dev \
-	qtmultimedia5-dev \
+	qt6-base-dev \
+	qt6-svg-dev \
 	libgstreamer1.0-dev \
 	libtagc0-dev \
 	libspdlog-dev \

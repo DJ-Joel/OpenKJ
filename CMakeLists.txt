@@ -10,8 +10,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Find Qt5 Components
-find_package(Qt5 COMPONENTS 
+# Find Qt6 Components
+find_package(Qt6 COMPONENTS 
     Core 
     Gui 
     Widgets 
@@ -248,14 +248,14 @@ target_include_directories(openkj PRIVATE
 
 # Link Libraries
 target_link_libraries(openkj PRIVATE
-    Qt5::Core
-    Qt5::Gui
-    Qt5::Widgets
-    Qt5::Sql
-    Qt5::Network
-    Qt5::Svg
-    Qt5::PrintSupport
-    Qt5::Concurrent
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Sql
+    Qt6::Network
+    Qt6::Svg
+    Qt6::PrintSupport
+    Qt6::Concurrent
     spdlog::spdlog
     ${GSTREAMER_LIBRARIES}
 )
