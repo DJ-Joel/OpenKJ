@@ -1,11 +1,7 @@
 /***************************************************************************
-    copyright            : (C) 2006 by Lukáš Lalinský
-    email                : lalinsky@gmail.com
-
-    copyright            : (C) 2002 - 2008 by Scott Wheeler
-    email                : wheeler@kde.org
-                           (original Vorbis implementation)
-***************************************************************************/
+    copyright           : (C) 2020-2024 Stephen F. Booth
+    email               : me@sbooth.org
+ ***************************************************************************/
 
 /***************************************************************************
  *   This library is free software; you can redistribute it and/or modify  *
@@ -27,53 +23,62 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#ifndef TAGLIB_SPEEXFILE_H
-#define TAGLIB_SPEEXFILE_H
+#ifndef TAGLIB_SHORTENFILE_H
+#define TAGLIB_SHORTENFILE_H
 
-#include "oggfile.h"
-#include "xiphcomment.h"
-#include "speexproperties.h"
+#include <memory>
+
+#include "taglib_export.h"
+#include "tfile.h"
+
+#include "shortenproperties.h"
+#include "shortentag.h"
 
 namespace TagLib {
 
-  namespace Ogg {
+  //! An implementation of Shorten metadata
 
-    //! A namespace containing classes for Speex metadata
+  /*!
+   * This is an implementation of Shorten metadata.
+   */
 
-    namespace Speex {
+  namespace Shorten {
 
-      //! An implementation of Ogg::File with Speex specific methods
+    //! An implementation of \c TagLib::File with Shorten specific methods
 
-      /*!
-       * This is the central class in the Ogg Speex metadata processing collection
-       * of classes.  It's built upon Ogg::File which handles processing of the Ogg
-       * logical bitstream and breaking it down into pages which are handled by
-       * the codec implementations, in this case Speex specifically.
-       */
+    /*!
+     * This implements and provides an interface for Shorten files to the
+     * \c TagLib::Tag and \c TagLib::AudioProperties interfaces by way of implementing
+     * the abstract \c TagLib::File API as well as providing some additional
+     * information specific to Shorten files.
+     */
 
-      class TAGLIB_EXPORT File : public Ogg::File
-      {
+    class TAGLIB_EXPORT File : public TagLib::File {
       public:
         /*!
-         * Constructs a Speex file from \a file.  If \a readProperties is \c true the
-         * file's audio properties will also be read.
+         * Constructs a Shorten file from \a file.
          *
-         * \note In the current implementation, \a propertiesStyle is ignored.
+         * \note In the current implementation, both \a readProperties and
+         * \a propertiesStyle are ignored.  The audio properties are always
+         * read.
          */
         File(FileName file, bool readProperties = true,
-             Properties::ReadStyle propertiesStyle = Properties::Average);
+             AudioProperties::ReadStyle propertiesStyle =
+             AudioProperties::Average);
 
         /*!
-         * Constructs a Speex file from \a stream.  If \a readProperties is \c true the
-         * file's audio properties will also be read.
+         * Constructs a Shorten file from \a stream.
+         *
+         * \note In the current implementation, both \a readProperties and
+         * \a propertiesStyle are ignored.  The audio properties are always
+         * read.
          *
          * \note TagLib will *not* take ownership of the stream, the caller is
          * responsible for deleting it after the File object.
-         *
-         * \note In the current implementation, \a propertiesStyle is ignored.
          */
         File(IOStream *stream, bool readProperties = true,
-             Properties::ReadStyle propertiesStyle = Properties::Average);
+             AudioProperties::ReadStyle propertiesStyle =
+             AudioProperties::Average);
 
         /*!
          * Destroys this instance of the File.
@@ -84,26 +89,24 @@ namespace TagLib {
         File &operator=(const File &) = delete;
 
         /*!
-         * Returns the XiphComment for this file.  XiphComment implements the tag
-         * interface, so this serves as the reimplementation of
-         * TagLib::File::tag().
+         * Returns the \c Shorten::Tag for this file.
+         *
+         * \note While the returned \c Tag instance is non-null Shorten tags are not supported.
          */
-        Ogg::XiphComment *tag() const override;
+        Tag *tag() const override;
 
         /*!
          * Implements the unified property interface -- export function.
-         * This forwards directly to XiphComment::properties().
          */
         PropertyMap properties() const override;
 
         /*!
-         * Implements the unified tag dictionary interface -- import function.
-         * Like properties(), this is a forwarder to the file's XiphComment.
+         * Implements the unified property interface -- import function.
          */
         PropertyMap setProperties(const PropertyMap &) override;
 
         /*!
-         * Returns the Speex::Properties for this file.  If no audio properties
+         * Returns the \c Shorten::Properties for this file. If no audio properties
          * were read then this will return a null pointer.
          */
         Properties *audioProperties() const override;
@@ -111,12 +114,12 @@ namespace TagLib {
         /*!
          * Save the file.
          *
-         * This returns \c true if the save was successful.
+         * \note Saving Shorten tags is not supported.
          */
         bool save() override;
 
         /*!
-         * Returns whether or not the given \a stream can be opened as a Speex
+         * Returns whether or not the given \a stream can be opened as a Shorten
          * file.
          *
          * \note This method is designed to do a quick check.  The result may
@@ -125,14 +128,13 @@ namespace TagLib {
         static bool isSupported(IOStream *stream);
 
       private:
-        void read(bool readProperties);
+        void read(AudioProperties::ReadStyle propertiesStyle);
 
         class FilePrivate;
         TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
         std::unique_ptr<FilePrivate> d;
-      };
-    }  // namespace Speex
-  }  // namespace Ogg
+    };
+  }  // namespace Shorten
 }  // namespace TagLib
 
 #endif

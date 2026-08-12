@@ -59,52 +59,35 @@ namespace TagLib {
         /*!
          * Destroys this Opus::Properties instance.
          */
-        virtual ~Properties();
+        ~Properties() override;
 
-        /*!
-         * Returns the length of the file in seconds.  The length is rounded down to
-         * the nearest whole second.
-         *
-         * \note This method is just an alias of lengthInSeconds().
-         *
-         * \deprecated
-         */
-        virtual int length() const;
-
-        /*!
-         * Returns the length of the file in seconds.  The length is rounded down to
-         * the nearest whole second.
-         *
-         * \see lengthInMilliseconds()
-         */
-        // BIC: make virtual
-        int lengthInSeconds() const;
+        Properties(const Properties &) = delete;
+        Properties &operator=(const Properties &) = delete;
 
         /*!
          * Returns the length of the file in milliseconds.
          *
          * \see lengthInSeconds()
          */
-        // BIC: make virtual
-        int lengthInMilliseconds() const;
+        int lengthInMilliseconds() const override;
 
         /*!
          * Returns the average bit rate of the file in kb/s.
          */
-        virtual int bitrate() const;
+        int bitrate() const override;
 
         /*!
          * Returns the sample rate in Hz.
          *
          * \note Always returns 48000, because Opus can decode any stream at a
-         * sample rate of 8, 12, 16, 24, or 48 kHz,
+         * sample rate of 8, 12, 16, 24, or 48 kHz.
          */
-        virtual int sampleRate() const;
+        int sampleRate() const override;
 
         /*!
          * Returns the number of audio channels.
          */
-        virtual int channels() const;
+        int channels() const override;
 
         /*!
          * The Opus codec supports decoding at multiple sample rates, there is no
@@ -118,17 +101,22 @@ namespace TagLib {
          */
         int opusVersion() const;
 
-      private:
-        Properties(const Properties &);
-        Properties &operator=(const Properties &);
+        /*!
+         * Returns the output gain in signed Q7.8 fixed-point format.
+         *
+         * To convert the value to dB, divide it by 256.0.
+         */
+        int outputGain() const;
 
+      private:
         void read(File *file);
 
         class PropertiesPrivate;
-        PropertiesPrivate *d;
+        TAGLIB_MSVC_SUPPRESS_WARNING_NEEDS_TO_HAVE_DLL_INTERFACE
+        std::unique_ptr<PropertiesPrivate> d;
       };
-    }
-  }
-}
+    }  // namespace Opus
+  }  // namespace Ogg
+}  // namespace TagLib
 
 #endif

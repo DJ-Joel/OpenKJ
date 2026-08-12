@@ -23,13 +23,11 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include "tbytevector.h"
-#include "tdebug.h"
-#include "tstringlist.h"
-#include "tpropertymap.h"
-
 #include "wavfile.h"
-#include "id3v2tag.h"
+
+#include "tdebug.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
 #include "infotag.h"
 #include "tagunion.h"
 
@@ -38,56 +36,71 @@ using namespace TagLib;
 namespace
 {
   enum { ID3v2Index = 0, InfoIndex = 1 };
-}
+} // namespace
 
 class RIFF::WAV::File::FilePrivate
 {
 public:
-  FilePrivate() :
-    properties(0),
-    hasID3v2(false),
-    hasInfo(false) {}
-
-  ~FilePrivate()
+  FilePrivate(const ID3v2::FrameFactory *frameFactory)
+        : ID3v2FrameFactory(frameFactory ? frameFactory
+                                         : ID3v2::FrameFactory::instance())
   {
-    delete properties;
   }
 
-  Properties *properties;
+  ~FilePrivate() = default;
+
+  const ID3v2::FrameFactory *ID3v2FrameFactory;
+  std::unique_ptr<Properties> properties;
   TagUnion tag;
 
-  bool hasID3v2;
-  bool hasInfo;
+  bool hasID3v2 { false };
+  bool hasInfo { false };
+  bool hasiXML { false };
+  bool hasBEXT { false };
+
+  String iXMLData;
+  ByteVector bextData;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+// static members
+////////////////////////////////////////////////////////////////////////////////
+
+bool RIFF::WAV::File::isSupported(IOStream *stream)
+{
+  // A WAV file has to start with "RIFF????WAVE".
+
+  const ByteVector id = Utils::readHeader(stream, 12, false);
+  return id.startsWith("RIFF") && id.containsAt("WAVE", 8);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
-RIFF::WAV::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
+RIFF::WAV::File::File(FileName file, bool readProperties, Properties::ReadStyle,
+                      ID3v2::FrameFactory *frameFactory) :
   RIFF::File(file, LittleEndian),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>(frameFactory))
 {
   if(isOpen())
     read(readProperties);
 }
 
-RIFF::WAV::File::File(IOStream *stream, bool readProperties, Properties::ReadStyle) :
+RIFF::WAV::File::File(IOStream *stream, bool readProperties, Properties::ReadStyle,
+                      ID3v2::FrameFactory *frameFactory) :
   RIFF::File(stream, LittleEndian),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>(frameFactory))
 {
   if(isOpen())
     read(readProperties);
 }
 
-RIFF::WAV::File::~File()
-{
-  delete d;
-}
+RIFF::WAV::File::~File() = default;
 
-ID3v2::Tag *RIFF::WAV::File::tag() const
+TagLib::Tag *RIFF::WAV::File::tag() const
 {
-  return ID3v2Tag();
+  return &d->tag;
 }
 
 ID3v2::Tag *RIFF::WAV::File::ID3v2Tag() const
@@ -100,12 +113,32 @@ RIFF::Info::Tag *RIFF::WAV::File::InfoTag() const
   return d->tag.access<RIFF::Info::Tag>(InfoIndex, false);
 }
 
+String RIFF::WAV::File::iXMLData() const
+{
+  return d->iXMLData;
+}
+
+void RIFF::WAV::File::setiXMLData(const String &data)
+{
+  d->iXMLData = data;
+}
+
+ByteVector RIFF::WAV::File::BEXTData() const
+{
+  return d->bextData;
+}
+
+void RIFF::WAV::File::setBEXTData(const ByteVector &data)
+{
+  d->bextData = data;
+}
+
 void RIFF::WAV::File::strip(TagTypes tags)
 {
   removeTagChunks(tags);
 
   if(tags & ID3v2)
-    d->tag.set(ID3v2Index, new ID3v2::Tag());
+    d->tag.set(ID3v2Index, new ID3v2::Tag(nullptr, 0, d->ID3v2FrameFactory));
 
   if(tags & Info)
     d->tag.set(InfoIndex, new RIFF::Info::Tag());
@@ -129,7 +162,7 @@ PropertyMap RIFF::WAV::File::setProperties(const PropertyMap &properties)
 
 RIFF::WAV::Properties *RIFF::WAV::File::audioProperties() const
 {
-  return d->properties;
+  return d->properties.get();
 }
 
 bool RIFF::WAV::File::save()
@@ -137,7 +170,7 @@ bool RIFF::WAV::File::save()
   return RIFF::WAV::File::save(AllTags);
 }
 
-bool RIFF::WAV::File::save(TagTypes tags, bool stripOthers, int id3v2Version)
+bool RIFF::WAV::File::save(TagTypes tags, StripTags strip, ID3v2::Version version)
 {
   if(readOnly()) {
     debug("RIFF::WAV::File::save() -- File is read only.");
@@ -149,14 +182,34 @@ bool RIFF::WAV::File::save(TagTypes tags, bool stripOthers, int id3v2Version)
     return false;
   }
 
-  if(stripOthers)
-    strip(static_cast<TagTypes>(AllTags & ~tags));
+  if(strip == StripOthers)
+    File::strip(static_cast<TagTypes>(AllTags & ~tags));
+
+  if(!d->bextData.isEmpty()) {
+    removeChunk("bext");
+    setChunkData("bext", d->bextData);
+    d->hasBEXT = true;
+  }
+  else if(d->hasBEXT) {
+    removeChunk("bext");
+    d->hasBEXT = false;
+  }
+
+  if(!d->iXMLData.isEmpty()) {
+    removeChunk("iXML");
+    setChunkData("iXML", d->iXMLData.data(String::UTF8));
+    d->hasiXML = true;
+  }
+  else if(d->hasiXML) {
+    removeChunk("iXML");
+    d->hasiXML = false;
+  }
 
   if(tags & ID3v2) {
     removeTagChunks(ID3v2);
 
     if(ID3v2Tag() && !ID3v2Tag()->isEmpty()) {
-      setChunkData("ID3 ", ID3v2Tag()->render(id3v2Version));
+      setChunkData("ID3 ", ID3v2Tag()->render(version));
       d->hasID3v2 = true;
     }
   }
@@ -183,6 +236,16 @@ bool RIFF::WAV::File::hasInfoTag() const
   return d->hasInfo;
 }
 
+bool RIFF::WAV::File::hasiXMLData() const
+{
+  return d->hasiXML;
+}
+
+bool RIFF::WAV::File::hasBEXTData() const
+{
+  return d->hasBEXT;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // private members
 ////////////////////////////////////////////////////////////////////////////////
@@ -190,10 +253,10 @@ bool RIFF::WAV::File::hasInfoTag() const
 void RIFF::WAV::File::read(bool readProperties)
 {
   for(unsigned int i = 0; i < chunkCount(); ++i) {
-    const ByteVector name = chunkName(i);
-    if(name == "ID3 " || name == "id3 ") {
+    if(const ByteVector name = chunkName(i); name == "ID3 " || name == "id3 ") {
       if(!d->tag[ID3v2Index]) {
-        d->tag.set(ID3v2Index, new ID3v2::Tag(this, chunkOffset(i)));
+        d->tag.set(ID3v2Index, new ID3v2::Tag(this, chunkOffset(i),
+                                              d->ID3v2FrameFactory));
         d->hasID3v2 = true;
       }
       else {
@@ -201,8 +264,7 @@ void RIFF::WAV::File::read(bool readProperties)
       }
     }
     else if(name == "LIST") {
-      const ByteVector data = chunkData(i);
-      if(data.startsWith("INFO")) {
+      if(const ByteVector data = chunkData(i); data.startsWith("INFO")) {
         if(!d->tag[InfoIndex]) {
           d->tag.set(InfoIndex, new RIFF::Info::Tag(data));
           d->hasInfo = true;
@@ -212,16 +274,24 @@ void RIFF::WAV::File::read(bool readProperties)
         }
       }
     }
+    else if(name == "iXML") {
+      d->hasiXML = true;
+      d->iXMLData = String(chunkData(i), String::UTF8);
+    }
+    else if(name == "bext") {
+      d->hasBEXT = true;
+      d->bextData = chunkData(i);
+    }
   }
 
   if(!d->tag[ID3v2Index])
-    d->tag.set(ID3v2Index, new ID3v2::Tag());
+    d->tag.set(ID3v2Index, new ID3v2::Tag(nullptr, 0, d->ID3v2FrameFactory));
 
   if(!d->tag[InfoIndex])
     d->tag.set(InfoIndex, new RIFF::Info::Tag());
 
   if(readProperties)
-    d->properties = new Properties(this, Properties::Average);
+    d->properties = std::make_unique<Properties>(this, Properties::Average);
 }
 
 void RIFF::WAV::File::removeTagChunks(TagTypes tags)

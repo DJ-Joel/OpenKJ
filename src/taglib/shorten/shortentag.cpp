@@ -1,6 +1,6 @@
 /***************************************************************************
-    copyright            : (C) 2015 by Tsuda Kageyu
-    email                : tsuda.kageyu@gmail.com
+ copyright           : (C) 2020-2024 Stephen F. Booth
+ email               : me@sbooth.org
  ***************************************************************************/
 
 /***************************************************************************
@@ -23,34 +23,92 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#ifndef TAGLIB_RIFFUTILS_H
-#define TAGLIB_RIFFUTILS_H
+#include "shortentag.h"
 
-#include "tbytevector.h"
+#include "tpropertymap.h"
 
-// THIS FILE IS NOT A PART OF THE TAGLIB API
+using namespace TagLib;
 
-#ifndef DO_NOT_DOCUMENT  // tell Doxygen not to document this header
-
-namespace TagLib
+class Shorten::Tag::TagPrivate
 {
-  namespace RIFF
-  {
-    namespace
-    {
+};
 
-      inline bool isValidChunkName(const ByteVector &name)
-      {
-        if(name.size() != 4)
-          return false;
+Shorten::Tag::Tag() :
+  d(std::make_unique<TagPrivate>())
+{
+}
 
-        return std::none_of(name.begin(), name.end(), [](unsigned char c) { return c < 32 || 127 < c; });
-      }
+Shorten::Tag::~Tag() = default;
 
-    }  // namespace
-  }  // namespace RIFF
-}  // namespace TagLib
+String Shorten::Tag::title() const
+{
+  return String();
+}
 
-#endif
+String Shorten::Tag::artist() const
+{
+  return String();
+}
 
-#endif
+String Shorten::Tag::album() const
+{
+  return String();
+}
+
+String Shorten::Tag::comment() const
+{
+  return String();
+}
+
+String Shorten::Tag::genre() const
+{
+  return String();
+}
+
+unsigned int Shorten::Tag::year() const
+{
+  return 0;
+}
+
+unsigned int Shorten::Tag::track() const
+{
+  return 0;
+}
+
+void Shorten::Tag::setTitle(const String &)
+{
+}
+
+void Shorten::Tag::setArtist(const String &)
+{
+}
+
+void Shorten::Tag::setAlbum(const String &)
+{
+}
+
+void Shorten::Tag::setComment(const String &)
+{
+}
+
+void Shorten::Tag::setGenre(const String &)
+{
+}
+
+void Shorten::Tag::setYear(unsigned int)
+{
+}
+
+void Shorten::Tag::setTrack(unsigned int)
+{
+}
+
+PropertyMap Shorten::Tag::properties() const
+{
+  return PropertyMap{};
+}
+
+PropertyMap Shorten::Tag::setProperties(const PropertyMap &origProps)
+{
+  return PropertyMap{origProps};
+}

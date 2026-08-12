@@ -1,6 +1,6 @@
 /***************************************************************************
-    copyright            : (C) 2015 by Tsuda Kageyu
-    email                : tsuda.kageyu@gmail.com
+ copyright           : (C) 2020-2024 Stephen F. Booth
+ email               : me@sbooth.org
  ***************************************************************************/
 
 /***************************************************************************
@@ -23,33 +23,28 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#ifndef TAGLIB_RIFFUTILS_H
-#define TAGLIB_RIFFUTILS_H
-
-#include "tbytevector.h"
+#ifndef TAGLIB_SHORTENUTILS_H
+#define TAGLIB_SHORTENUTILS_H
 
 // THIS FILE IS NOT A PART OF THE TAGLIB API
 
 #ifndef DO_NOT_DOCUMENT  // tell Doxygen not to document this header
 
-namespace TagLib
-{
-  namespace RIFF
-  {
-    namespace
+namespace TagLib {
+  namespace Shorten {
+
+    /// Values shared with \c Shorten::Properties by \c Shorten::File
+    struct PropertyValues
     {
-
-      inline bool isValidChunkName(const ByteVector &name)
-      {
-        if(name.size() != 4)
-          return false;
-
-        return std::none_of(name.begin(), name.end(), [](unsigned char c) { return c < 32 || 127 < c; });
-      }
-
-    }  // namespace
-  }  // namespace RIFF
-}  // namespace TagLib
+      int version { 0 };
+      int fileType { 0 };
+      int channelCount { 0 };
+      int sampleRate { 0 };
+      int bitsPerSample { 0 };
+      unsigned long sampleFrames { 0 };
+    };
+  } // namespace Shorten
+} // namespace TagLib
 
 #endif
 
