@@ -308,7 +308,9 @@ void DbUpdater::DiskEnumerator::readNextDiskFile()
             // File type is "cdg" and is only valid if there is an audio file with the same filename.
             // Look for an entry with the same filename in the list of audio files.
             invalid_file_found = true;
-            const QStringRef disk_path_without_ext = QStringRef(&CurrentFile, 0, CurrentFile.length() - 4);
+            // QStringRef was removed in Qt 6; QStringView is its replacement
+            // for this simple "view into part of a string" use.
+            const QStringView disk_path_without_ext = QStringView(CurrentFile).sliced(0, CurrentFile.length() - 4);
 
             while (m_i_aud < m_audioFilesOnDisk.size()) {
                 int comp_result_audio = disk_path_without_ext.compare(m_audioFilesOnDisk.at(m_i_aud));
@@ -412,23 +414,29 @@ void DbUpdater::fixMissingFiles(QVector<DbSongRecord> &filesMissingOnDisk, QStri
     qInfo() << "Looking for missing files";
 
     // Strategy: create new list of only the filenames (without paths) of all the new files found.
-    //   Instead of creating new strings, use QStringRef of the full path string.
+    //   Instead of creating new strings, use a QStringView into the full path string.
     //   Use that new, sorted list as a lookup table for the missing files in the database.
+    //
+    // QStringRef was removed in Qt 6. Its replacement, QStringView, is a
+    // simpler view type that (unlike QStringRef) does not remember which
+    // original QString it came from - so each view here is paired with the
+    // index of its full path in newFilesOnDiskCopy, to get back to it later.
 
-    // Keep a copy of "newFilesOnDisk" so the QStrings are not destructed, causing QStringRefs to fail.
+    // Keep a copy of "newFilesOnDisk" so the QStrings are not destructed, causing QStringViews to fail.
     QStringList newFilesOnDiskCopy(newFilesOnDisk);
-    QVector<QStringRef> filesOnDiskFilenamesOnlySorted;
+    QVector<QPair<QStringView, int>> filesOnDiskFilenamesOnlySorted;
     filesOnDiskFilenamesOnlySorted.reserve(newFilesOnDiskCopy.size());
-    foreach(const QString &s, newFilesOnDiskCopy) {
+    for (int i = 0; i < newFilesOnDiskCopy.size(); ++i) {
+        const QString &s = newFilesOnDiskCopy.at(i);
         int filenameBeginsAt = s.lastIndexOf('/') + 1;
-        filesOnDiskFilenamesOnlySorted.append(QStringRef(&s, filenameBeginsAt, s.length() - filenameBeginsAt));
+        filesOnDiskFilenamesOnlySorted.append({QStringView(s).sliced(filenameBeginsAt), i});
     }
 
     // Sort the list case insensitive
-    auto caseInsensitiveSort = [](const QStringRef &a, const QString &b) -> bool { return QStringRef::compare(a, b, Qt::CaseInsensitive) < 0; };
-    auto caseInsensitiveSortStringRef = [](const QStringRef &a, const QStringRef &b) -> bool { return QStringRef::compare(a, b, Qt::CaseInsensitive) < 0; };
+    auto caseInsensitiveSort = [](const QPair<QStringView, int> &a, const QString &b) -> bool { return a.first.compare(b, Qt::CaseInsensitive) < 0; };
+    auto caseInsensitiveSortStringView = [](const QPair<QStringView, int> &a, const QPair<QStringView, int> &b) -> bool { return a.first.compare(b.first, Qt::CaseInsensitive) < 0; };
 
-    std::sort(filesOnDiskFilenamesOnlySorted.begin(), filesOnDiskFilenamesOnlySorted.end(), caseInsensitiveSortStringRef);
+    std::sort(filesOnDiskFilenamesOnlySorted.begin(), filesOnDiskFilenamesOnlySorted.end(), caseInsensitiveSortStringView);
 
     // Copy records that are still missing to a new list instead of removing them from filesMissingOnDisk. It's faster that way.
     QVector<DbSongRecord> filesMissingOnDisk_still;
@@ -451,17 +459,18 @@ void DbUpdater::fixMissingFiles(QVector<DbSongRecord> &filesMissingOnDisk, QStri
         // exactly the case a rename on a network drive can hit: the old
         // filename disappears before DirectoryMonitor's rescan has picked up
         // the new one as a "new file", so nothing here matches at all yet.
-        if (lb != filesOnDiskFilenamesOnlySorted.end() && lb->compare(filenameWithoutPath, Qt::CaseInsensitive) == 0) {
-            query.bindValue(":newpath", *lb->string());
+        if (lb != filesOnDiskFilenamesOnlySorted.end() && lb->first.compare(filenameWithoutPath, Qt::CaseInsensitive) == 0) {
+            const QString &matchedFullPath = newFilesOnDiskCopy.at(lb->second);
+            query.bindValue(":newpath", matchedFullPath);
             query.bindValue(":id", missingFile.id);
 
             if (query.exec()) {
                 emit progressMessage("Found match! Modifying existing song.");
                 qInfo() << "Missing file found at new location";
                 qInfo() << "  old: " << missingFile.path;
-                qInfo() << "  new: " << lb->string();
+                qInfo() << "  new: " << matchedFullPath;
 
-                newFilesOnDisk.removeOne(*lb->string());
+                newFilesOnDisk.removeOne(matchedFullPath);
                 matchFound = true;
             }
             else {
