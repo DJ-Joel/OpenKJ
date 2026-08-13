@@ -477,7 +477,11 @@ void DlgSettings::on_btnClose_clicked() {
 
 void DlgSettings::on_pushButtonFont_clicked() {
     bool ok;
-    QFont font = QFontDialog::getFont(&ok, m_settings.tickerFont(), this, "Select ticker font");
+    // Use the raw saved font here, not tickerFont() - when "Ticker & Duration
+    // Auto-Scaling" is on, tickerFont() overwrites the size with a
+    // recalculated one on every read, which made the font dialog appear to
+    // "forget" whatever size was actually saved as soon as it was reopened.
+    QFont font = QFontDialog::getFont(&ok, m_settings.tickerFontRaw(), this, "Select ticker font");
     if (ok) {
         m_settings.setTickerFont(font);
         emit tickerFontChanged();
@@ -928,7 +932,10 @@ void DlgSettings::on_groupBoxShowDuration_clicked(bool checked) {
 
 void DlgSettings::on_btnDurationFont_clicked() {
     bool ok;
-    QFont font = QFontDialog::getFont(&ok, m_settings.cdgRemainFont(), this, "Select CDG duration display font");
+    // Same reasoning as on_pushButtonFont_clicked() above - use the raw
+    // saved font so the dialog shows what was actually chosen, not a
+    // size recalculated by auto-scaling.
+    QFont font = QFontDialog::getFont(&ok, m_settings.cdgRemainFontRaw(), this, "Select CDG duration display font");
     if (ok) {
         m_settings.setCdgRemainFont(font);
         emit cdgRemainFontChanged(font);

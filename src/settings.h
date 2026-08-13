@@ -22,8 +22,6 @@
 #define SETTINGS_H
 
 #include <QHeaderView>
-#include <QKeySequence>
-#include <QMetaType>
 #include <QObject>
 #include <QSettings>
 #include <QSplitter>
@@ -31,14 +29,18 @@
 #include <QTableView>
 #include <QTreeView>
 #include <QWidget>
+#include <QMetaType>
+#include <QKeySequence>
 
 struct SfxEntry
 {
     SfxEntry();
     QString name;
     QString path;
-};
-Q_DECLARE_METATYPE(SfxEntry)
+
+
+}; Q_DECLARE_METATYPE(SfxEntry)
+
 
 typedef QList<SfxEntry> SfxEntryList;
 
@@ -81,7 +83,7 @@ public:
     int getSystemRamSize();
     int remainRtOffset();
     int remainBtmOffset();
-    qint64 hash(const QString &str);
+    qint64 hash(const QString & str);
     bool progressiveSearchEnabled();
     QString storeDownloadDir();
     QString logDir();
@@ -140,7 +142,7 @@ public:
     bool cdgWindowFullscreen();
     bool showCdgWindow();
     void setCdgWindowFullscreenMonitor(int monitor);
-    int cdgWindowFullScreenMonitor();
+    int  cdgWindowFullScreenMonitor();
     void saveWindowState(QWidget *window);
     void restoreWindowState(QWidget *window);
     void saveColumnWidths(QTreeView *treeView);
@@ -151,6 +153,8 @@ public:
     void restoreSplitterState(QSplitter *splitter);
     void setTickerFont(const QFont &font);
     void setApplicationFont(const QFont &font);
+    // Same idea as cdgRemainFontRaw() above, for the ticker font.
+    QFont tickerFontRaw();
     QFont tickerFont();
     [[nodiscard]] QFont applicationFont() const;
     // Resets the application font/size back to OpenKJ's built-in default,
@@ -297,6 +301,12 @@ public:
     bool dbSkipValidation();
     bool dbLazyLoadDurations();
     int systemId();
+    // The literal font as saved (family/size/style), with no auto-scale
+    // adjustment applied - used to populate the font picker in Settings so
+    // it shows what was actually chosen, not a recalculated size. See
+    // cdgRemainFont() below for the version used for actual on-screen
+    // rendering.
+    QFont cdgRemainFontRaw();
     QFont cdgRemainFont();
     QColor cdgRemainTextColor();
     QColor cdgRemainBgColor();
@@ -358,6 +368,7 @@ signals:
     void videoOffsetChanged(int offsetMs);
     void lastSingerAddPositionTypeChanged(int type);
     void shortcutsChanged();
+
 
 public slots:
     void setShowMainWindowVideo(bool show);

@@ -652,7 +652,7 @@ QFont Settings::resetApplicationFont()
     return defaultFont;
 }
 
-QFont Settings::tickerFont()
+QFont Settings::tickerFontRaw()
 {
     QFontDatabase fdb;
     QFont font;
@@ -663,6 +663,12 @@ QFont Settings::tickerFont()
         defaultFont = QFont("Verdana");
     defaultFont.setPointSize(48);
     font.fromString(settings->value("tickerFont", defaultFont.toString()).toString());
+    return font;
+}
+
+QFont Settings::tickerFont()
+{
+    QFont font = tickerFontRaw();
     if (tickerTimerAutoScale()) {
         int displayHeight = s_cdgDisplayHeightPx.load(std::memory_order_relaxed);
         // Ticker is a single-line banner strip - keep it a modest fraction
@@ -719,7 +725,7 @@ void Settings::setTickerTextColor(QColor color)
     settings->setValue("tickerTextColor", color);
 }
 
-QFont Settings::cdgRemainFont()
+QFont Settings::cdgRemainFontRaw()
 {
     QFontDatabase fdb;
     QFont font;
@@ -732,6 +738,12 @@ QFont Settings::cdgRemainFont()
         defaultFont = QFont("Verdana");
     defaultFont.setPointSize(48);
     font.fromString(settings->value("cdgRemainFont", defaultFont.toString()).toString());
+    return font;
+}
+
+QFont Settings::cdgRemainFont()
+{
+    QFont font = cdgRemainFontRaw();
     if (tickerTimerAutoScale()) {
         int displayHeight = s_cdgDisplayHeightPx.load(std::memory_order_relaxed);
         // Countdown timer is a bigger, more prominent overlay than the
