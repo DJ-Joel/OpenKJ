@@ -50,7 +50,6 @@ private slots:
     void on_pushButtonExport_clicked();
     void on_pushButtonExportAll_clicked();
 
-
     // QWidget interface
 protected:
     void closeEvent(QCloseEvent *event) override;

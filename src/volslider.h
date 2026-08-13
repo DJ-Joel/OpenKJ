@@ -1,8 +1,8 @@
 #ifndef VOLSLIDER_H
 #define VOLSLIDER_H
 
-#include <QWidget>
 #include <QSlider>
+#include <QWidget>
 
 class VolSlider : public QSlider
 {

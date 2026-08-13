@@ -5,11 +5,12 @@
 #include "settings.h"
 
 namespace Ui {
-    class DlgEq;
+class DlgEq;
 }
 
-class DlgEq : public QDialog {
-Q_OBJECT
+class DlgEq : public QDialog
+{
+    Q_OBJECT
 
 public:
     explicit DlgEq(QWidget *parent = 0);
@@ -24,7 +25,6 @@ signals:
     void bmEqBypassChanged(bool enabled);
     void karEqLevelChanged(int band, int newValue);
     void bmEqLevelChanged(int band, int newValue);
-
 };
 
 #endif // DLGEQ_H

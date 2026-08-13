@@ -21,12 +21,11 @@
 #ifndef BMDBDIALOG_H
 #define BMDBDIALOG_H
 
-#include <memory>
 #include <QDialog>
-#include <QSqlTableModel>
 #include <QSqlDatabase>
+#include <QSqlTableModel>
 #include "dlgdbupdate.h"
-
+#include <memory>
 
 namespace Ui {
 class BmDbDialog;
@@ -35,7 +34,7 @@ class BmDbDialog;
 class BmDbDialog : public QDialog
 {
     Q_OBJECT
-    
+
 public:
     explicit BmDbDialog(QWidget *parent = nullptr);
     ~BmDbDialog() override;

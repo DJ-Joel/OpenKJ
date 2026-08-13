@@ -1,18 +1,22 @@
 #include "directorymonitor.h"
-#include "dbupdater.h"
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QFutureWatcher>
 #include <QtConcurrent>
+#include "dbupdater.h"
 
-DirectoryMonitor::DirectoryMonitor(QObject *parent, QStringList pathsToWatch) : QObject(parent)
+DirectoryMonitor::DirectoryMonitor(QObject *parent, QStringList pathsToWatch)
+    : QObject(parent)
 {
     m_scanTimer.setInterval(5000);
     m_scanTimer.setSingleShot(true);
     connect(&m_scanTimer, &QTimer::timeout, this, &DirectoryMonitor::scanPaths);
 
-    connect(&m_pathsEnumeratedWatcher, &QFutureWatcher<int>::finished, this, &DirectoryMonitor::directoriesEnumerated);
+    connect(&m_pathsEnumeratedWatcher,
+            &QFutureWatcher<int>::finished,
+            this,
+            &DirectoryMonitor::directoriesEnumerated);
     // Qt 6 changed QtConcurrent::run()'s member-function overload: the
     // member function pointer now comes first, followed by the instance
     // (it used to be instance-then-pointer in Qt 5).
@@ -30,10 +34,11 @@ QStringList DirectoryMonitor::enumeratePathsAsync(QStringList paths)
     QStringList result;
     foreach (auto path, paths) {
         QFileInfo finfo(path);
-        if (finfo.isDir() && finfo.isReadable())
-        {
+        if (finfo.isDir() && finfo.isReadable()) {
             result.append(path);
-            QDirIterator it(path, QDir::AllDirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+            QDirIterator it(path,
+                            QDir::AllDirs | QDir::NoDotAndDotDot,
+                            QDirIterator::Subdirectories);
             while (it.hasNext()) {
                 result.append(it.next());
             }
@@ -46,10 +51,13 @@ void DirectoryMonitor::directoriesEnumerated()
 {
     auto paths = m_pathsEnumeratedWatcher.future().result();
     m_fsWatcher.addPaths(paths);
-    connect(&m_fsWatcher, &QFileSystemWatcher::directoryChanged, this, &DirectoryMonitor::directoryChanged);
+    connect(&m_fsWatcher,
+            &QFileSystemWatcher::directoryChanged,
+            this,
+            &DirectoryMonitor::directoryChanged);
 }
 
-void DirectoryMonitor::directoryChanged(const QString& dirPath)
+void DirectoryMonitor::directoryChanged(const QString &dirPath)
 {
     qInfo() << "Directory changed fired for dir: " << dirPath;
     m_pathsWithChangedFiles << dirPath;
@@ -66,12 +74,10 @@ void DirectoryMonitor::scanPaths()
     DbUpdater dbUpdater(this);
     if (dbUpdater.process(paths, DbUpdater::ProcessingOption::FixMovedFiles)) {
         emit databaseUpdateComplete();
-    }
-    else {
+    } else {
         // scanning failed - perhaps another scan was running?
         // Queue a new run
         m_pathsWithChangedFiles.unite(QSet<QString>(paths.begin(), paths.end()));
         m_scanTimer.start();
     }
 }
-

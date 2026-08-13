@@ -1,18 +1,18 @@
 #include "tickernew.h"
 #include "spdlogqstringformatter.h"
 
-#include <QFile>
-#include <QIODevice>
-#include <QPainter>
-#include <QFontMetrics>
-#include <QResizeEvent>
-#include <QMutex>
 #include <QApplication>
+#include <QFile>
+#include <QFontMetrics>
+#include <QIODevice>
+#include <QMutex>
+#include <QPainter>
+#include <QResizeEvent>
 #include <QTextStream>
-#include <utility>
 #include <QTimer>
 #include <chrono>
 #include <thread>
+#include <utility>
 
 #ifdef _MSC_VER
 #define NOMINMAX
@@ -20,7 +20,8 @@
 #include <timeapi.h>
 #endif
 
-void TickerNew::run() {
+void TickerNew::run()
+{
     bool reducedCpuMode = m_settings.tickerReducedCpuMode();
     using namespace std::chrono_literals;
     using namespace std::chrono;
@@ -31,8 +32,7 @@ void TickerNew::run() {
     m_logger->info("{} Ticker starting", m_loggingPrefix);
     m_stop = false;
     m_textChanged = true;
-    while (!m_stop)
-    {
+    while (!m_stop) {
         if (!m_textOverflows)
             curOffset = 0;
         if (curOffset >= m_txtWidth) {
@@ -57,8 +57,7 @@ void TickerNew::run() {
 
 void TickerNew::stop()
 {
-    if (!m_mutex.tryLock(100))
-    {
+    if (!m_mutex.tryLock(100)) {
         m_logger->warn("{} stop() unable to lock m_mutex!", m_loggingPrefix);
         return;
     }
@@ -75,8 +74,7 @@ TickerNew::TickerNew()
 
 QSize TickerNew::getSize()
 {
-    if (!m_mutex.tryLock(100))
-    {
+    if (!m_mutex.tryLock(100)) {
         m_logger->warn("{} getSize() unable to lock m_mutex!", m_loggingPrefix);
         return {};
     }
@@ -87,15 +85,16 @@ QSize TickerNew::getSize()
 
 void TickerNew::setWidth(int width)
 {
-    if (!m_mutex.tryLock(100))
-    {
+    if (!m_mutex.tryLock(100)) {
         m_logger->warn("{} setWidth() unable to lock m_mutex", m_loggingPrefix);
         return;
     }
 #ifdef Q_OS_WIN
     m_height = QFontMetrics(m_settings.tickerFont()).height();
 #else
-    m_height = static_cast<int>(QFontMetrics(m_settings.tickerFont()).tightBoundingRect("PLACEHOLDERtextgj|i01").height() * 1.2);
+    m_height = static_cast<int>(
+        QFontMetrics(m_settings.tickerFont()).tightBoundingRect("PLACEHOLDERtextgj|i01").height()
+        * 1.2);
 #endif
     m_width = width;
     scrollImage = QPixmap(width * 2, m_height);
@@ -111,7 +110,10 @@ void TickerNew::setText(const QString &text, bool force)
     m_text = text;
     auto imageCreator = new TickerImageCreator(text, m_width);
     connect(imageCreator, &TickerImageCreator::imageCreated, this, &TickerNew::replaceImage);
-    connect(imageCreator, &TickerImageCreator::finished, imageCreator, &TickerImageCreator::deleteLater);
+    connect(imageCreator,
+            &TickerImageCreator::finished,
+            imageCreator,
+            &TickerImageCreator::deleteLater);
     imageCreator->start();
 }
 
@@ -122,8 +124,7 @@ void TickerNew::refresh()
 
 void TickerNew::setSpeed(int speed)
 {
-    if (!m_mutex.tryLock(100))
-    {
+    if (!m_mutex.tryLock(100)) {
         m_logger->warn("{} setSpeed() unable to lock m_mutex!", m_loggingPrefix);
         return;
     }
@@ -134,9 +135,9 @@ void TickerNew::setSpeed(int speed)
     m_mutex.unlock();
 }
 
-void TickerNew::replaceImage(const QPixmap &image, int textWidth) {
-    if (!m_mutex.tryLock(1000))
-    {
+void TickerNew::replaceImage(const QPixmap &image, int textWidth)
+{
+    if (!m_mutex.tryLock(1000)) {
         m_logger->error("{} setText() unable to lock m_mutex!", m_loggingPrefix);
         return;
     }
@@ -152,7 +153,7 @@ void TickerNew::replaceImage(const QPixmap &image, int textWidth) {
 }
 
 TickerDisplayWidget::TickerDisplayWidget(QWidget *parent)
-        : QWidget(parent)
+    : QWidget(parent)
 {
     m_logger = spdlog::get("logger");
     ticker = new TickerNew();
@@ -169,7 +170,7 @@ TickerDisplayWidget::~TickerDisplayWidget()
     delete ticker;
 }
 
-void TickerDisplayWidget::setText(const QString& newText, bool force)
+void TickerDisplayWidget::setText(const QString &newText, bool force)
 {
     m_currentText = newText;
     ticker->setText(newText, force);
@@ -197,18 +198,16 @@ void TickerDisplayWidget::setTickerEnabled(bool enabled)
     if (enabled && !ticker->isRunning()) {
         ticker->start();
         ticker->setPriority(QThread::TimeCriticalPriority);
-    }
-    else if (!enabled && ticker->isRunning())
+    } else if (!enabled && ticker->isRunning())
         ticker->stop();
 }
-
 
 void TickerDisplayWidget::resizeEvent(QResizeEvent *event)
 {
     ticker->setWidth(event->size().width());
 }
 
-void TickerDisplayWidget::newFrameRect(const QPixmap& frame, const QRect displayArea)
+void TickerDisplayWidget::newFrameRect(const QPixmap &frame, const QRect displayArea)
 {
     rectBasedDrawing = true;
     m_image = frame;
@@ -225,7 +224,7 @@ void TickerDisplayWidget::newRect(const QRect displayArea)
     update();
 }
 
-void TickerDisplayWidget::newFrame(const QPixmap& frame)
+void TickerDisplayWidget::newFrame(const QPixmap &frame)
 {
     if (!isVisible())
         return;
@@ -246,7 +245,8 @@ void TickerDisplayWidget::paintEvent(QPaintEvent *event)
         p.drawPixmap(this->rect(), m_image, drawRect);
 }
 
-void TickerImageCreator::run() {
+void TickerImageCreator::run()
+{
     Settings settings;
     std::string m_loggingPrefix{"[TickerImageCreator]"};
     std::shared_ptr<spdlog::logger> m_logger = spdlog::get("logger");
@@ -269,14 +269,12 @@ void TickerImageCreator::run() {
     imgWidth = QFontMetrics(tickerFont).size(Qt::TextSingleLine, m_tickerText).width();
     txtWidth = imgWidth;
     QString drawText;
-    if (imgWidth > m_targetWidth)
-    {
+    if (imgWidth > m_targetWidth) {
         drawText.append(m_tickerText + " • " + m_tickerText + " • ");
         imgWidth = QFontMetrics(tickerFont).size(Qt::TextSingleLine, drawText).width();
-        txtWidth = txtWidth + QFontMetrics(tickerFont).size(Qt::TextSingleLine," • ").width();
+        txtWidth = txtWidth + QFontMetrics(tickerFont).size(Qt::TextSingleLine, " • ").width();
         img = QPixmap(imgWidth, imgHeight);
-    }
-    else {
+    } else {
         drawText = m_tickerText;
         img = QPixmap(imgWidth, imgHeight);
     }
@@ -287,9 +285,10 @@ void TickerImageCreator::run() {
     p.setFont(settings.tickerFont());
     p.drawText(img.rect(), Qt::AlignLeft | Qt::AlignVCenter, drawText);
     p.end();
-    if (settings.auxTickerFile() != QString())
-    {
-        m_logger->debug("{} Saving ticker data to aux file: {}", m_loggingPrefix, settings.auxTickerFile());
+    if (settings.auxTickerFile() != QString()) {
+        m_logger->debug("{} Saving ticker data to aux file: {}",
+                        m_loggingPrefix,
+                        settings.auxTickerFile());
         QFile auxFile(settings.auxTickerFile());
         auxFile.open(QIODevice::Truncate | QIODevice::WriteOnly | QIODevice::Text);
         QTextStream out(&auxFile);
@@ -299,11 +298,12 @@ void TickerImageCreator::run() {
     emit imageCreated(img, txtWidth);
     m_logger->trace("{} Ticker image rendered in {}ms",
                     m_loggingPrefix,
-                    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - st).count()
-    );
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::high_resolution_clock::now() - st)
+                        .count());
 }
 
-TickerImageCreator::TickerImageCreator(QString TickerText, int targetWidth) : m_tickerText(std::move(TickerText)), m_targetWidth(targetWidth)
-{
-
-}
+TickerImageCreator::TickerImageCreator(QString TickerText, int targetWidth)
+    : m_tickerText(std::move(TickerText))
+    , m_targetWidth(targetWidth)
+{}

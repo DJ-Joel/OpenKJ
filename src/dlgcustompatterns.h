@@ -2,16 +2,17 @@
 #define DLGCUSTOMPATTERNS_H
 
 #include <QDialog>
-#include <memory>
-#include "src/models/tablemodelcustomnamingpatterns.h"
 #include "settings.h"
+#include "src/models/tablemodelcustomnamingpatterns.h"
+#include <memory>
 
 namespace Ui {
-    class DlgCustomPatterns;
+class DlgCustomPatterns;
 }
 
-class DlgCustomPatterns : public QDialog {
-Q_OBJECT
+class DlgCustomPatterns : public QDialog
+{
+    Q_OBJECT
 public:
     explicit DlgCustomPatterns(QWidget *parent = nullptr);
     ~DlgCustomPatterns() override;
@@ -25,7 +26,7 @@ private slots:
     void btnApplyChangesClicked();
 
 private:
-    CustomPattern* getSelectedPattern();
+    CustomPattern *getSelectedPattern();
     std::unique_ptr<Ui::DlgCustomPatterns> ui;
     TableModelCustomNamingPatterns m_patternsModel;
     Settings m_settings;

@@ -1,18 +1,16 @@
 #ifndef SOFTWARERENDERVIDEOSINK_H
 #define SOFTWARERENDERVIDEOSINK_H
 
-#include <gst/gst.h>
 #include <gst/app/gstappsink.h>
+#include <gst/gst.h>
 
 #include <QWidget>
-
 
 class SoftwareRenderVideoSink : public QObject
 {
     Q_OBJECT
 
 private:
-
     struct SampleInfo
     {
         GstSample *sample;
@@ -20,8 +18,8 @@ private:
         GstMapInfo *bufferInfo;
     };
 
-    std::atomic<bool> m_active {false};
-    std::atomic<bool> m_pendingRepaint {false};
+    std::atomic<bool> m_active{false};
+    std::atomic<bool> m_pendingRepaint{false};
 
     QWidget *m_surface;
     QImage m_buffer;
@@ -44,9 +42,7 @@ protected:
 public:
     SoftwareRenderVideoSink(QWidget *surface);
     ~SoftwareRenderVideoSink();
-    GstAppSink* getSink() { return m_appSink; }
-
-
+    GstAppSink *getSink() { return m_appSink; }
 };
 
 #endif // SOFTWARERENDERVIDEOSINK_H

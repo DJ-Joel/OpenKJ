@@ -21,8 +21,8 @@
 #ifndef BMDBUPDATETHREAD_H
 #define BMDBUPDATETHREAD_H
 
-#include <QThread>
 #include <QStringList>
+#include <QThread>
 #include <QtSql>
 
 class BmDbUpdateThread : public QThread
@@ -39,16 +39,14 @@ signals:
     void progressMessage(QString msg);
     void stateChanged(QString state);
     void progressChanged(int progress, int max);
-    
+
 public slots:
 
 private:
     QString m_path;
-    QStringList findMediaFiles(const QString& directory);
+    QStringList findMediaFiles(const QString &directory);
     QStringList supportedExtensions;
     QSqlDatabase database;
-
-    
 };
 
 #endif // BMDBUPDATETHREAD_H

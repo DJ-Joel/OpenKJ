@@ -3,13 +3,13 @@
 
 #include <QDialog>
 #include <QTemporaryDir>
-#include <mediabackend.h>
 #include <gst/gst.h>
-#include <spdlog/spdlog.h>
+#include <mediabackend.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
 namespace Ui {
 class DlgVideoPreview;
@@ -20,7 +20,9 @@ class DlgVideoPreview : public QDialog
     Q_OBJECT
 
 public:
-    explicit DlgVideoPreview(QString mediaFilePath, QWidget *parent = nullptr, bool isStream = false);
+    explicit DlgVideoPreview(QString mediaFilePath,
+                             QWidget *parent = nullptr,
+                             bool isStream = false);
     ~DlgVideoPreview() override;
     // Intended for use with torture testing modes.  Closes the dialog after playing back the specified number
     // of seconds of playback
@@ -32,11 +34,10 @@ private:
     std::unique_ptr<Ui::DlgVideoPreview> ui;
     QTemporaryDir m_tmpDir;
     QString m_mediaFilename;
-    MediaBackend m_mediaBackend { this, "PREVIEW", MediaBackend::VideoPreview };
+    MediaBackend m_mediaBackend{this, "PREVIEW", MediaBackend::VideoPreview};
 
     void playCdg(const QString &filename);
     void playVideo(const QString &filename);
-
 };
 
 #endif // DLGVIDEOPREVIEW_H

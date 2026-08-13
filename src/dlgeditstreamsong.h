@@ -14,11 +14,14 @@ class DlgEditStreamSong;
  * to every singer already using this entry, and gets pushed to the request
  * server so search results there stay in sync.
  */
-class DlgEditStreamSong : public QDialog {
-Q_OBJECT
+class DlgEditStreamSong : public QDialog
+{
+    Q_OBJECT
 
 public:
-    explicit DlgEditStreamSong(const QString &artist, const QString &title, QWidget *parent = nullptr);
+    explicit DlgEditStreamSong(const QString &artist,
+                               const QString &title,
+                               QWidget *parent = nullptr);
     ~DlgEditStreamSong() override;
 
     [[nodiscard]] QString artist() const;

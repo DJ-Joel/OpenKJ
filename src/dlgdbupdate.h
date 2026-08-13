@@ -1,8 +1,8 @@
 #ifndef DLGDBUPDATE_H
 #define DLGDBUPDATE_H
 
-#include <QDialog>
 #include <QBasicTimer>
+#include <QDialog>
 
 namespace Ui {
 class DlgDbUpdate;
@@ -25,7 +25,7 @@ private:
     QString m_log;
 
 public slots:
-    void addLogMsg(const QString& msg);
+    void addLogMsg(const QString &msg);
     void changeStatusTxt(QString txt);
     void changeProgress(int progress, int max);
     void reset();

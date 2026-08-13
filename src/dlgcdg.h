@@ -28,16 +28,16 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPushButton>
-#include "settings.h"
+#include <QShortcut>
 #include <QTimer>
 #include "mediabackend.h"
+#include "settings.h"
 #include "videodisplay.h"
-#include <QShortcut>
 #include <memory>
 
-
-class TransparentWidget : public QWidget {
-Q_OBJECT
+class TransparentWidget : public QWidget
+{
+    Q_OBJECT
 public:
     std::unique_ptr<QLabel> m_label;
     explicit TransparentWidget(QWidget *parent = nullptr);
@@ -62,13 +62,13 @@ protected:
     void moveEvent(QMoveEvent *event) override;
 };
 
-
 namespace Ui {
-    class DlgCdg;
+class DlgCdg;
 }
 
-class DlgCdg : public QDialog {
-Q_OBJECT
+class DlgCdg : public QDialog
+{
+    Q_OBJECT
 
 private:
     std::unique_ptr<Ui::DlgCdg> ui;
@@ -100,7 +100,9 @@ private:
     bool m_fullscreenStateRestoredThisShow{false};
 
 public:
-    explicit DlgCdg(MediaBackend &KaraokeBackend, MediaBackend &BreakBackend, QWidget *parent = nullptr,
+    explicit DlgCdg(MediaBackend &KaraokeBackend,
+                    MediaBackend &BreakBackend,
+                    QWidget *parent = nullptr,
                     Qt::WindowFlags f = QFlags<Qt::WindowType>());
     ~DlgCdg() override;
     void setTickerText(const QString &text);
@@ -108,7 +110,7 @@ public:
     VideoDisplay *getVideoDisplay();
     VideoDisplay *getVideoDisplayBm();
     void slideShowMoveNext();
-    TransparentWidget* durationWidget() {return m_tWidget.get(); }
+    TransparentWidget *durationWidget() { return m_tWidget.get(); }
     QFileInfoList getSlideShowImages();
 
 public slots:
@@ -151,7 +153,7 @@ protected:
     // moved to a different monitor.
     void resizeEvent(QResizeEvent *event) override;
 
-    signals:
+signals:
     void visibilityChanged(bool visible);
 };
 

@@ -1,12 +1,12 @@
 #include "dlgpurchaseprogress.h"
 #include "ui_dlgpurchaseprogress.h"
 
-DlgPurchaseProgress::DlgPurchaseProgress(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DlgPurchaseProgress)
+DlgPurchaseProgress::DlgPurchaseProgress(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::DlgPurchaseProgress)
 {
     ui->setupUi(this);
-    ui->progressBar->setRange(0,0);
+    ui->progressBar->setRange(0, 0);
 }
 
 DlgPurchaseProgress::~DlgPurchaseProgress()
@@ -17,7 +17,7 @@ DlgPurchaseProgress::~DlgPurchaseProgress()
 void DlgPurchaseProgress::setText(QString message)
 {
     ui->labelProgressMsg->setText(message);
-    ui->progressBar->setRange(0,0);
+    ui->progressBar->setRange(0, 0);
 }
 
 void DlgPurchaseProgress::setProgress(qint64 current, qint64 total)

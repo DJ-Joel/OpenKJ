@@ -18,18 +18,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #ifndef OKARCHIVE_H
 #define OKARCHIVE_H
 
 #include <QObject>
-#include <QStringList>
 #include <QProcess>
-#include <spdlog/spdlog.h>
+#include <QStringList>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
 struct zipEntry
 {

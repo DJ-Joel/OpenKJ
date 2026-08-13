@@ -102,7 +102,7 @@
       <item row="0" column="2">
        <spacer name="horizontalSpacer_4">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
@@ -115,10 +115,10 @@
       <item row="1" column="0">
        <widget class="QLineEdit" name="lineEditKNPass">
         <property name="inputMethodHints">
-         <set>Qt::ImhHiddenText|Qt::ImhNoAutoUppercase|Qt::ImhNoPredictiveText|Qt::ImhSensitiveData</set>
+         <set>Qt::InputMethodHint::ImhHiddenText|Qt::InputMethodHint::ImhNoAutoUppercase|Qt::InputMethodHint::ImhNoPredictiveText|Qt::InputMethodHint::ImhSensitiveData</set>
         </property>
         <property name="echoMode">
-         <enum>QLineEdit::Password</enum>
+         <enum>QLineEdit::EchoMode::Password</enum>
         </property>
         <property name="placeholderText">
          <string>Password</string>
@@ -128,7 +128,7 @@
       <item row="2" column="2">
        <spacer name="horizontalSpacer_6">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
@@ -148,7 +148,7 @@
       <item row="1" column="2">
        <spacer name="horizontalSpacer_5">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
@@ -164,10 +164,10 @@
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Don't have an account? &lt;a href=&quot;https://www.partytyme.net/songshop/cat/create_account?merchant=99&quot;&gt;Create one&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="textFormat">
-         <enum>Qt::RichText</enum>
+         <enum>Qt::TextFormat::RichText</enum>
         </property>
         <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+         <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
         </property>
         <property name="openExternalLinks">
          <bool>true</bool>
@@ -196,13 +196,13 @@
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::ClickFocus</enum>
+             <enum>Qt::FocusPolicy::ClickFocus</enum>
             </property>
             <property name="inputMethodHints">
-             <set>Qt::ImhDigitsOnly|Qt::ImhHiddenText|Qt::ImhNoAutoUppercase|Qt::ImhNoPredictiveText|Qt::ImhSensitiveData</set>
+             <set>Qt::InputMethodHint::ImhDigitsOnly|Qt::InputMethodHint::ImhHiddenText|Qt::InputMethodHint::ImhNoAutoUppercase|Qt::InputMethodHint::ImhNoPredictiveText|Qt::InputMethodHint::ImhSensitiveData</set>
             </property>
             <property name="echoMode">
-             <enum>QLineEdit::Password</enum>
+             <enum>QLineEdit::EchoMode::Password</enum>
             </property>
             <property name="placeholderText">
              <string>Credit Card #</string>
@@ -230,7 +230,7 @@
                </size>
               </property>
               <property name="inputMethodHints">
-               <set>Qt::ImhDigitsOnly</set>
+               <set>Qt::InputMethodHint::ImhDigitsOnly</set>
               </property>
               <property name="maxLength">
                <number>2</number>
@@ -262,7 +262,7 @@
                </size>
               </property>
               <property name="inputMethodHints">
-               <set>Qt::ImhDigitsOnly</set>
+               <set>Qt::InputMethodHint::ImhDigitsOnly</set>
               </property>
               <property name="inputMask">
                <string/>
@@ -296,7 +296,7 @@
              </size>
             </property>
             <property name="inputMethodHints">
-             <set>Qt::ImhDigitsOnly</set>
+             <set>Qt::InputMethodHint::ImhDigitsOnly</set>
             </property>
             <property name="maxLength">
              <number>4</number>
@@ -311,7 +311,7 @@
         <item>
          <spacer name="horizontalSpacer_3">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -335,7 +335,7 @@
         <item>
          <spacer name="horizontalSpacer">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -353,7 +353,7 @@
    <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
+      <enum>Qt::Orientation::Vertical</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
@@ -368,7 +368,7 @@
      <item>
       <spacer name="horizontalSpacer_2">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>

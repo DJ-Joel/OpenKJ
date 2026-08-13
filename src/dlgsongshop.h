@@ -2,9 +2,9 @@
 #define DLGSONGSHOP_H
 
 #include <QDialog>
-#include "src/models/tablemodelsongshopsongs.h"
 #include "dlgsongshoppurchase.h"
 #include "settings.h"
+#include "src/models/tablemodelsongshopsongs.h"
 #include <memory>
 
 namespace Ui {

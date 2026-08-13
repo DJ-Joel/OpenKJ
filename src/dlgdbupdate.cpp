@@ -2,9 +2,9 @@
 #include "ui_dlgdbupdate.h"
 #include <qscrollbar.h>
 
-DlgDbUpdate::DlgDbUpdate(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DlgDbUpdate)
+DlgDbUpdate::DlgDbUpdate(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::DlgDbUpdate)
 {
     ui->setupUi(this);
     reset();
@@ -16,7 +16,7 @@ DlgDbUpdate::~DlgDbUpdate()
     delete ui;
 }
 
-void DlgDbUpdate::addLogMsg(const QString& msg)
+void DlgDbUpdate::addLogMsg(const QString &msg)
 {
     m_log += msg;
     m_log += "\n";
@@ -51,5 +51,4 @@ void DlgDbUpdate::reset()
     ui->progressBar->setValue(0);
     ui->txtLog->clear();
     ui->lblCurrentActivity->setText("");
-
 }

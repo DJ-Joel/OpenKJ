@@ -24,13 +24,13 @@
 #include <QDialog>
 #include <QDir>
 #include <QDirIterator>
-#include "src/models/tablemodelkaraokesourcedirs.h"
-#include "dlgcustompatterns.h"
 #include <QSqlDatabase>
+#include "directorymonitor.h"
+#include "dlgcustompatterns.h"
 #include "dlgdbupdate.h"
 #include "models/tablemodelkaraokesongs.h"
-#include "directorymonitor.h"
 #include "settings.h"
+#include "src/models/tablemodelkaraokesourcedirs.h"
 
 namespace Ui {
 class DlgDatabase;
@@ -39,7 +39,7 @@ class DlgDatabase;
 class DlgDatabase : public QDialog
 {
     Q_OBJECT
-    
+
 private:
     Ui::DlgDatabase *ui;
     TableModelKaraokeSourceDirs *sourcedirmodel;
@@ -47,7 +47,7 @@ private:
     TableModelKaraokeSongs &m_dbModel;
     DlgDbUpdate *dbUpdateDlg;
     Settings m_settings;
-    DirectoryMonitor *m_directoryMonitor {nullptr};
+    DirectoryMonitor *m_directoryMonitor{nullptr};
 
     void scan(bool scanAllPaths);
     void updateButtonsState();
@@ -72,10 +72,11 @@ private slots:
     void on_buttonDelete_clicked();
     void on_buttonUpdate_clicked();
     void on_btnClearDatabase_clicked();
-    static void showDbUpdateErrors(const QStringList& errors);
+    static void showDbUpdateErrors(const QStringList &errors);
     void on_btnCustomPatterns_clicked();
     void on_btnExport_clicked();
-    void on_foldersSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
+    void on_foldersSelectionChanged(const QItemSelection &selected,
+                                    const QItemSelection &deselected);
 };
 
 #endif // DATABASEDIALOG_H

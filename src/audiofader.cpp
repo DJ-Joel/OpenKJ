@@ -19,18 +19,21 @@
 */
 
 #include "audiofader.h"
+#include <QApplication>
 #include "spdlogqstringformatter.h"
 #include <gst/audio/streamvolume.h>
-#include <QApplication>
 #include <spdlog/spdlog.h>
 
-
-void AudioFader::setVolume(double volume) {
-    gst_stream_volume_set_volume(GST_STREAM_VOLUME(m_volumeElement), GST_STREAM_VOLUME_FORMAT_CUBIC, volume);
+void AudioFader::setVolume(double volume)
+{
+    gst_stream_volume_set_volume(GST_STREAM_VOLUME(m_volumeElement),
+                                 GST_STREAM_VOLUME_FORMAT_CUBIC,
+                                 volume);
     emit volumeChanged(volume);
 }
 
-void AudioFader::immediateIn() {
+void AudioFader::immediateIn()
+{
     m_logger->debug("[{}] Immediate IN requested", m_objName.toStdString());
     m_timer.stop();
     if (volume() == 1.0 && m_curState == FadedIn)
@@ -40,7 +43,8 @@ void AudioFader::immediateIn() {
     emit faderStateChanged(m_curState);
 }
 
-void AudioFader::immediateOut() {
+void AudioFader::immediateOut()
+{
     m_logger->debug("[{}] Immediate OUT requested", m_objName.toStdString());
     m_timer.stop();
     setVolume(0);
@@ -48,50 +52,60 @@ void AudioFader::immediateOut() {
     emit faderStateChanged(m_curState);
 }
 
-AudioFader::FaderState AudioFader::state() {
+AudioFader::FaderState AudioFader::state()
+{
     return m_curState;
 }
 
-void AudioFader::setVolumeElement(GstElement *volumeElement) {
+void AudioFader::setVolumeElement(GstElement *volumeElement)
+{
     m_logger->trace("[{}] setVolumeElement called", m_objName.toStdString());
     this->m_volumeElement = volumeElement;
 }
 
-void AudioFader::setObjName(const QString &name) {
+void AudioFader::setObjName(const QString &name)
+{
     m_objName = name;
 }
 
-bool AudioFader::isFading() {
+bool AudioFader::isFading()
+{
     if (m_curState == FadingIn || m_curState == FadingOut)
         return true;
     return false;
 }
 
-double AudioFader::volume() {
-    return gst_stream_volume_get_volume(GST_STREAM_VOLUME(m_volumeElement), GST_STREAM_VOLUME_FORMAT_CUBIC);
+double AudioFader::volume()
+{
+    return gst_stream_volume_get_volume(GST_STREAM_VOLUME(m_volumeElement),
+                                        GST_STREAM_VOLUME_FORMAT_CUBIC);
 }
 
-AudioFader::AudioFader(QObject *parent) : QObject(parent) {
+AudioFader::AudioFader(QObject *parent)
+    : QObject(parent)
+{
     m_logger = spdlog::get("logger");
     m_timer.setInterval(100);
     connect(&m_timer, &QTimer::timeout, this, &AudioFader::timerTimeout);
 }
 
-std::string AudioFader::stateToStr(AudioFader::FaderState state) {
+std::string AudioFader::stateToStr(AudioFader::FaderState state)
+{
     switch (state) {
-        case AudioFader::FadedIn:
-            return "AudioFader::FadedIn";
-        case AudioFader::FadingIn:
-            return "AudioFader::FadingIn";
-        case AudioFader::FadedOut:
-            return "AudioFader::FadedOut";
-        case AudioFader::FadingOut:
-            return "AudioFader::FadingOut";
+    case AudioFader::FadedIn:
+        return "AudioFader::FadedIn";
+    case AudioFader::FadingIn:
+        return "AudioFader::FadingIn";
+    case AudioFader::FadedOut:
+        return "AudioFader::FadedOut";
+    case AudioFader::FadingOut:
+        return "AudioFader::FadingOut";
     }
     return "Unknown";
 }
 
-void AudioFader::fadeOut(bool block) {
+void AudioFader::fadeOut(bool block)
+{
     m_logger->debug("[{}] Fade OUT requested - blocking: {}", m_objName.toStdString(), block);
     emit fadeStarted();
     m_targetVol = 0;
@@ -107,7 +121,8 @@ void AudioFader::fadeOut(bool block) {
     m_logger->debug("[{}] Fade completed", m_objName.toStdString());
 }
 
-void AudioFader::fadeIn(bool block) {
+void AudioFader::fadeIn(bool block)
+{
     m_logger->debug("[{}] Fade IN requested - blocking: {}", m_objName.toStdString(), block);
     emit fadeStarted();
     m_targetVol = 1.0;
@@ -122,7 +137,8 @@ void AudioFader::fadeIn(bool block) {
     m_logger->debug("[{}] Fade completed", m_objName.toStdString());
 }
 
-void AudioFader::timerTimeout() {
+void AudioFader::timerTimeout()
+{
     double increment = .05;
     if (isFading()) {
         if (volume() == m_targetVol) {
@@ -135,8 +151,7 @@ void AudioFader::timerTimeout() {
             emit faderStateChanged(m_curState);
             emit fadeComplete();
             return;
-        }
-        else if (volume() > m_targetVol) {
+        } else if (volume() > m_targetVol) {
             if ((volume() - increment) < m_targetVol) {
                 setVolume(m_targetVol);
                 m_timer.stop();
@@ -146,8 +161,7 @@ void AudioFader::timerTimeout() {
                 return;
             }
             setVolume(volume() - increment);
-        }
-        else if (volume() < m_targetVol) {
+        } else if (volume() < m_targetVol) {
             if ((volume() + increment) > m_targetVol) {
                 setVolume(m_targetVol);
                 m_timer.stop();

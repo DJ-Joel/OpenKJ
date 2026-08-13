@@ -1,6 +1,7 @@
 #include "idledetect.h"
 
-IdleDetect::IdleDetect(QObject *parent) : QObject(parent)
+IdleDetect::IdleDetect(QObject *parent)
+    : QObject(parent)
 {
     idleMins = 0;
     idle = false;
@@ -12,11 +13,9 @@ IdleDetect::IdleDetect(QObject *parent) : QObject(parent)
 
 bool IdleDetect::eventFilter(QObject *obj, QEvent *ev)
 {
-    if(ev->type() == QEvent::KeyPress || ev->type() == QEvent::MouseMove)
-    {
+    if (ev->type() == QEvent::KeyPress || ev->type() == QEvent::MouseMove) {
         idleMins = 0;
-        if (idle)
-        {
+        if (idle) {
             idle = false;
             emit idleStateChanged(false);
         }
@@ -27,8 +26,7 @@ bool IdleDetect::eventFilter(QObject *obj, QEvent *ev)
 void IdleDetect::idleIncrementTimeout()
 {
     idleMins++;
-    if (idleMins > 60 && !idle)
-    {
+    if (idleMins > 60 && !idle) {
         idle = true;
         emit idleStateChanged(true);
     }

@@ -25,12 +25,11 @@ private:
 
     QStringList enumeratePathsAsync(QStringList paths);
     void directoriesEnumerated();
-    void directoryChanged(const QString& dirPath);
+    void directoryChanged(const QString &dirPath);
     void scanPaths();
 
 signals:
     void databaseUpdateComplete();
-
 };
 
 #endif // DIRECTORYMONITOR_H

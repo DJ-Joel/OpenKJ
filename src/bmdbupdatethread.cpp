@@ -19,16 +19,16 @@
 */
 
 #include "bmdbupdatethread.h"
+#include <QApplication>
 #include <QDir>
 #include <QDirIterator>
-#include <QSqlQuery>
 #include <QFileInfo>
-#include <QApplication>
-#include "tagreader.h"
+#include <QSqlQuery>
 #include <QtConcurrent>
+#include "tagreader.h"
 
-BmDbUpdateThread::BmDbUpdateThread(QObject *parent) :
-    QThread(parent)
+BmDbUpdateThread::BmDbUpdateThread(QObject *parent)
+    : QThread(parent)
 {
     supportedExtensions.append(".mp3");
     supportedExtensions.append(".wav");
@@ -54,7 +54,7 @@ void BmDbUpdateThread::setPath(const QString &path)
     m_path = path;
 }
 
-QStringList BmDbUpdateThread::findMediaFiles(const QString& directory)
+QStringList BmDbUpdateThread::findMediaFiles(const QString &directory)
 {
     QStringList files;
     QDir dir(directory);
@@ -63,10 +63,8 @@ QStringList BmDbUpdateThread::findMediaFiles(const QString& directory)
         iterator.next();
         if (!iterator.fileInfo().isDir()) {
             QString filename = iterator.filePath();
-            for (int i=0; i<supportedExtensions.size(); i++)
-            {
-                if (filename.endsWith(supportedExtensions.at(i),Qt::CaseInsensitive))
-                {
+            for (int i = 0; i < supportedExtensions.size(); i++) {
+                if (filename.endsWith(supportedExtensions.at(i), Qt::CaseInsensitive)) {
                     files.append(filename);
                     break;
                 }
@@ -99,9 +97,10 @@ void BmDbUpdateThread::run()
     qInfo() << "Beginning transaction";
     query.exec("BEGIN TRANSACTION");
     qInfo() << query.lastError();
-    query.prepare("INSERT OR IGNORE INTO bmsongs (artist,title,path,filename,duration,searchstring) VALUES(:artist, :title, :path, :filename, :duration, :searchstring)");
-    for (int i=0; i < files.size(); i++)
-    {
+    query.prepare(
+        "INSERT OR IGNORE INTO bmsongs (artist,title,path,filename,duration,searchstring) "
+        "VALUES(:artist, :title, :path, :filename, :duration, :searchstring)");
+    for (int i = 0; i < files.size(); i++) {
         QFileInfo fi(files.at(i));
         emit progressMessage("Processing file: " + fi.fileName());
         reader.setMedia(files.at(i));
@@ -144,9 +143,10 @@ void BmDbUpdateThread::startUnthreaded()
     qInfo() << "Beginning transaction";
     database.transaction();
     qInfo() << query.lastError();
-    query.prepare("INSERT OR IGNORE INTO bmsongs (artist,title,path,filename,duration,searchstring) VALUES(:artist, :title, :path, :filename, :duration, :searchstring)");
-    for (int i=0; i < files.size(); i++)
-    {
+    query.prepare(
+        "INSERT OR IGNORE INTO bmsongs (artist,title,path,filename,duration,searchstring) "
+        "VALUES(:artist, :title, :path, :filename, :duration, :searchstring)");
+    for (int i = 0; i < files.size(); i++) {
         QApplication::processEvents();
         QFileInfo fi(files.at(i));
         emit progressMessage("Processing file: " + fi.fileName());

@@ -6,7 +6,6 @@
 #include <QNetworkReply>
 #include <QSysInfo>
 
-
 QString UpdateChecker::getOS() const
 {
     return OS;
@@ -27,7 +26,8 @@ void UpdateChecker::setChannel(const QString &value)
     channel = value;
 }
 
-UpdateChecker::UpdateChecker(QObject *parent) : QObject(parent)
+UpdateChecker::UpdateChecker(QObject *parent)
+    : QObject(parent)
 {
     OS = "unknown";
     channel = "stable";
@@ -46,11 +46,11 @@ UpdateChecker::UpdateChecker(QObject *parent) : QObject(parent)
     OS = "Linux";
 #endif
 
-if (m_settings.updatesBranch() == 0)
-    channel = "stable";
-else
-    channel = "unstable";
-//    connect(manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(onNetworkReply(QNetworkReply*)));
+    if (m_settings.updatesBranch() == 0)
+        channel = "stable";
+    else
+        channel = "unstable";
+    //    connect(manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(onNetworkReply(QNetworkReply*)));
 }
 
 void UpdateChecker::checkForUpdates()
@@ -59,17 +59,17 @@ void UpdateChecker::checkForUpdates()
         return;
     qInfo() << "Requesting current version info for branch: " << channel;
     connect(manager, &QNetworkAccessManager::finished, this, &UpdateChecker::onNetworkReply);
-    [[maybe_unused]]QNetworkReply *reply = manager->get(QNetworkRequest(QUrl("http://openkj.org/downloads/" + OS + "-" + channel + "-curversion.txt")));
-//    while (!reply->isFinished())
-//        QApplication::processEvents();
-//    qInfo() << "Request completed";
+    [[maybe_unused]] QNetworkReply *reply = manager->get(QNetworkRequest(
+        QUrl("http://openkj.org/downloads/" + OS + "-" + channel + "-curversion.txt")));
+    //    while (!reply->isFinished())
+    //        QApplication::processEvents();
+    //    qInfo() << "Request completed";
 }
 
 void UpdateChecker::onNetworkReply(QNetworkReply *reply)
 {
     qInfo() << "Received network reply";
-    if (reply->error() != QNetworkReply::NoError)
-    {
+    if (reply->error() != QNetworkReply::NoError) {
         qInfo() << reply->errorString();
         //output some meaningful error msg
         return;
@@ -78,8 +78,7 @@ void UpdateChecker::onNetworkReply(QNetworkReply *reply)
     availVersion = availVersion.trimmed();
     QStringList curVersionParts = currentVer.split(".");
     QStringList availVersionParts = availVersion.split(".");
-    if (availVersionParts.size() != 3 || curVersionParts.size() != 3)
-    {
+    if (availVersionParts.size() != 3 || curVersionParts.size() != 3) {
         qInfo() << "Got invalid version info from server";
         return;
     }
@@ -112,7 +111,6 @@ void UpdateChecker::onNetworkReply(QNetworkReply *reply)
     QNetworkRequest request(QUrl("http://openkj.org/appanalytics"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     reply = manager->post(request, jsonDocument.toJson());
-
 }
 
 void UpdateChecker::aOnNetworkReply(QNetworkReply *reply)
@@ -124,13 +122,15 @@ void UpdateChecker::aOnNetworkReply(QNetworkReply *reply)
 void UpdateChecker::downloadInstaller()
 {
     QString url;
-    if (channel == "unstable")
-    {
+    if (channel == "unstable") {
         if (OS == "Win64")
-            url = "https://storage.googleapis.com/openkj-windows-builds-master/OpenKJ-" + availVersion + "-64bit-setup.exe";
+            url = "https://storage.googleapis.com/openkj-windows-builds-master/OpenKJ-"
+                  + availVersion + "-64bit-setup.exe";
         if (OS == "Win32")
-            url = "https://storage.googleapis.com/openkj-windows-builds-master/OpenKJ-" + availVersion + "-32bit-setup.exe";
+            url = "https://storage.googleapis.com/openkj-windows-builds-master/OpenKJ-"
+                  + availVersion + "-32bit-setup.exe";
         if (OS == "MacOS")
-            url = "https://storage.googleapis.com/openkj-openkj-release/OpenKJ-" + availVersion + "-unstable-osx-installer.dmg";
+            url = "https://storage.googleapis.com/openkj-openkj-release/OpenKJ-" + availVersion
+                  + "-unstable-osx-installer.dmg";
     }
 }

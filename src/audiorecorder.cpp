@@ -1,10 +1,11 @@
 #include "audiorecorder.h"
-#include "spdlogqstringformatter.h"
-#include <QDir>
 #include <QDateTime>
+#include <QDir>
+#include "spdlogqstringformatter.h"
 #include <spdlog/spdlog.h>
 
-void AudioRecorder::generateDeviceList() {
+void AudioRecorder::generateDeviceList()
+{
     logger->debug("{} Getting input devices", m_loggingPrefix);
     GstDeviceMonitor *monitor;
     monitor = gst_device_monitor_new();
@@ -28,7 +29,8 @@ void AudioRecorder::generateDeviceList() {
     gst_object_unref(monitor);
 }
 
-void AudioRecorder::initGStreamer() {
+void AudioRecorder::initGStreamer()
+{
     logger->debug("{} initGStreamer() called", m_loggingPrefix);
 #ifndef Q_OS_WIN
     generateDeviceList();
@@ -42,7 +44,7 @@ void AudioRecorder::initGStreamer() {
         logger->debug("{} Creating elements", m_loggingPrefix);
     }
 #ifdef Q_OS_WIN
-    m_autoAudioSrc    = gst_element_factory_make("autoaudiosrc", NULL);
+    m_autoAudioSrc = gst_element_factory_make("autoaudiosrc", NULL);
     if (!m_autoAudioSrc)
         logger->error("{} Failed to create autoAudioSrc", m_loggingPrefix);
 #endif
@@ -82,12 +84,41 @@ void AudioRecorder::initGStreamer() {
     logger->debug("{} Elements created, adding to pipeline and linking", m_loggingPrefix);
     g_object_set(m_vorbisEnc, "quality", 0.9, nullptr);
 #ifdef Q_OS_WIN
-    gst_bin_add_many(GST_BIN (m_pipeline), m_autoAudioSrc, m_audioRate, m_audioConvert, m_lameMp3Enc, m_wavEnc, m_vorbisEnc, m_oggMux, m_fileSink, nullptr);
-    bool result = gst_element_link_many(m_autoAudioSrc, m_audioRate, m_audioConvert, m_vorbisEnc, m_oggMux, m_fileSink, nullptr);
+    gst_bin_add_many(GST_BIN(m_pipeline),
+                     m_autoAudioSrc,
+                     m_audioRate,
+                     m_audioConvert,
+                     m_lameMp3Enc,
+                     m_wavEnc,
+                     m_vorbisEnc,
+                     m_oggMux,
+                     m_fileSink,
+                     nullptr);
+    bool result = gst_element_link_many(m_autoAudioSrc,
+                                        m_audioRate,
+                                        m_audioConvert,
+                                        m_vorbisEnc,
+                                        m_oggMux,
+                                        m_fileSink,
+                                        nullptr);
 #else
-    gst_bin_add_many(GST_BIN (m_pipeline), m_audioSrc, m_audioRate, m_audioConvert, m_lameMp3Enc, m_wavEnc, m_vorbisEnc, m_oggMux,
-                     m_fileSink, nullptr);
-    bool result = gst_element_link_many(m_audioSrc, m_audioRate, m_audioConvert, m_vorbisEnc, m_oggMux, m_fileSink, nullptr);
+    gst_bin_add_many(GST_BIN(m_pipeline),
+                     m_audioSrc,
+                     m_audioRate,
+                     m_audioConvert,
+                     m_lameMp3Enc,
+                     m_wavEnc,
+                     m_vorbisEnc,
+                     m_oggMux,
+                     m_fileSink,
+                     nullptr);
+    bool result = gst_element_link_many(m_audioSrc,
+                                        m_audioRate,
+                                        m_audioConvert,
+                                        m_vorbisEnc,
+                                        m_oggMux,
+                                        m_fileSink,
+                                        nullptr);
 #endif
     if (!result)
         logger->info("{} [gstreamer] Error linking elements", m_loggingPrefix);
@@ -95,42 +126,42 @@ void AudioRecorder::initGStreamer() {
     logger->debug("{} initGStreamer() completed", m_loggingPrefix);
 }
 
-
-void AudioRecorder::processGstMessage() {
+void AudioRecorder::processGstMessage()
+{
     bool done{false};
     while (!done) {
         if (auto message = gst_bus_pop(m_bus); message) {
             switch (message->type) {
-                case GST_MESSAGE_STATE_CHANGED:
-                    break;
-                case GST_MESSAGE_WARNING:
-                case GST_MESSAGE_ERROR:
-                    GError *err;
-                    gchar *debug;
-                    if (message->type == GST_MESSAGE_WARNING) {
-                        gst_message_parse_warning(message, &err, &debug);
-                        logger->warn("{} [gstreamer] {}", m_loggingPrefix, err->message);
-                    } else {
-                        gst_message_parse_error(message, &err, &debug);
-                        logger->error("{} [gstreamer] {}", m_loggingPrefix, err->message);
-                    }
-                    logger->debug("{} [gstreamer] {}", m_loggingPrefix, debug);
-                    gst_message_unref(message);
-                    g_error_free(err);
-                    g_free(debug);
-                    break;
-                default:
-                    // GST_MESSAGE_TYPE(message) is a GstMessageType enum. The
-                    // newer bundled fmt library (pulled in via spdlog 1.17.0)
-                    // no longer formats arbitrary enums implicitly, so it's
-                    // cast to its underlying integer here. GST_MESSAGE_TYPE_NAME
-                    // already gives the human-readable name below.
-                    logger->debug("{} [gstreamer] Unhandled GStreamer msg received - Element: {} - Type: {} - Name: {}",
-                                  m_loggingPrefix,
-                                  message->src->name,
-                                  static_cast<int>(GST_MESSAGE_TYPE(message)),
-                                  GST_MESSAGE_TYPE_NAME(message)
-                    );
+            case GST_MESSAGE_STATE_CHANGED:
+                break;
+            case GST_MESSAGE_WARNING:
+            case GST_MESSAGE_ERROR:
+                GError *err;
+                gchar *debug;
+                if (message->type == GST_MESSAGE_WARNING) {
+                    gst_message_parse_warning(message, &err, &debug);
+                    logger->warn("{} [gstreamer] {}", m_loggingPrefix, err->message);
+                } else {
+                    gst_message_parse_error(message, &err, &debug);
+                    logger->error("{} [gstreamer] {}", m_loggingPrefix, err->message);
+                }
+                logger->debug("{} [gstreamer] {}", m_loggingPrefix, debug);
+                gst_message_unref(message);
+                g_error_free(err);
+                g_free(debug);
+                break;
+            default:
+                // GST_MESSAGE_TYPE(message) is a GstMessageType enum. The
+                // newer bundled fmt library (pulled in via spdlog 1.17.0)
+                // no longer formats arbitrary enums implicitly, so it's
+                // cast to its underlying integer here. GST_MESSAGE_TYPE_NAME
+                // already gives the human-readable name below.
+                logger->debug("{} [gstreamer] Unhandled GStreamer msg received - Element: {} - "
+                              "Type: {} - Name: {}",
+                              m_loggingPrefix,
+                              message->src->name,
+                              static_cast<int>(GST_MESSAGE_TYPE(message)),
+                              GST_MESSAGE_TYPE_NAME(message));
             }
             gst_message_unref(message);
         } else {
@@ -139,8 +170,8 @@ void AudioRecorder::processGstMessage() {
     }
 }
 
-
-void AudioRecorder::getRecordingSettings() {
+void AudioRecorder::getRecordingSettings()
+{
     QString captureDevice = m_settings.recordingInput();
     m_currentDevice = m_inputDeviceNames.indexOf(captureDevice);
     if ((m_currentDevice == -1) || (m_currentDevice >= m_inputDevices.size()))
@@ -151,7 +182,8 @@ void AudioRecorder::getRecordingSettings() {
     setCurrentCodec(codec);
 }
 
-void AudioRecorder::record(const QString &filename) {
+void AudioRecorder::record(const QString &filename)
+{
     getRecordingSettings();
     setInputDevice(m_currentDevice);
     logger->info("{} Recording to file: {}", m_loggingPrefix, filename.toStdString());
@@ -159,66 +191,73 @@ void AudioRecorder::record(const QString &filename) {
     gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
 }
 
-void AudioRecorder::stop() {
+void AudioRecorder::stop()
+{
     logger->info("{} Stopping recording", m_loggingPrefix);
     gst_element_set_state(m_pipeline, GST_STATE_NULL);
-
 }
 
-void AudioRecorder::pause() {
+void AudioRecorder::pause()
+{
     logger->info("{} Pausing recording", m_loggingPrefix);
     gst_element_set_state(m_pipeline, GST_STATE_PAUSED);
-
 }
 
-void AudioRecorder::unpause() {
+void AudioRecorder::unpause()
+{
     logger->info("{} Resuming recording", m_loggingPrefix);
     gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
-
 }
 
-AudioRecorder::AudioRecorder(QObject *parent) : QObject(parent) {
+AudioRecorder::AudioRecorder(QObject *parent)
+    : QObject(parent)
+{
     logger = spdlog::get("logger");
     logger->info("{} Initializing AudioRecorder instance", m_loggingPrefix);
     m_startDateTime = QDateTime::currentDateTime().toString("yyyy-MM-dd-hhmm");
     initGStreamer();
     getRecordingSettings();
     m_timer.start(100);
-    connect(&m_timer, &QTimer::timeout, [&]() {
-        processGstMessage();
-    });
+    connect(&m_timer, &QTimer::timeout, [&]() { processGstMessage(); });
 }
 
-AudioRecorder::~AudioRecorder() {
+AudioRecorder::~AudioRecorder()
+{
     logger->debug("{} AudioRecorder destructor called", m_loggingPrefix);
     gst_element_set_state(m_pipeline, GST_STATE_NULL);
     g_object_unref(m_pipeline);
 }
 
-QStringList AudioRecorder::getDeviceList() {
+QStringList AudioRecorder::getDeviceList()
+{
     return m_inputDeviceNames;
 }
 
-QStringList AudioRecorder::getCodecs() {
+QStringList AudioRecorder::getCodecs()
+{
     return m_codecs;
 }
 
-void AudioRecorder::setOutputFile(const QString &filename) {
-    QString outputDir = m_settings.recordingOutputDir() + QDir::separator() + "Karaoke Recordings" + QDir::separator() +
-                        "Show Beginning " + m_startDateTime;
+void AudioRecorder::setOutputFile(const QString &filename)
+{
+    QString outputDir = m_settings.recordingOutputDir() + QDir::separator() + "Karaoke Recordings"
+                        + QDir::separator() + "Show Beginning " + m_startDateTime;
     QDir dir;
     std::string outputFilePath;
     dir.mkpath(outputDir);
 #ifdef Q_OS_WIN
-    outputFilePath = outputDir.toStdString() + "/" + filename.toStdString() + "." + m_currentFileExt.toStdString();
+    outputFilePath = outputDir.toStdString() + "/" + filename.toStdString() + "."
+                     + m_currentFileExt.toStdString();
 #else
-    outputFilePath = outputDir.toStdString() + "/" + filename.toStdString() + m_currentFileExt.toStdString();
+    outputFilePath = outputDir.toStdString() + "/" + filename.toStdString()
+                     + m_currentFileExt.toStdString();
 #endif
     logger->info("{} AudioRecorder - Capturing to: {}", m_loggingPrefix, outputFilePath);
     g_object_set(GST_OBJECT(m_fileSink), "location", outputFilePath.c_str(), nullptr);
 }
 
-void AudioRecorder::setInputDevice(const int inputDeviceId) {
+void AudioRecorder::setInputDevice(const int inputDeviceId)
+{
 #ifndef Q_OS_WIN
     logger->debug("{} setInputDevice({}) called", m_loggingPrefix, inputDeviceId);
     gst_element_unlink(m_audioSrc, m_audioRate);
@@ -231,7 +270,8 @@ void AudioRecorder::setInputDevice(const int inputDeviceId) {
 #endif
 }
 
-void AudioRecorder::setCurrentCodec(const int value) {
+void AudioRecorder::setCurrentCodec(const int value)
+{
     static int lastCodec = 1;
     if (value != lastCodec) {
         // Unlink previous encoder in pipeline

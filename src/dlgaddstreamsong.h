@@ -17,8 +17,9 @@ class DlgAddStreamSong;
  * need it up front - we deliberately don't resolve the playable stream URL
  * here, since those are signed and expire within hours.
  */
-class DlgAddStreamSong : public QDialog {
-Q_OBJECT
+class DlgAddStreamSong : public QDialog
+{
+    Q_OBJECT
 
 public:
     explicit DlgAddStreamSong(QString singerName, QWidget *parent = nullptr);

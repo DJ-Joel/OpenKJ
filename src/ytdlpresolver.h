@@ -4,11 +4,11 @@
 #include <QObject>
 #include <QProcess>
 #include <QString>
-#include <memory>
 #include "settings.h"
-#include <spdlog/spdlog.h>
+#include <memory>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 /**
  * @brief Resolves a page URL (e.g. a YouTube link) into a direct, playable

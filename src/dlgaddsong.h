@@ -1,22 +1,25 @@
 #ifndef DLGADDSONG_H
 #define DLGADDSONG_H
 
-#include <memory>
 #include <QButtonGroup>
 #include <QDialog>
-#include "src/models/tablemodelrotation.h"
-#include "src/models/tablemodelqueuesongs.h"
 #include "settings.h"
+#include "src/models/tablemodelqueuesongs.h"
+#include "src/models/tablemodelrotation.h"
+#include <memory>
 
 namespace Ui {
-    class DlgAddSong;
+class DlgAddSong;
 }
 
-class DlgAddSong : public QDialog {
-Q_OBJECT
+class DlgAddSong : public QDialog
+{
+    Q_OBJECT
 
 public:
-    explicit DlgAddSong(TableModelRotation &rotationModel, TableModelQueueSongs &queueModel, int songId,
+    explicit DlgAddSong(TableModelRotation &rotationModel,
+                        TableModelQueueSongs &queueModel,
+                        int songId,
                         QWidget *parent = nullptr);
     ~DlgAddSong() override;
 

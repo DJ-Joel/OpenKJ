@@ -4,12 +4,11 @@
 #include <QObject>
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
-#include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
-
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
 class TagReader : public QObject
 {
@@ -33,8 +32,8 @@ public:
     QString getAlbum();
     QString getTrack();
     unsigned int getDuration() const;
-    void setMedia(const QString& path);
-    void taglibTags(const QString& path);
+    void setMedia(const QString &path);
+    void taglibTags(const QString &path);
 
 signals:
 

@@ -224,6 +224,16 @@ private:
     void buildVideoSinkBin();
     void buildAudioSinkBin();
     void resetVideoSinks();
+    // Hardware-accelerated video rendering (d3d11videosink on Windows) can
+    // throw a C++ exception from inside GStreamer/Direct3D when it tries to
+    // (re)bind its output to a window - this has been observed to happen
+    // when the singer window is shown/hidden/resized while a song is
+    // playing, and previously took the whole player down with it. This
+    // swaps every video sink over to software rendering (which doesn't
+    // touch Direct3D at all) and resumes playback where it left off, so a
+    // single hardware failure doesn't kill the song. Called from the
+    // catch blocks in resetVideoSinks()/forceVideoExpose() below.
+    void switchToSoftwareRenderingAfterFailure();
     const char* getVideoSinkElementNameForFactory();
     void getAudioOutputDevices();
     void writePipelineGraphToFile(GstBin *bin, const QString& filePath, QString fileName);

@@ -34,6 +34,17 @@
 #include <atomic>
 
 #ifdef Q_OS_WIN
+    // Some Qt headers pulled in above (e.g. qwindowdefs_win.h) already
+    // satisfy windows.h's own "already included" guard without actually
+    // running the part of it that defines the Windows SDK's architecture
+    // markers (_AMD64_/_X86_/etc, in sdkddkver.h). That leaves our
+    // #include <windows.h> below silently skipped, and sysinfoapi.h then
+    // pulls in winnt.h directly with none of those markers set - which
+    // fails to compile with "No Target Architecture". Including
+    // sdkddkver.h explicitly first guarantees those markers exist
+    // regardless of what happened earlier, since it's designed to be
+    // included standalone for exactly this purpose.
+    #include <sdkddkver.h>
     #include <windows.h>
     #include <sysinfoapi.h>
 #endif
@@ -364,11 +375,23 @@ bool Settings::testingEnabled()
 
 bool Settings::hardwareAccelEnabled()
 {
+#ifdef Q_OS_WIN
+    // TEMPORARY: hardware-accelerated video (d3d11videosink) has a known
+    // crash in GStreamer's own Direct3D code that can silently kill
+    // playback - it happens deep inside GStreamer/Windows itself, in a
+    // spot our own code has no way to catch or recover from. Until that's
+    // fixed upstream, hardware acceleration is force-disabled on Windows
+    // no matter what's saved in settings, so nobody can turn it back on
+    // (accidentally or via an old settings file) and hit this crash. The
+    // checkbox in Settings is grayed out to match - see dlgsettings.cpp.
+    return false;
+#else
     bool hwAccelDefault{true};
 #ifdef Q_OS_MACOS
     hwAccelDefault = false;
 #endif
     return settings->value("hardwareAccelEnabled", hwAccelDefault).toBool();
+#endif
 }
 
 bool Settings::dbDoubleClickAddsSong()

@@ -23,16 +23,16 @@
       <item>
        <widget class="QTableView" name="tableViewRequests">
         <property name="sizeAdjustPolicy">
-         <enum>QAbstractScrollArea::AdjustIgnored</enum>
+         <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustIgnored</enum>
         </property>
         <property name="alternatingRowColors">
          <bool>true</bool>
         </property>
         <property name="selectionMode">
-         <enum>QAbstractItemView::SingleSelection</enum>
+         <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
         </property>
         <property name="selectionBehavior">
-         <enum>QAbstractItemView::SelectRows</enum>
+         <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
         </property>
         <attribute name="verticalHeaderVisible">
          <bool>false</bool>
@@ -56,14 +56,13 @@
            </size>
           </property>
           <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
+           <enum>Qt::FocusPolicy::NoFocus</enum>
           </property>
           <property name="text">
            <string/>
           </property>
           <property name="icon">
-           <iconset theme="edit-clear-all">
-            <normaloff>.</normaloff>.</iconset>
+           <iconset theme="edit-clear-all"/>
           </property>
           <property name="iconSize">
            <size>
@@ -76,7 +75,7 @@
         <item>
          <spacer name="horizontalSpacer_6">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -106,7 +105,7 @@
         <item>
          <widget class="QCheckBox" name="checkBoxAccepting">
           <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
+           <enum>Qt::FocusPolicy::NoFocus</enum>
           </property>
           <property name="text">
            <string>Accept requests</string>
@@ -123,7 +122,7 @@
         <item>
          <spacer name="horizontalSpacer_5">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -139,8 +138,7 @@
            <string/>
           </property>
           <property name="icon">
-           <iconset theme="view-refresh">
-            <normaloff>.</normaloff>.</iconset>
+           <iconset theme="view-refresh"/>
           </property>
           <property name="iconSize">
            <size>
@@ -164,16 +162,16 @@
       <item>
        <widget class="QTableView" name="tableViewSearch">
         <property name="contextMenuPolicy">
-         <enum>Qt::CustomContextMenu</enum>
+         <enum>Qt::ContextMenuPolicy::CustomContextMenu</enum>
         </property>
         <property name="alternatingRowColors">
          <bool>true</bool>
         </property>
         <property name="selectionMode">
-         <enum>QAbstractItemView::SingleSelection</enum>
+         <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
         </property>
         <property name="selectionBehavior">
-         <enum>QAbstractItemView::SelectRows</enum>
+         <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
         </property>
         <property name="sortingEnabled">
          <bool>true</bool>
@@ -208,14 +206,13 @@
         <item>
          <widget class="QPushButton" name="pushButtonSearch">
           <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
+           <enum>Qt::FocusPolicy::NoFocus</enum>
           </property>
           <property name="text">
            <string/>
           </property>
           <property name="icon">
-           <iconset theme="edit-find">
-            <normaloff>.</normaloff>.</iconset>
+           <iconset theme="edit-find"/>
           </property>
           <property name="iconSize">
            <size>
@@ -234,8 +231,7 @@
            <string/>
           </property>
           <property name="icon">
-           <iconset theme="internet-web-browser">
-            <normaloff>.</normaloff>.</iconset>
+           <iconset theme="internet-web-browser"/>
           </property>
           <property name="iconSize">
            <size>
@@ -308,7 +304,7 @@
          <item>
           <spacer name="horizontalSpacerDownloadStatus">
            <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+            <enum>Qt::Orientation::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -422,7 +418,7 @@
               <item>
                <spacer name="horizontalSpacer">
                 <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
+                 <enum>Qt::Orientation::Horizontal</enum>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
@@ -470,7 +466,7 @@
               <item>
                <spacer name="horizontalSpacer_8">
                 <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
+                 <enum>Qt::Orientation::Horizontal</enum>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
@@ -514,7 +510,7 @@
           <item>
            <widget class="QPushButton" name="pushButtonAddSong">
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="text">
              <string>Add Song</string>
@@ -526,10 +522,10 @@
         <item>
          <spacer name="horizontalSpacer_9">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
+           <enum>QSizePolicy::Policy::Fixed</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -555,7 +551,7 @@
      <item>
       <spacer name="horizontalSpacer_10">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -601,7 +597,7 @@
        <item>
         <spacer name="horizontalSpacer_2">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -618,7 +614,7 @@
        <item>
         <spacer name="horizontalSpacer_3">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -645,7 +641,7 @@
        <item>
         <spacer name="horizontalSpacer_4">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -662,7 +658,7 @@
        <item>
         <spacer name="horizontalSpacer_7">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -675,7 +671,7 @@
        <item>
         <widget class="QPushButton" name="pushButtonClose">
          <property name="focusPolicy">
-          <enum>Qt::NoFocus</enum>
+          <enum>Qt::FocusPolicy::NoFocus</enum>
          </property>
          <property name="text">
           <string>Close</string>

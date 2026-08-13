@@ -3,11 +3,11 @@
 
 #include <QSqlQuery>
 #include <QVariant>
-#include "mzarchive.h"
 #include "karaokefileinfo.h"
+#include "mzarchive.h"
 
-
-void LazyDurationUpdateWorker::getDurations(const QStringList &files) {
+void LazyDurationUpdateWorker::getDurations(const QStringList &files)
+{
     if (files.isEmpty())
         return;
     std::string m_loggingPrefix{"[LazyDurationThread]"};
@@ -16,21 +16,21 @@ void LazyDurationUpdateWorker::getDurations(const QStringList &files) {
     logger->info("{} Starting scan", m_loggingPrefix);
     MzArchive archive;
     KaraokeFileInfo parser;
-    for (const auto &path : files)
-    {
+    for (const auto &path : files) {
         unsigned int duration = 0;
-        if (path.endsWith(".zip", Qt::CaseInsensitive))
-        {
+        if (path.endsWith(".zip", Qt::CaseInsensitive)) {
             archive.setArchiveFile(path);
             duration = archive.getSongDuration();
         }
-        if (duration == 0)
-        {
+        if (duration == 0) {
             parser.setFile(path);
             duration = parser.getDuration();
         }
         if (duration == 0)
-            logger->warn("{} Unable to get duration for file {}. - File is likely corrupted or invalid", m_loggingPrefix, path);
+            logger->warn(
+                "{} Unable to get duration for file {}. - File is likely corrupted or invalid",
+                m_loggingPrefix,
+                path);
         else
             logger->trace("{} Got duration: {} for file: {}", m_loggingPrefix, duration, path);
         emit gotDuration(path, duration);
@@ -42,19 +42,28 @@ void LazyDurationUpdateWorker::getDurations(const QStringList &files) {
     logger->info("{} Scan complete", m_loggingPrefix);
 }
 
-LazyDurationUpdateController::LazyDurationUpdateController(QObject *parent) : QObject(parent) {
+LazyDurationUpdateController::LazyDurationUpdateController(QObject *parent)
+    : QObject(parent)
+{
     m_logger = spdlog::get("logger");
     auto *worker = new LazyDurationUpdateWorker;
     workerThread.setObjectName("DurationUpdater");
     worker->moveToThread(&workerThread);
     connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
-    connect(this, &LazyDurationUpdateController::operate, worker, &LazyDurationUpdateWorker::getDurations);
-    connect(worker, &LazyDurationUpdateWorker::gotDuration, this, &LazyDurationUpdateController::updateDbDuration);
+    connect(this,
+            &LazyDurationUpdateController::operate,
+            worker,
+            &LazyDurationUpdateWorker::getDurations);
+    connect(worker,
+            &LazyDurationUpdateWorker::gotDuration,
+            this,
+            &LazyDurationUpdateController::updateDbDuration);
     workerThread.start();
     workerThread.setPriority(QThread::IdlePriority);
 }
 
-LazyDurationUpdateController::~LazyDurationUpdateController() {
+LazyDurationUpdateController::~LazyDurationUpdateController()
+{
     workerThread.quit();
     workerThread.wait();
 }
@@ -66,8 +75,7 @@ void LazyDurationUpdateController::getSongsRequiringUpdate()
     QSqlQuery query;
     query.exec("SELECT path FROM dbsongs WHERE duration < 1 ORDER BY artist, title");
     files.reserve(query.size());
-    while (query.next())
-    {
+    while (query.next()) {
         files.append(query.value(0).toString());
     }
     m_logger->info("{} Done, found {} songs with missing durations", m_loggingPrefix, files.size());
@@ -78,7 +86,7 @@ void LazyDurationUpdateController::stopWork()
     workerThread.requestInterruption();
 }
 
-void LazyDurationUpdateController::updateDbDuration(const QString& file, int duration)
+void LazyDurationUpdateController::updateDbDuration(const QString &file, int duration)
 {
     QSqlQuery query;
     query.prepare("UPDATE dbsongs SET duration = :duration WHERE path = :path");

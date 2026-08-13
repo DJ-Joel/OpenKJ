@@ -1,11 +1,16 @@
 #include "dlgeditsong.h"
-#include "ui_dlgeditsong.h"
-#include <QRegularExpressionValidator>
 #include <QRegularExpression>
+#include <QRegularExpressionValidator>
+#include "ui_dlgeditsong.h"
 
-DlgEditSong::DlgEditSong(QString artist, QString title, QString songId, bool showSongId, bool allowRename, QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DlgEditSong)
+DlgEditSong::DlgEditSong(QString artist,
+                         QString title,
+                         QString songId,
+                         bool showSongId,
+                         bool allowRename,
+                         QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::DlgEditSong)
 {
     ui->setupUi(this);
     ui->lineEditArtist->setText(artist);
@@ -21,16 +26,15 @@ DlgEditSong::DlgEditSong(QString artist, QString title, QString songId, bool sho
     ui->lineEditArtist->setValidator(v);
     ui->lineEditTitle->setValidator(v);
     ui->lineEditSongId->setValidator(v);
-    if (!showSongId)
-    {
+    if (!showSongId) {
         ui->lineEditSongId->setEnabled(false);
         ui->lineEditSongId->setToolTip("SongId not supported using the current naming pattern");
     }
-    if (!allowRename)
-    {
+    if (!allowRename) {
         ui->cbxRenameFile->setChecked(false);
         ui->cbxRenameFile->setEnabled(false);
-        ui->cbxRenameFile->setToolTip("Can't rename files in source directories using CUSTOM or METADATA patterns.");
+        ui->cbxRenameFile->setToolTip(
+            "Can't rename files in source directories using CUSTOM or METADATA patterns.");
     }
 }
 

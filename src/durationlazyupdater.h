@@ -3,11 +3,11 @@
 
 #include <QObject>
 #include <QThread>
-#include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
 class LazyDurationUpdateWorker : public QObject
 {
@@ -15,8 +15,7 @@ class LazyDurationUpdateWorker : public QObject
 public slots:
     void getDurations(const QStringList &files);
 signals:
-    void gotDuration(const QString&, unsigned int);
-
+    void gotDuration(const QString &, unsigned int);
 };
 
 class LazyDurationUpdateController : public QObject
@@ -33,12 +32,11 @@ public:
     void getSongsRequiringUpdate();
     void stopWork();
 public slots:
-    void updateDbDuration(const QString& file, int duration);
+    void updateDbDuration(const QString &file, int duration);
     void getDurations();
 signals:
     void operate(const QStringList &list);
     void gotDuration(const QString &path, unsigned int duration);
 };
-
 
 #endif // DURATIONLAZYUPDATER_H

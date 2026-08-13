@@ -1048,9 +1048,29 @@ void MediaBackend::resetVideoSinks()
     if (!m_videoAccelEnabled)
         return;
 
-    for(auto &vs : m_videoSinks)
+    // Binding a hardware sink to a window handle is exactly the point
+    // where GStreamer's d3d11videosink has been observed to throw a C++
+    // exception (from Direct3D device creation) when the target window has
+    // gone into a bad state - e.g. after the singer window was shown,
+    // hidden, moved between monitors, etc. That used to take the whole
+    // player down. Catching it here and falling back to software
+    // rendering keeps the song playing instead.
+    try
     {
-        gst_video_overlay_set_window_handle(reinterpret_cast<GstVideoOverlay*>(vs.videoSink), vs.surface->winId());
+        for(auto &vs : m_videoSinks)
+        {
+            gst_video_overlay_set_window_handle(reinterpret_cast<GstVideoOverlay*>(vs.videoSink), vs.surface->winId());
+        }
+    }
+    catch (const std::exception &e)
+    {
+        m_logger->error("{} Exception while binding hardware-accelerated video sink to its window: {}", m_loggingPrefix, e.what());
+        switchToSoftwareRenderingAfterFailure();
+    }
+    catch (...)
+    {
+        m_logger->error("{} Unknown exception while binding hardware-accelerated video sink to its window", m_loggingPrefix);
+        switchToSoftwareRenderingAfterFailure();
     }
 }
 
@@ -1060,10 +1080,94 @@ void MediaBackend::forceVideoExpose()
         return;
 
     // this fixes a bug where window resize events that happens before the pipeline is playing is not reaching the sink
-    for(auto &vs : m_videoSinks)
+    // Same reasoning as resetVideoSinks() above - this can also throw from
+    // inside the hardware sink, so it gets the same safety net.
+    try
     {
-        gst_video_overlay_expose(reinterpret_cast<GstVideoOverlay*>(vs.videoSink));
+        for(auto &vs : m_videoSinks)
+        {
+            gst_video_overlay_expose(reinterpret_cast<GstVideoOverlay*>(vs.videoSink));
+        }
     }
+    catch (const std::exception &e)
+    {
+        m_logger->error("{} Exception while exposing hardware-accelerated video sink: {}", m_loggingPrefix, e.what());
+        switchToSoftwareRenderingAfterFailure();
+    }
+    catch (...)
+    {
+        m_logger->error("{} Unknown exception while exposing hardware-accelerated video sink", m_loggingPrefix);
+        switchToSoftwareRenderingAfterFailure();
+    }
+}
+
+void MediaBackend::switchToSoftwareRenderingAfterFailure()
+{
+    if (!m_videoAccelEnabled)
+    {
+        // Already on software rendering (or never used hardware in this
+        // session) - nothing to fall back from. Guards against looping
+        // back into here if something in the fallback path itself throws.
+        return;
+    }
+
+    m_logger->error("{} Hardware accelerated video rendering failed. Disabling it and switching to software rendering so playback can continue.", m_loggingPrefix);
+
+    m_videoAccelEnabled = false;
+    // Persist the change so future launches of the app default to software
+    // rendering too, instead of hitting the same failure again next time -
+    // same setting as the "Hardware Acceleration" checkbox in Settings.
+    m_settings.setHardwareAccelEnabled(false);
+
+    auto curpos = position();
+    bool wasPlaying = (state() == PlayingState);
+
+    // Bring the pipeline to a full stop before swapping out elements -
+    // the same approach already used above in setAudioOutputDevice() to
+    // safely replace a live GStreamer element.
+    gst_element_set_state(m_pipeline, GST_STATE_NULL);
+    GstState curState;
+    gst_element_get_state(m_pipeline, &curState, nullptr, GST_CLOCK_TIME_NONE);
+    while (curState != GST_STATE_NULL)
+    {
+        gst_element_get_state(m_pipeline, &curState, nullptr, GST_CLOCK_TIME_NONE);
+        QApplication::processEvents();
+    }
+
+    for (auto &vs : m_videoSinks)
+    {
+        if (vs.videoScale && vs.videoSink)
+        {
+            gst_element_unlink(vs.videoScale, vs.videoSink);
+        }
+        if (vs.videoSink)
+        {
+            gst_bin_remove(GST_BIN(m_videoBin), vs.videoSink);
+        }
+        vs.softwareRenderVideoSink = new SoftwareRenderVideoSink(vs.surface);
+        vs.videoSink = GST_ELEMENT(vs.softwareRenderVideoSink->getSink());
+        gst_bin_add(GST_BIN(m_videoBin), vs.videoSink);
+        gst_element_link(vs.videoScale, vs.videoSink);
+    }
+
+    if (wasPlaying)
+    {
+        m_logger->debug("{} Resuming playback after switching to software video rendering", m_loggingPrefix);
+        if (m_cdgMode)
+            setMediaCdg(m_cdgFilename, m_filename);
+        else
+            setMedia(m_filename);
+        play();
+        gst_element_get_state(m_pipeline, &curState, nullptr, GST_CLOCK_TIME_NONE);
+        while (curState != GST_STATE_PLAYING)
+        {
+            gst_element_get_state(m_pipeline, &curState, nullptr, GST_CLOCK_TIME_NONE);
+            QApplication::processEvents();
+        }
+        setPosition(curpos);
+    }
+
+    m_logger->info("{} Recovered from hardware video rendering failure by switching to software rendering.", m_loggingPrefix);
 }
 
 void MediaBackend::getAudioOutputDevices()

@@ -1,20 +1,25 @@
 #include "karaokefileinfo.h"
-#include "spdlogqstringformatter.h"
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
-#include <QTemporaryDir>
-#include "tagreader.h"
-#include "okarchive.h"
 #include <QSqlQuery>
+#include <QTemporaryDir>
+#include "okarchive.h"
+#include "spdlogqstringformatter.h"
+#include "tagreader.h"
 
-KaraokeFileInfo::KaraokeFileInfo(QObject *parent, std::shared_ptr<KaraokeFilePatternResolver> patternResolver) : QObject(parent), m_patternResolver(patternResolver) {
+KaraokeFileInfo::KaraokeFileInfo(QObject *parent,
+                                 std::shared_ptr<KaraokeFilePatternResolver> patternResolver)
+    : QObject(parent)
+    , m_patternResolver(patternResolver)
+{
     m_logger = spdlog::get("logger");
 }
 
-KaraokeFileInfo::KaraokeFileInfo(QObject *parent) : KaraokeFileInfo(parent, std::make_shared<KaraokeFilePatternResolver>()) {
-}
+KaraokeFileInfo::KaraokeFileInfo(QObject *parent)
+    : KaraokeFileInfo(parent, std::make_shared<KaraokeFilePatternResolver>())
+{}
 
 void KaraokeFileInfo::readTags()
 {
@@ -22,8 +27,7 @@ void KaraokeFileInfo::readTags()
         return;
     TagReader *tagReader = new TagReader(this);
 
-    if (m_filename.endsWith(".cdg", Qt::CaseInsensitive))
-    {
+    if (m_filename.endsWith(".cdg", Qt::CaseInsensitive)) {
         QString baseFn = m_filename;
         QString mediaFile;
         baseFn.chop(3);
@@ -40,13 +44,10 @@ void KaraokeFileInfo::readTags()
         tagTitle = tagReader->getTitle();
         tagSongid = tagReader->getAlbum();
         QString track = tagReader->getTrack();
-        if (track != "")
-        {
+        if (track != "") {
             tagSongid.append("-" + track);
         }
-    }
-    else if (m_filename.endsWith(".zip", Qt::CaseInsensitive))
-    {
+    } else if (m_filename.endsWith(".zip", Qt::CaseInsensitive)) {
         OkArchive archive;
         QTemporaryDir dir;
         archive.setArchiveFile(m_filename);
@@ -59,14 +60,13 @@ void KaraokeFileInfo::readTags()
         tagSongid = tagReader->getAlbum();
         duration = archive.getSongDuration();
         QString track = tagReader->getTrack();
-        if (track != "")
-        {
+        if (track != "") {
             tagSongid.append("-" + track);
         }
-    }
-    else
-    {
-        m_logger->info("{} readTags called on non zip or cdg file '{}'.  Trying taglib.", m_loggingPrefix, m_filename);
+    } else {
+        m_logger->info("{} readTags called on non zip or cdg file '{}'.  Trying taglib.",
+                       m_loggingPrefix,
+                       m_filename);
         tagReader->setMedia(m_filename);
         tagArtist = tagReader->getArtist();
         tagTitle = tagReader->getTitle();
@@ -93,7 +93,8 @@ void KaraokeFileInfo::setFile(const QString &filename)
     m_metadata_parsed_success = false;
 }
 
-void KaraokeFileInfo::ensureMetadataParsed() {
+void KaraokeFileInfo::ensureMetadataParsed()
+{
     if (!m_metadata_parsed) {
         auto &pattern = m_patternResolver->getPattern(m_filename);
         m_metadata_parsed_success = parseMetadata(pattern);
@@ -124,38 +125,30 @@ const QString &KaraokeFileInfo::getSongId()
     return songId;
 }
 
-const int& KaraokeFileInfo::getDuration()
+const int &KaraokeFileInfo::getDuration()
 {
     if (duration > 0)
         return duration;
-    if (m_filename.endsWith(".zip", Qt::CaseInsensitive))
-    {
+    if (m_filename.endsWith(".zip", Qt::CaseInsensitive)) {
         OkArchive archive;
         archive.setArchiveFile(m_filename);
         duration = archive.getSongDuration();
-    }
-    else if (m_filename.endsWith(".cdg", Qt::CaseInsensitive))
-    {
+    } else if (m_filename.endsWith(".cdg", Qt::CaseInsensitive)) {
         duration = ((QFile(m_filename).size() / 96) / 75) * 1000;
-    }
-    else
-    {
+    } else {
         //TODO: make sure tags are not read twice (here and if reading metadata tags)!
         TagReader reader;
         reader.setMedia(m_filename);
-        try
-        {
+        try {
             duration = reader.getDuration();
-        }
-        catch (...)
-        {
+        } catch (...) {
             m_logger->error("{} Unable to get duration for file {}", m_loggingPrefix, fileBaseName);
         }
     }
     return duration;
 }
 
-bool KaraokeFileInfo::parseMetadata(const KaraokeFilePatternResolver::KaraokeFilePattern& pattern)
+bool KaraokeFileInfo::parseMetadata(const KaraokeFilePatternResolver::KaraokeFilePattern &pattern)
 {
     //TODO: This needs to be cleaned up, the logic is convoluted and is probably
     // slowing down db updates
@@ -163,8 +156,7 @@ bool KaraokeFileInfo::parseMetadata(const KaraokeFilePatternResolver::KaraokeFil
     QString baseNameFiltered = fileBaseName;
     baseNameFiltered.replace("_", " ");
     QStringList parts = baseNameFiltered.split(" - ");
-    switch (pattern.pattern)
-    {
+    switch (pattern.pattern) {
     case SourceDir::STA:
         if (!parts.empty())
             songId = parts.at(0);
@@ -190,8 +182,7 @@ bool KaraokeFileInfo::parseMetadata(const KaraokeFilePatternResolver::KaraokeFil
     case SourceDir::ATS:
         if (!parts.empty())
             artist = parts.at(0);
-        if (parts.size() >= 3)
-        {
+        if (parts.size() >= 3) {
             songId = parts.at(parts.size() - 1);
             parts.removeLast();
         }
@@ -202,8 +193,7 @@ bool KaraokeFileInfo::parseMetadata(const KaraokeFilePatternResolver::KaraokeFil
     case SourceDir::TAS:
         if (!parts.empty())
             title = parts.at(0);
-        if (parts.size() >= 3)
-        {
+        if (parts.size() >= 3) {
             songId = parts.at(parts.size() - 1);
             if (!parts.isEmpty())
                 parts.removeLast();
@@ -213,16 +203,14 @@ bool KaraokeFileInfo::parseMetadata(const KaraokeFilePatternResolver::KaraokeFil
         artist = parts.join(" - ");
         break;
     case SourceDir::AT:
-        if (!parts.empty())
-        {
+        if (!parts.empty()) {
             artist = parts.at(0);
             parts.removeFirst();
         }
         title = parts.join(" - ");
         break;
     case SourceDir::TA:
-        if (!parts.empty())
-        {
+        if (!parts.empty()) {
             title = parts.at(0);
             parts.removeFirst();
         }
@@ -267,14 +255,14 @@ bool KaraokeFileInfo::parseMetadata(const KaraokeFilePatternResolver::KaraokeFil
 
         break;
     }
-    if ( !artist.isEmpty() || !title.isEmpty() || !songId.isEmpty())
+    if (!artist.isEmpty() || !title.isEmpty() || !songId.isEmpty())
         return true;
     else
         return false;
 }
 
 // Static:
-QString KaraokeFileInfo::testPattern(const QString& regex, const QString& filename, int captureGroup)
+QString KaraokeFileInfo::testPattern(const QString &regex, const QString &filename, int captureGroup)
 {
     QRegularExpression r;
     QRegularExpressionMatch match;

@@ -23,7 +23,6 @@ private slots:
 private:
     Ui::DlgSetPassword *ui;
     QString password;
-
 };
 
 #endif // DLGSETPASSWORD_H

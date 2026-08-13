@@ -23,8 +23,8 @@
 
 #include <QDialog>
 #include <QStringList>
-#include "models/tablemodelhistorysongs.h"
 #include "models/tablemodelhistorysingers.h"
+#include "models/tablemodelhistorysongs.h"
 #include "models/tablemodelkaraokesongs.h"
 
 namespace Ui {
@@ -55,7 +55,6 @@ private slots:
     void on_pushButtonClose_clicked();
     void on_pushButtonImport_clicked();
     void on_pushButtonImportAll_clicked();
-
 
     // QWidget interface
 protected:

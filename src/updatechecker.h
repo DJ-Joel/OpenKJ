@@ -33,8 +33,8 @@ signals:
 public slots:
 
 private slots:
-    void onNetworkReply(QNetworkReply* reply);
-    void aOnNetworkReply(QNetworkReply* reply);
+    void onNetworkReply(QNetworkReply *reply);
+    void aOnNetworkReply(QNetworkReply *reply);
     void downloadInstaller();
 };
 

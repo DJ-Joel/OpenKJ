@@ -1,9 +1,9 @@
 #ifndef CDGDISPLAY_H
 #define CDGDISPLAY_H
 
-#include <QWidget>
 #include <QBoxLayout>
 #include <QResizeEvent>
+#include <QWidget>
 
 class VideoDisplay : public QWidget
 {
@@ -11,9 +11,9 @@ class VideoDisplay : public QWidget
 private:
     QPixmap m_currentBg;
     bool m_useDefaultBg{true};
-    bool m_hasActiveVideo { false };
-    bool m_fillOnPaint { false };
-    bool m_repaintBackgroundOnce { false };
+    bool m_hasActiveVideo{false};
+    bool m_fillOnPaint{false};
+    bool m_repaintBackgroundOnce{false};
 
 public:
     explicit VideoDisplay(QWidget *parent = nullptr);
@@ -34,9 +34,9 @@ public slots:
      * Set this property to start each paint event with a black fill.
      */
     void setFillOnPaint(const bool &value) { m_fillOnPaint = value; }
+
 protected:
     void paintEvent(QPaintEvent *event) override;
 };
-
 
 #endif // CDGDISPLAY_H

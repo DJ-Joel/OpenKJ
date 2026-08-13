@@ -23,12 +23,12 @@
 
 #include <QDialog>
 #include <QItemSelection>
-#include "src/models/tablemodelrequests.h"
-#include "src/models/tablemodelkaraokesongs.h"
-#include "src/models/tablemodelrotation.h"
 #include "okjsongbookapi.h"
-#include <spdlog/spdlog.h>
 #include "settings.h"
+#include "src/models/tablemodelkaraokesongs.h"
+#include "src/models/tablemodelrequests.h"
+#include "src/models/tablemodelrotation.h"
+#include <spdlog/spdlog.h>
 
 namespace Ui {
 class DlgRequests;
@@ -54,7 +54,9 @@ private:
     Settings m_settings;
 
 public:
-    explicit DlgRequests(TableModelRotation &rotationModel, OKJSongbookAPI &songbookAPI, QWidget *parent = nullptr);
+    explicit DlgRequests(TableModelRotation &rotationModel,
+                         OKJSongbookAPI &songbookAPI,
+                         QWidget *parent = nullptr);
     int numRequests();
     ~DlgRequests();
 
@@ -87,8 +89,8 @@ private slots:
     void requestsChanged(OkjsRequests requests);
     void on_pushButtonSearch_clicked();
     void on_lineEditSearch_returnPressed();
-    void requestSelectionChanged(const QItemSelection & current, const QItemSelection & previous);
-    void songSelectionChanged(const QItemSelection & current, const QItemSelection & previous);
+    void requestSelectionChanged(const QItemSelection &current, const QItemSelection &previous);
+    void songSelectionChanged(const QItemSelection &current, const QItemSelection &previous);
     void on_radioButtonExistingSinger_toggled(bool checked);
     void on_pushButtonClearReqs_clicked();
     void on_tableViewRequests_clicked(const QModelIndex &index);
@@ -102,7 +104,7 @@ private slots:
     void venuesChanged(OkjsVenues venues);
     void on_pushButtonUpdateDb_clicked();
     void on_comboBoxVenue_activated(int index);
-    void previewCdg(const std::shared_ptr<okj::KaraokeSong>& song);
+    void previewCdg(const std::shared_ptr<okj::KaraokeSong> &song);
     void on_lineEditSearch_textChanged(const QString &arg1);
     void lineEditSearchEscapePressed();
     void autoSizeViews();

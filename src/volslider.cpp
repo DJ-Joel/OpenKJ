@@ -1,10 +1,8 @@
 #include "volslider.h"
 
-VolSlider::VolSlider(QWidget *parent) : QSlider(parent)
-{
-
-}
-
+VolSlider::VolSlider(QWidget *parent)
+    : QSlider(parent)
+{}
 
 void VolSlider::wheelEvent(QWheelEvent *event)
 {

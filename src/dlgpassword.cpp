@@ -1,12 +1,12 @@
 #include "dlgpassword.h"
-#include "ui_dlgpassword.h"
 #include "settings.h"
+#include "ui_dlgpassword.h"
 
 #include <QMessageBox>
 
-DlgPassword::DlgPassword(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DlgPassword)
+DlgPassword::DlgPassword(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::DlgPassword)
 {
     ui->setupUi(this);
     ui->label->hide();
@@ -20,14 +20,11 @@ DlgPassword::~DlgPassword()
 void DlgPassword::on_pushButtonOk_clicked()
 {
     Settings settings;
-    if (settings.chkPassword(ui->lineEditPassword->text()))
-    {
+    if (settings.chkPassword(ui->lineEditPassword->text())) {
         ui->label->hide();
         password = ui->lineEditPassword->text();
         accept();
-    }
-    else
-    {
+    } else {
         ui->label->show();
     }
 }
@@ -42,10 +39,8 @@ void DlgPassword::on_pushButtonReset_clicked()
     QMessageBox msgBox;
     msgBox.setWindowTitle(tr("Clear password?"));
     msgBox.setText(tr("Warning, this will erase all secured account and credit card data."));
-    if (msgBox.exec() == QDialog::Accepted)
-    {
+    if (msgBox.exec() == QDialog::Accepted) {
         Settings settings;
         settings.clearPassword();
     }
-
 }

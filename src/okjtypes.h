@@ -23,126 +23,137 @@
 
 #include <QDateTime>
 #include <QString>
+#include "settings.h"
 #include <qmetatype.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
-#include "settings.h"
 
 namespace okj {
 
-    struct KaraokeSong {
-        int id{0};
-        QString artist;
-        QString artistL;
-        QString title;
-        QString titleL;
-        QString songid;
-        QString songidL;
-        int duration{0};
-        QString filename;
-        QString path;
-        QString searchString;
-        int plays;
-        QDateTime lastPlay;
-        bool bad{false};
-        bool dropped{false};
-        // Set for rows sourced from the stream library rather than a local
-        // file on disk - lets the unified Database tab show both together.
-        bool isStream{false};
-        int streamLibraryId{0};
-        QString streamUrl;
-    };
+struct KaraokeSong
+{
+    int id{0};
+    QString artist;
+    QString artistL;
+    QString title;
+    QString titleL;
+    QString songid;
+    QString songidL;
+    int duration{0};
+    QString filename;
+    QString path;
+    QString searchString;
+    int plays;
+    QDateTime lastPlay;
+    bool bad{false};
+    bool dropped{false};
+    // Set for rows sourced from the stream library rather than a local
+    // file on disk - lets the unified Database tab show both together.
+    bool isStream{false};
+    int streamLibraryId{0};
+    QString streamUrl;
+};
 
-    struct HistorySinger {
-        int historySingerId{-1};
-        QString name;
-        int songCount{0};
-    };
+struct HistorySinger
+{
+    int historySingerId{-1};
+    QString name;
+    int songCount{0};
+};
 
-    struct RotationSinger {
-        int id{0};
-        QString name;
-        int position{0};
-        bool regular{false};
-        QDateTime addTs;
-        bool valid{true};
-        std::shared_ptr<spdlog::logger> m_logger;
-        std::shared_ptr<Settings> m_settings;
-        [[nodiscard]] std::string loggingPrefix() const { return "[RotationSinger] [" + name.toStdString() + "]"; }
-        RotationSinger();
-        RotationSinger(int id, QString name, int position, bool regular, QDateTime addTs, bool valid = true);
-        RotationSinger(const RotationSinger &r1);
-        RotationSinger(RotationSinger &&other) = default;
-        RotationSinger& operator=(RotationSinger&& other) = default;
-        RotationSinger& operator=(const RotationSinger& other) = default;
-        [[nodiscard]] bool isValid() const { return valid; }
-        [[nodiscard]] QString nextSongPath() const;
-        [[nodiscard]] QString nextSongArtist() const;
-        [[nodiscard]] QString nextSongTitle() const;
-        [[nodiscard]] QString nextSongArtistTitle() const;
-        [[nodiscard]] QString nextSongSongId() const;
-        [[nodiscard]] int nextSongDurationSecs() const;
-        [[nodiscard]] int nextSongKeyChg() const;
-        [[nodiscard]] int nextSongQueueId() const;
-        [[nodiscard]] int numSongsSung() const;
-        [[nodiscard]] int numSongsUnsung() const;
-    };
+struct RotationSinger
+{
+    int id{0};
+    QString name;
+    int position{0};
+    bool regular{false};
+    QDateTime addTs;
+    bool valid{true};
+    std::shared_ptr<spdlog::logger> m_logger;
+    std::shared_ptr<Settings> m_settings;
+    [[nodiscard]] std::string loggingPrefix() const
+    {
+        return "[RotationSinger] [" + name.toStdString() + "]";
+    }
+    RotationSinger();
+    RotationSinger(
+        int id, QString name, int position, bool regular, QDateTime addTs, bool valid = true);
+    RotationSinger(const RotationSinger &r1);
+    RotationSinger(RotationSinger &&other) = default;
+    RotationSinger &operator=(RotationSinger &&other) = default;
+    RotationSinger &operator=(const RotationSinger &other) = default;
+    [[nodiscard]] bool isValid() const { return valid; }
+    [[nodiscard]] QString nextSongPath() const;
+    [[nodiscard]] QString nextSongArtist() const;
+    [[nodiscard]] QString nextSongTitle() const;
+    [[nodiscard]] QString nextSongArtistTitle() const;
+    [[nodiscard]] QString nextSongSongId() const;
+    [[nodiscard]] int nextSongDurationSecs() const;
+    [[nodiscard]] int nextSongKeyChg() const;
+    [[nodiscard]] int nextSongQueueId() const;
+    [[nodiscard]] int numSongsSung() const;
+    [[nodiscard]] int numSongsUnsung() const;
+};
 
-    struct QueueSong {
-        int id{0};
-        int singerId{0};
-        int dbSongId{0};
-        bool played{false};
-        int keyChange{0};
-        int position{0};
-        QString artist;
-        QString title;
-        QString songId;
-        int duration{0};
-        QString path;
-    };
+struct QueueSong
+{
+    int id{0};
+    int singerId{0};
+    int dbSongId{0};
+    bool played{false};
+    int keyChange{0};
+    int position{0};
+    QString artist;
+    QString title;
+    QString songId;
+    int duration{0};
+    QString path;
+};
 
-    // A stream (e.g. YouTube) entry saved against a singer. The url stays as
-    // the original page link - it gets resolved to a playable stream via
-    // yt-dlp at play time, since resolved URLs are signed and expire.
-    // A shared, global catalog entry - one row per unique stream song,
-    // regardless of how many singers use it.
-    struct StreamLibraryEntry {
-        int id{0};
-        QString artist;
-        QString title;
-        QString url;
-        int duration{0};
-    };
+// A stream (e.g. YouTube) entry saved against a singer. The url stays as
+// the original page link - it gets resolved to a playable stream via
+// yt-dlp at play time, since resolved URLs are signed and expire.
+// A shared, global catalog entry - one row per unique stream song,
+// regardless of how many singers use it.
+struct StreamLibraryEntry
+{
+    int id{0};
+    QString artist;
+    QString title;
+    QString url;
+    int duration{0};
+};
 
-    // A singer's assignment to a library entry. Carries the library's
-    // artist/title/url/duration along via join, for convenience - callers
-    // that already work with this struct (playback, rotation, history) don't
-    // need to know the library/assignment split exists underneath.
-    struct StreamSong {
-        int id{0};
-        int historySinger{0};
-        int libraryId{0};
-        QString artist;
-        QString title;
-        QString url;
-        int duration{0};
-        bool played{false};
-        int position{0};
-    };
+// A singer's assignment to a library entry. Carries the library's
+// artist/title/url/duration along via join, for convenience - callers
+// that already work with this struct (playback, rotation, history) don't
+// need to know the library/assignment split exists underneath.
+struct StreamSong
+{
+    int id{0};
+    int historySinger{0};
+    int libraryId{0};
+    QString artist;
+    QString title;
+    QString url;
+    int duration{0};
+    bool played{false};
+    int position{0};
+};
 
-    struct HistorySong {
-        unsigned int id{0};
-        unsigned int historySinger{0};
-        QString filePath;
-        QString artist;
-        QString title;
-        QString songid;
-        int keyChange{0};
-        int plays{0};
-        QDateTime lastPlayed; // unix time
-    };
-}
+struct HistorySong
+{
+    unsigned int id{0};
+    unsigned int historySinger{0};
+    QString filePath;
+    QString artist;
+    QString title;
+    QString songid;
+    int keyChange{0};
+    int plays{0};
+    QDateTime lastPlayed; // unix time
+};
+} // namespace okj
 
 Q_DECLARE_METATYPE(okj::KaraokeSong)
 Q_DECLARE_METATYPE(std::shared_ptr<okj::KaraokeSong>)
@@ -151,6 +162,6 @@ Q_DECLARE_METATYPE(okj::HistorySong)
 Q_DECLARE_METATYPE(okj::StreamSong)
 Q_DECLARE_METATYPE(okj::StreamLibraryEntry)
 
-std::ostream& operator<<(std::ostream& os, const okj::RotationSinger& s);
+std::ostream &operator<<(std::ostream &os, const okj::RotationSinger &s);
 
 #endif //OPENKJ_OKJTYPES_H

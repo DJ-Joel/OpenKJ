@@ -1,19 +1,20 @@
 #ifndef TICKERNEW_H
 #define TICKERNEW_H
 
+#include <QMutex>
 #include <QObject>
 #include <QPixmap>
 #include <QThread>
 #include <settings.h>
-#include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
-#include <QMutex>
+#include <spdlog/spdlog.h>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
-class TickerImageCreator : public QThread {
-Q_OBJECT
+class TickerImageCreator : public QThread
+{
+    Q_OBJECT
     QString m_tickerText;
     int m_targetWidth;
     void run() override;
@@ -23,12 +24,11 @@ public:
 
 signals:
     void imageCreated(QPixmap image, int textWidth);
-
 };
 
 class TickerNew : public QThread
 {
-Q_OBJECT
+    Q_OBJECT
 private:
     QMutex m_mutex;
     Settings m_settings;
@@ -67,7 +67,7 @@ signals:
 
 class TickerDisplayWidget : public QWidget
 {
-Q_OBJECT
+    Q_OBJECT
 private:
     std::string m_loggingPrefix{"[TickerDisplayWidget]"};
     std::shared_ptr<spdlog::logger> m_logger;
@@ -79,19 +79,19 @@ private:
 public:
     explicit TickerDisplayWidget(QWidget *parent = nullptr);
     ~TickerDisplayWidget() override;
-    void setText(const QString& newText, bool force = false);
+    void setText(const QString &newText, bool force = false);
     [[nodiscard]] QSize sizeHint() const override;
     void setSpeed(int speed);
     QString getCurrentText() { return m_currentText; }
     bool rectBasedDrawing{false};
     void stop();
     void setTickerEnabled(bool enabled);
-    void refresh() {ticker->refresh();}
+    void refresh() { ticker->refresh(); }
 
 private slots:
-    void newFrameRect(const QPixmap& frame, QRect displayArea);
+    void newFrameRect(const QPixmap &frame, QRect displayArea);
     void newRect(QRect displayArea);
-    void newFrame(const QPixmap& frame);
+    void newFrame(const QPixmap &frame);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;

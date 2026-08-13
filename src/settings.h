@@ -22,6 +22,8 @@
 #define SETTINGS_H
 
 #include <QHeaderView>
+#include <QKeySequence>
+#include <QMetaType>
 #include <QObject>
 #include <QSettings>
 #include <QSplitter>
@@ -29,18 +31,14 @@
 #include <QTableView>
 #include <QTreeView>
 #include <QWidget>
-#include <QMetaType>
-#include <QKeySequence>
 
 struct SfxEntry
 {
     SfxEntry();
     QString name;
     QString path;
-
-
-}; Q_DECLARE_METATYPE(SfxEntry)
-
+};
+Q_DECLARE_METATYPE(SfxEntry)
 
 typedef QList<SfxEntry> SfxEntryList;
 
@@ -83,7 +81,7 @@ public:
     int getSystemRamSize();
     int remainRtOffset();
     int remainBtmOffset();
-    qint64 hash(const QString & str);
+    qint64 hash(const QString &str);
     bool progressiveSearchEnabled();
     QString storeDownloadDir();
     QString logDir();
@@ -142,7 +140,7 @@ public:
     bool cdgWindowFullscreen();
     bool showCdgWindow();
     void setCdgWindowFullscreenMonitor(int monitor);
-    int  cdgWindowFullScreenMonitor();
+    int cdgWindowFullScreenMonitor();
     void saveWindowState(QWidget *window);
     void restoreWindowState(QWidget *window);
     void saveColumnWidths(QTreeView *treeView);
@@ -360,7 +358,6 @@ signals:
     void videoOffsetChanged(int offsetMs);
     void lastSingerAddPositionTypeChanged(int type);
     void shortcutsChanged();
-
 
 public slots:
     void setShowMainWindowVideo(bool show);

@@ -18,14 +18,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include "okarchive.h"
-#include "spdlogqstringformatter.h"
+#include <QBuffer>
 #include <QDir>
 #include <QFile>
 #include <QRegularExpression>
-#include <QBuffer>
 #include <QTemporaryDir>
+#include "spdlogqstringformatter.h"
 #ifdef Q_OS_WIN
 #include <io.h>
 #else
@@ -35,7 +34,8 @@
 
 QString infoZipPath;
 
-OkArchive::OkArchive(QString ArchiveFile, QObject *parent) : QObject(parent)
+OkArchive::OkArchive(QString ArchiveFile, QObject *parent)
+    : QObject(parent)
 {
     m_logger->info("{} Opening archive: {}", m_loggingPrefix, ArchiveFile);
     process = new QProcess();
@@ -60,10 +60,10 @@ OkArchive::OkArchive(QString ArchiveFile, QObject *parent) : QObject(parent)
 #else
     infoZipPath = "/usr/bin/unzip";
 #endif
-
 }
 
-OkArchive::OkArchive(QObject *parent) : QObject(parent)
+OkArchive::OkArchive(QObject *parent)
+    : QObject(parent)
 {
     m_logger = spdlog::get("logger");
     process = new QProcess();
@@ -106,8 +106,7 @@ unsigned int OkArchive::getSongDuration()
 
 QByteArray OkArchive::getCDGData()
 {
-    if (findCDG())
-    {
+    if (findCDG()) {
         QTemporaryDir dir;
         if (!extractFile(cdgFileName, dir.path(), "tmp.cdg"))
             return QByteArray();
@@ -128,7 +127,7 @@ QString OkArchive::getArchiveFile() const
 
 void OkArchive::setArchiveFile(const QString &value)
 {
-//    qInfo() << "OkArchive opening archive file: " << value;
+    //    qInfo() << "OkArchive opening archive file: " << value;
     archiveFile = value;
     m_cdgFound = false;
     m_audioFound = false;
@@ -167,8 +166,7 @@ QString OkArchive::audioExtension()
 
 bool OkArchive::extractAudio(QString destPath, QString destFile)
 {
-    if (findAudio())
-    {
+    if (findAudio()) {
         if (extractFile(audioFileName, destPath, destFile))
             return true;
     }
@@ -177,8 +175,7 @@ bool OkArchive::extractAudio(QString destPath, QString destFile)
 
 bool OkArchive::extractCdg(QString destPath, QString destFile)
 {
-    if (findCDG())
-    {
+    if (findCDG()) {
         if (extractFile(cdgFileName, destPath, destFile))
             return true;
     }
@@ -187,41 +184,39 @@ bool OkArchive::extractCdg(QString destPath, QString destFile)
 
 bool OkArchive::isValidKaraokeFile()
 {
-//    if (!zipIsValid())
-//    {
-//        qInfo() << archiveFile << " - Archive is corrupt or invalid";
-//        lastError = "Corrupt or invalid archive";
-//        return false;
-//    }
-    if (!findEntries())
-    {
-        if (!goodArchive)
-        {
-            m_logger->error("{} Invalid or corrupt zip file: {}",m_loggingPrefix, archiveFile);
+    //    if (!zipIsValid())
+    //    {
+    //        qInfo() << archiveFile << " - Archive is corrupt or invalid";
+    //        lastError = "Corrupt or invalid archive";
+    //        return false;
+    //    }
+    if (!findEntries()) {
+        if (!goodArchive) {
+            m_logger->error("{} Invalid or corrupt zip file: {}", m_loggingPrefix, archiveFile);
             lastError = "Invalid or corrupt zip file";
             return false;
         }
-        if (!m_cdgFound)
-        {
-            m_logger->error("{} Archive does not contain a cdg file: {}",m_loggingPrefix, archiveFile);
+        if (!m_cdgFound) {
+            m_logger->error("{} Archive does not contain a cdg file: {}",
+                            m_loggingPrefix,
+                            archiveFile);
             lastError = "CDG not found in zip file";
         }
-        if (!m_audioFound)
-        {
-            m_logger->error("{} Archive does not contain a supported audio file: {}",m_loggingPrefix, archiveFile);
+        if (!m_audioFound) {
+            m_logger->error("{} Archive does not contain a supported audio file: {}",
+                            m_loggingPrefix,
+                            archiveFile);
             lastError = "Audio file not found in zip file";
         }
         return false;
     }
-    if (m_audioSize <= 0)
-    {
-        m_logger->error("{} Audio file in archive is zero bytes: {}",m_loggingPrefix, archiveFile);
+    if (m_audioSize <= 0) {
+        m_logger->error("{} Audio file in archive is zero bytes: {}", m_loggingPrefix, archiveFile);
         lastError = "Zero byte audio file";
         return false;
     }
-    if (m_cdgSize <= 0)
-    {
-        m_logger->error("{} CDG file in archive is zero bytes: {}",m_loggingPrefix, archiveFile);
+    if (m_cdgSize <= 0) {
+        m_logger->error("{} CDG file in archive is zero bytes: {}", m_loggingPrefix, archiveFile);
         lastError = "Zero byte CDG file";
         return false;
     }
@@ -256,22 +251,15 @@ bool OkArchive::findEntries()
     if (m_audioFound && m_cdgFound)
         return true;
     getZipContents();
-    for (int i=0; i < m_entries.size(); i++)
-    {
-
+    for (int i = 0; i < m_entries.size(); i++) {
         QString fileName = m_entries.at(i).fileName;
-        if (fileName.endsWith(".cdg",Qt::CaseInsensitive))
-        {
+        if (fileName.endsWith(".cdg", Qt::CaseInsensitive)) {
             cdgFileName = fileName;
             m_cdgSize = m_entries.at(i).fileSize;
             m_cdgFound = true;
-        }
-        else
-        {
-            for (int e=0; e < audioExtensions.size(); e++)
-            {
-                if (fileName.endsWith(audioExtensions.at(e), Qt::CaseInsensitive))
-                {
+        } else {
+            for (int e = 0; e < audioExtensions.size(); e++) {
+                if (fileName.endsWith(audioExtensions.at(e), Qt::CaseInsensitive)) {
                     audioFileName = fileName;
                     audioExt = audioExtensions.at(e);
                     m_audioSize = m_entries.at(i).fileSize;
@@ -279,11 +267,9 @@ bool OkArchive::findEntries()
                 }
             }
         }
-        if (m_audioFound && m_cdgFound)
-        {
+        if (m_audioFound && m_cdgFound) {
             return true;
         }
-
     }
     return false;
 }
@@ -300,46 +286,45 @@ zipEntries OkArchive::getZipContents()
     process->setArguments(arguments);
     process->start(QProcess::ReadOnly);
     process->waitForFinished();
-    if (process->exitCode() == 0)
-    {
+    if (process->exitCode() == 0) {
         // no error
         goodArchive = true;
-    }
-    else if (process->exitCode() <= 2)
-    {
-        m_logger->warn("{} Infozip returned non-fatal error code {} while processing archive: {}", m_loggingPrefix,process->exitCode(), archiveFile);
+    } else if (process->exitCode() <= 2) {
+        m_logger->warn("{} Infozip returned non-fatal error code {} while processing archive: {}",
+                       m_loggingPrefix,
+                       process->exitCode(),
+                       archiveFile);
         goodArchive = true;
-    }
-    else if (process->exitCode() >= 3)
-    {
-        m_logger->error("{} Infozip returned fatal error code {} while processing archive: {}", m_loggingPrefix,process->exitCode(), archiveFile);
+    } else if (process->exitCode() >= 3) {
+        m_logger->error("{} Infozip returned fatal error code {} while processing archive: {}",
+                        m_loggingPrefix,
+                        process->exitCode(),
+                        archiveFile);
         goodArchive = false;
         return zipEntries();
     }
     QString output = process->readAll();
-    if (output.contains("zipfile is empty", Qt::CaseInsensitive))
-    {
+    if (output.contains("zipfile is empty", Qt::CaseInsensitive)) {
         m_logger->error("{} Archive is empty: {}", m_loggingPrefix, archiveFile);
         goodArchive = false;
         return zipEntries();
     }
-    m_logger->trace("{} Infozip output: \n{}",m_loggingPrefix, output);
+    m_logger->trace("{} Infozip output: \n{}", m_loggingPrefix, output);
     QStringList data = output.split(QRegularExpression("[\r\n]"), Qt::SkipEmptyParts);
     int fnStart = 0;
     int listStart = 0;
-    for (int l=0; l < data.size(); l++)
-    {
-        if (data.at(l).contains("Name", Qt::CaseInsensitive) && data.at(l).contains("Length", Qt::CaseInsensitive) && data.at(l).contains("Date", Qt::CaseInsensitive))
-        {
+    for (int l = 0; l < data.size(); l++) {
+        if (data.at(l).contains("Name", Qt::CaseInsensitive)
+            && data.at(l).contains("Length", Qt::CaseInsensitive)
+            && data.at(l).contains("Date", Qt::CaseInsensitive)) {
             fnStart = data.at(l).indexOf("Name");
             listStart = l;
             break;
         }
     }
-    for (int l=0; l < listStart; l++)
+    for (int l = 0; l < listStart; l++)
         data.removeFirst();
-    if (data.size() < 6)
-    {
+    if (data.size() < 6) {
         m_logger->error("{} Error processing infozip output, bailing out", m_loggingPrefix);
         goodArchive = false;
         return zipEntries();
@@ -348,8 +333,7 @@ zipEntries OkArchive::getZipContents()
     data.removeFirst();
     data.removeLast();
     data.removeLast();
-    for (int i=0; i < data.size(); i++)
-    {
+    for (int i = 0; i < data.size(); i++) {
         zipEntry entry;
         int fnOffset = data.at(i).size() - fnStart;
         entry.fileName = data.at(i).right(fnOffset);
@@ -364,8 +348,7 @@ bool OkArchive::extractFile(QString fileName, QString destDir, QString destFile)
 {
     QTemporaryDir tmpDir;
     QString tmpZipPath = tmpDir.path() + QDir::separator() + "tmp.zip";
-    if (!QFile::copy(archiveFile, tmpZipPath))
-    {
+    if (!QFile::copy(archiveFile, tmpZipPath)) {
         m_logger->error("{} Error making temporary copy of zip file", m_loggingPrefix);
         return false;
     }
@@ -378,26 +361,28 @@ bool OkArchive::extractFile(QString fileName, QString destDir, QString destFile)
     arguments << destDir;
     process->start(infoZipPath, arguments, QProcess::ReadOnly);
     process->waitForFinished();
-    if (process->exitCode() == 0)
-    {
+    if (process->exitCode() == 0) {
         // no error
-    }
-    else if (process->exitCode() <= 2)
-    {
-        m_logger->warn("{} Infozip returned non-fatal error code {} while processing archive: {}", m_loggingPrefix,process->exitCode(), archiveFile);
-    }
-    else if (process->exitCode() >= 3)
-    {
-        m_logger->error("{} Infozip returned fatal error code {} while processing archive: {}", m_loggingPrefix,process->exitCode(), archiveFile);
+    } else if (process->exitCode() <= 2) {
+        m_logger->warn("{} Infozip returned non-fatal error code {} while processing archive: {}",
+                       m_loggingPrefix,
+                       process->exitCode(),
+                       archiveFile);
+    } else if (process->exitCode() >= 3) {
+        m_logger->error("{} Infozip returned fatal error code {} while processing archive: {}",
+                        m_loggingPrefix,
+                        process->exitCode(),
+                        archiveFile);
         return false;
     }
-    if (!QFile::rename(destDir + QDir::separator() + fileName, destDir + QDir::separator() + destFile))
-    {
-        m_logger->error("{} infozip didn't report a fatal error, but file was NOT unzipped successfully", m_loggingPrefix);
+    if (!QFile::rename(destDir + QDir::separator() + fileName,
+                       destDir + QDir::separator() + destFile)) {
+        m_logger->error(
+            "{} infozip didn't report a fatal error, but file was NOT unzipped successfully",
+            m_loggingPrefix);
         return false;
     }
     return true;
-
 }
 
 bool OkArchive::zipIsValid()
@@ -409,18 +394,13 @@ bool OkArchive::zipIsValid()
     process->setProcessChannelMode(QProcess::ForwardedChannels);
     process->start(infoZipPath, arguments, QProcess::ReadOnly);
     process->waitForFinished();
-    if (process->exitCode() != 0)
-    {
+    if (process->exitCode() != 0) {
         process->close();
         delete process;
         return false;
-    }
-    else
-    {
+    } else {
         process->close();
         delete process;
         return true;
     }
 }
-
-

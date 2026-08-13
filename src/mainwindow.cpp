@@ -54,6 +54,11 @@
 
 #ifdef _MSC_VER
 #define NOMINMAX
+// See the matching comment in settings.cpp - without this, an earlier Qt
+// header can leave windows.h's include guard already "satisfied" without
+// its architecture-detection macros actually having been set, and the
+// #include <Windows.h> below gets silently skipped as a no-op.
+#include <sdkddkver.h>
 #include <Windows.h>
 #include <timeapi.h>
 #endif

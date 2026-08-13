@@ -26,29 +26,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "simplecrypt.h"
 #include <QByteArray>
+#include <QCryptographicHash>
+#include <QDataStream>
+#include <QDateTime>
 #include <QIODevice>
 #include <QtDebug>
 #include <QtGlobal>
-#include <QDateTime>
-#include <QCryptographicHash>
-#include <QDataStream>
 #include <chrono>
 
-SimpleCrypt::SimpleCrypt():
-    m_key(0),
-    m_compressionMode(CompressionAuto),
-    m_protectionMode(ProtectionChecksum),
-    m_lastError(ErrorNoError),
-    rng(std::mt19937(std::chrono::system_clock::now().time_since_epoch().count()))
-{
-}
+SimpleCrypt::SimpleCrypt()
+    : m_key(0)
+    , m_compressionMode(CompressionAuto)
+    , m_protectionMode(ProtectionChecksum)
+    , m_lastError(ErrorNoError)
+    , rng(std::mt19937(std::chrono::system_clock::now().time_since_epoch().count()))
+{}
 
-SimpleCrypt::SimpleCrypt(quint64 key):
-    m_key(key),
-    m_compressionMode(CompressionAuto),
-    m_protectionMode(ProtectionChecksum),
-    m_lastError(ErrorNoError),
-    rng(std::mt19937(std::chrono::system_clock::now().time_since_epoch().count()))
+SimpleCrypt::SimpleCrypt(quint64 key)
+    : m_key(key)
+    , m_compressionMode(CompressionAuto)
+    , m_protectionMode(ProtectionChecksum)
+    , m_lastError(ErrorNoError)
+    , rng(std::mt19937(std::chrono::system_clock::now().time_since_epoch().count()))
 {
     splitKey();
 }
@@ -63,16 +62,16 @@ void SimpleCrypt::splitKey()
 {
     m_keyParts.clear();
     m_keyParts.resize(8);
-    for (int i=0;i<8;i++) {
+    for (int i = 0; i < 8; i++) {
         quint64 part = m_key;
-        for (int j=i; j>0; j--)
+        for (int j = i; j > 0; j--)
             part = part >> 8;
         part = part & 0xff;
         m_keyParts[i] = static_cast<char>(part);
     }
 }
 
-QByteArray SimpleCrypt::encryptToByteArray(const QString& plaintext)
+QByteArray SimpleCrypt::encryptToByteArray(const QString &plaintext)
 {
     QByteArray plaintextArray = plaintext.toUtf8();
     return encryptToByteArray(plaintextArray);
@@ -85,7 +84,6 @@ QByteArray SimpleCrypt::encryptToByteArray(QByteArray plaintext)
         m_lastError = ErrorNoKeySet;
         return {};
     }
-
 
     QByteArray ba = plaintext;
 
@@ -115,7 +113,8 @@ QByteArray SimpleCrypt::encryptToByteArray(QByteArray plaintext)
     }
 
     //prepend a random char to the string
-    auto dist = std::uniform_int_distribution<short>(std::numeric_limits<char>::min(), std::numeric_limits<char>::max());
+    auto dist = std::uniform_int_distribution<short>(std::numeric_limits<char>::min(),
+                                                     std::numeric_limits<char>::max());
     char randomChar = static_cast<char>(dist(rng));
     ba = randomChar + integrityProtection + ba;
 
@@ -139,7 +138,7 @@ QByteArray SimpleCrypt::encryptToByteArray(QByteArray plaintext)
     return resultArray;
 }
 
-QString SimpleCrypt::encryptToString(const QString& plaintext)
+QString SimpleCrypt::encryptToString(const QString &plaintext)
 {
     QByteArray plaintextArray = plaintext.toUtf8();
     QByteArray cypher = encryptToByteArray(plaintextArray);
@@ -171,7 +170,7 @@ QString SimpleCrypt::decryptToString(QByteArray cypher)
     return plaintext;
 }
 
-QByteArray SimpleCrypt::decryptToByteArray(const QString& cyphertext)
+QByteArray SimpleCrypt::decryptToByteArray(const QString &cyphertext)
 {
     QByteArray cyphertextArray = QByteArray::fromBase64(cyphertext.toLatin1());
     QByteArray ba = decryptToByteArray(cyphertextArray);
@@ -189,12 +188,12 @@ QByteArray SimpleCrypt::decryptToByteArray(QByteArray cypher)
 
     QByteArray ba = cypher;
 
-    if( cypher.count() < 3 )
+    if (cypher.count() < 3)
         return QByteArray();
 
     char version = ba.at(0);
 
-    if (version !=3) {  //we only work with version 3
+    if (version != 3) { //we only work with version 3
         m_lastError = ErrorUnknownVersion;
         qInfo() << "Invalid version or not a cyphertext.";
         return QByteArray();

@@ -18,19 +18,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #ifndef MZARCHIVE_H
 #define MZARCHIVE_H
 
 #include <QObject>
 #include <QStringList>
 #include <okarchive.h>
-#include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
-
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
 class MzArchive : public QObject
 {
@@ -43,8 +41,8 @@ public:
     bool checkCDG();
     bool checkAudio();
     QString audioExtension();
-    bool extractAudio(const QString& destPath, const QString& destFile);
-    bool extractCdg(const QString& destPath, const QString& destFile);
+    bool extractAudio(const QString &destPath, const QString &destFile);
+    bool extractCdg(const QString &destPath, const QString &destFile);
     bool isValidKaraokeFile();
     QString getLastError();
 

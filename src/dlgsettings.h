@@ -26,14 +26,14 @@
 #include <QList>
 #include <QNetworkAccessManager>
 #include <QPushButton>
-#include "settings.h"
 #include "mediabackend.h"
 #include "okjsongbookapi.h"
-#include <spdlog/spdlog.h>
+#include "settings.h"
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
 namespace Ui {
 class DlgSettings;
@@ -66,7 +66,9 @@ private:
     Settings m_settings;
 
 public:
-    explicit DlgSettings(MediaBackend &AudioBackend, MediaBackend &BmAudioBackend, OKJSongbookAPI &songbookAPI,
+    explicit DlgSettings(MediaBackend &AudioBackend,
+                         MediaBackend &BmAudioBackend,
+                         OKJSongbookAPI &songbookAPI,
                          QWidget *parent = nullptr);
     ~DlgSettings() override;
 
@@ -135,8 +137,8 @@ private slots:
     void on_comboBoxCodec_currentIndexChanged(const QString &arg1);
     void on_groupBoxRecording_toggled(bool arg1);
     void on_buttonBrowse_clicked();
-    void onNetworkReply(QNetworkReply* reply);
-    void onSslErrors(QNetworkReply * reply);
+    void onNetworkReply(QNetworkReply *reply);
+    void onSslErrors(QNetworkReply *reply);
     void on_pushButtonClearBgImg_clicked();
     void on_pushButtonSlideshowBrowse_clicked();
     void on_rbSlideshow_toggled(bool checked);

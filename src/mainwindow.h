@@ -203,9 +203,16 @@ private:
     QShortcut m_scutLoadRegularSinger{this};
     QShortcut m_scutRequests{this};
     QShortcut m_scutToggleSingerWindow{this};
-    QShortcut m_scutDeleteSinger{nullptr};
-    QShortcut m_scutDeleteSong{nullptr};
-    QShortcut m_scutDeletePlSong{nullptr};
+    // These three used to be built with a null parent, which Qt's own
+    // debug-build safety check (QShortcut requires a non-null parent
+    // widget) doesn't allow - it silently passes in Release builds (where
+    // that check compiles out), which is why this never showed up before,
+    // but it crashes immediately on startup in a Debug build. Giving them
+    // "this" as their parent, same as every other shortcut declared above,
+    // fixes it.
+    QShortcut m_scutDeleteSinger{this};
+    QShortcut m_scutDeleteSong{this};
+    QShortcut m_scutDeletePlSong{this};
     std::unique_ptr<LazyDurationUpdateController> m_lazyDurationUpdater;
     std::unique_ptr<QTemporaryDir> m_mediaTempDir;
     std::shared_ptr<SongShop> m_songShop;

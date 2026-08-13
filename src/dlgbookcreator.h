@@ -6,11 +6,11 @@
 #include <QTextDocument>
 #include "settings.h"
 #include <memory>
-#include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
 namespace Ui {
 class DlgBookCreator;
@@ -33,9 +33,9 @@ private:
     std::shared_ptr<spdlog::logger> m_logger;
     std::unique_ptr<Ui::DlgBookCreator> ui;
     Settings m_settings;
-    void writePdf(const QString& filename, int nCols = 2);
+    void writePdf(const QString &filename, int nCols = 2);
     static QStringList getArtists();
-    static QStringList getTitles(const QString& artist);
+    static QStringList getTitles(const QString &artist);
     void setupConnections() const;
     void loadSettings();
 

@@ -1,12 +1,12 @@
 #include "dlgchat.h"
-#include "ui_dlgchat.h"
 #include <QDateTime>
 #include <QMessageBox>
+#include "ui_dlgchat.h"
 
-DlgChat::DlgChat(OKJSongbookAPI &songbookApi, QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DlgChat),
-    m_songbookApi(songbookApi)
+DlgChat::DlgChat(OKJSongbookAPI &songbookApi, QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::DlgChat)
+    , m_songbookApi(songbookApi)
 {
     ui->setupUi(this);
     connect(&m_songbookApi, &OKJSongbookAPI::chatMessagesChanged, this, &DlgChat::messagesUpdated);
@@ -28,8 +28,7 @@ void DlgChat::rebuildList()
 {
     int previouslySelected = selectedMessageId();
     ui->listMessages->clear();
-    for (const auto &msg : m_messages)
-    {
+    for (const auto &msg : m_messages) {
         QString time = QDateTime::fromSecsSinceEpoch(msg.time).toString("hh:mm");
         QString who = msg.fromKj ? QString("KJ -> %1").arg(msg.username) : msg.username;
         QString text = msg.messageText;
@@ -63,13 +62,10 @@ int DlgChat::selectedMessageId() const
 void DlgChat::on_listMessages_itemSelectionChanged()
 {
     auto *item = ui->listMessages->currentItem();
-    if (!item)
-    {
+    if (!item) {
         m_replyTargetSingerId = 0;
         m_replyTargetName.clear();
-    }
-    else
-    {
+    } else {
         m_replyTargetSingerId = item->data(Qt::UserRole + 1).toInt();
         m_replyTargetName = item->data(Qt::UserRole + 2).toString();
         bool muted = item->data(Qt::UserRole + 3).toBool();
@@ -121,12 +117,15 @@ void DlgChat::on_btnMute_clicked()
     int singerId = item->data(Qt::UserRole + 1).toInt();
     QString username = item->data(Qt::UserRole + 2).toString();
     bool currentlyMuted = item->data(Qt::UserRole + 3).toBool();
-    if (!currentlyMuted)
-    {
-        auto result = QMessageBox::question(this, tr("Mute singer"),
-                            tr("Mute %1? They will still be able to read this conversation, "
-                               "but won't be able to send any more messages.").arg(username),
-                            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (!currentlyMuted) {
+        auto result = QMessageBox::question(
+            this,
+            tr("Mute singer"),
+            tr("Mute %1? They will still be able to read this conversation, "
+               "but won't be able to send any more messages.")
+                .arg(username),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No);
         if (result != QMessageBox::Yes)
             return;
     }
@@ -135,10 +134,12 @@ void DlgChat::on_btnMute_clicked()
 
 void DlgChat::on_btnClear_clicked()
 {
-    auto result = QMessageBox::question(this, tr("Clear chat"),
-                        tr("Delete all chat messages? This can't be undone.\n\n"
-                           "Muted singers will stay muted."),
-                        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    auto result = QMessageBox::question(this,
+                                        tr("Clear chat"),
+                                        tr("Delete all chat messages? This can't be undone.\n\n"
+                                           "Muted singers will stay muted."),
+                                        QMessageBox::Yes | QMessageBox::No,
+                                        QMessageBox::No);
     if (result != QMessageBox::Yes)
         return;
     m_songbookApi.clearChat();

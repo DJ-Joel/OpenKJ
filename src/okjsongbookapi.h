@@ -1,21 +1,20 @@
 #ifndef OKJSONGBOOKAPI_H
 #define OKJSONGBOOKAPI_H
 
+#include <QJsonArray>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QObject>
-#include <QUrl>
 #include <QTimer>
-#include <QJsonArray>
-#include <vector>
-#include "settings.h"
+#include <QUrl>
 #include "okjtypes.h"
-#include <spdlog/spdlog.h>
+#include "settings.h"
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+#include <vector>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
-
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
 class OkjsRequest
 {
@@ -26,9 +25,8 @@ public:
     QString title;
     int key;
     int time;
-    bool operator == (const OkjsRequest& r) const;
+    bool operator==(const OkjsRequest &r) const;
 };
-
 
 typedef QList<OkjsRequest> OkjsRequests;
 
@@ -39,11 +37,10 @@ public:
     QString name;
     QString urlName;
     bool accepting;
-    bool operator == (const OkjsVenue& v) const;
+    bool operator==(const OkjsVenue &v) const;
 };
 
-std::ostream& operator<<(std::ostream& os, const OkjsVenue& v);
-
+std::ostream &operator<<(std::ostream &os, const OkjsVenue &v);
 
 typedef QList<OkjsVenue> OkjsVenues;
 
@@ -58,7 +55,7 @@ public:
     bool hidden{false};
     bool muted{false};
     int time{0};
-    bool operator == (const OkjsChatMessage& m) const;
+    bool operator==(const OkjsChatMessage &m) const;
 };
 
 typedef QList<OkjsChatMessage> OkjsChatMessages;
@@ -71,7 +68,7 @@ public:
     QString email;
     bool muted{false};
     QString createdAt;
-    bool operator == (const OkjsSingerAccount& s) const;
+    bool operator==(const OkjsSingerAccount &s) const;
 };
 
 typedef QList<OkjsSingerAccount> OkjsSingerAccounts;
@@ -116,8 +113,8 @@ public:
     // find it in search. Idempotent server-side (keyed on localId), so it's
     // safe to call this every time a stream song is added, whether the entry
     // is brand new or being reused for another singer.
-    void pushStreamLibraryEntry(int localId, const QString &artist, const QString &title, const QString &url,
-                                 int duration);
+    void pushStreamLibraryEntry(
+        int localId, const QString &artist, const QString &title, const QString &url, int duration);
     void refreshChat();
     void getChatSerial();
     void sendChatReply(int singerId, const QString &message);
@@ -134,7 +131,7 @@ public:
     void alertCheck();
     void getEntitledSystemCount();
     [[nodiscard]] int entitledSystemCount() const { return entitledSystems; }
-    [[nodiscard]] bool updateWasCancelled() const {return cancelUpdate; }
+    [[nodiscard]] bool updateWasCancelled() const { return cancelUpdate; }
     void triggerTestAdd();
 
 signals:
@@ -156,19 +153,17 @@ signals:
     void singerAccountsChanged(OkjsSingerAccounts accounts);
     void singerPasswordResetComplete(int singerId, QString tempPassword);
 
-
 public slots:
     void dbUpdateCanceled();
     void setInterval(int interval);
 
-
 private slots:
-        void onSslErrors(QNetworkReply * reply, const QList<QSslError>& errors);
-        void onTestSslErrors(QNetworkReply * reply, QList<QSslError> errors);
-        void onNetworkReply(QNetworkReply* reply);
-        void timerTimeout();
-        void alertTimerTimeout();
-        void idleStateChanged(bool isIdle);
+    void onSslErrors(QNetworkReply *reply, const QList<QSslError> &errors);
+    void onTestSslErrors(QNetworkReply *reply, QList<QSslError> errors);
+    void onNetworkReply(QNetworkReply *reply);
+    void timerTimeout();
+    void alertTimerTimeout();
+    void idleStateChanged(bool isIdle);
 };
 
 #endif // OKJSONGBOOKAPI_H

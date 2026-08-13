@@ -2,14 +2,14 @@
 #define FILENAMEPARSER_H
 
 #include <QObject>
+#include "karaokefilepatternresolver.h"
 #include "src/models/tablemodelkaraokesourcedirs.h"
 #include "tagreader.h"
-#include "karaokefilepatternresolver.h"
-#include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
 class KaraokeFileInfo : public QObject
 {
@@ -27,28 +27,29 @@ class KaraokeFileInfo : public QObject
     QString artist;
     QString title;
     QString songId;
-    bool m_metadata_parsed {false};
-    bool m_metadata_parsed_success {false};
+    bool m_metadata_parsed{false};
+    bool m_metadata_parsed_success{false};
 
     std::string m_loggingPrefix{"[KaraokeFileInfo]"};
     std::shared_ptr<spdlog::logger> m_logger;
 
     void ensureMetadataParsed();
-    bool parseMetadata(const KaraokeFilePatternResolver::KaraokeFilePattern& pattern);
+    bool parseMetadata(const KaraokeFilePatternResolver::KaraokeFilePattern &pattern);
 
 public:
     explicit KaraokeFileInfo(QObject *parent = nullptr);
-    explicit KaraokeFileInfo(QObject *parent, std::shared_ptr<KaraokeFilePatternResolver> patternResolver);
+    explicit KaraokeFileInfo(QObject *parent,
+                             std::shared_ptr<KaraokeFilePatternResolver> patternResolver);
 
     void setFile(const QString &filename);
     bool parsedSuccessfully() { return m_metadata_parsed_success; }
 
-    const QString& getArtist();
-    const QString& getTitle();
-    const QString& getSongId();
-    const int& getDuration();
+    const QString &getArtist();
+    const QString &getTitle();
+    const QString &getSongId();
+    const int &getDuration();
 
-    static QString testPattern(const QString& regex, const QString& filename, int captureGroup = 0);
+    static QString testPattern(const QString &regex, const QString &filename, int captureGroup = 0);
 
 signals:
 

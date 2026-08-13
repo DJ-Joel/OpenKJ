@@ -1,0 +1,50 @@
+--- baseline-issues3/src/settings.cpp	2026-08-12 20:56:26.618645599 -0500
++++ verify-issues3/src/settings.cpp	2026-08-12 23:33:30.860453861 -0500
+@@ -34,6 +34,17 @@
+ #include <atomic>
+ 
+ #ifdef Q_OS_WIN
++    // Some Qt headers pulled in above (e.g. qwindowdefs_win.h) already
++    // satisfy windows.h's own "already included" guard without actually
++    // running the part of it that defines the Windows SDK's architecture
++    // markers (_AMD64_/_X86_/etc, in sdkddkver.h). That leaves our
++    // #include <windows.h> below silently skipped, and sysinfoapi.h then
++    // pulls in winnt.h directly with none of those markers set - which
++    // fails to compile with "No Target Architecture". Including
++    // sdkddkver.h explicitly first guarantees those markers exist
++    // regardless of what happened earlier, since it's designed to be
++    // included standalone for exactly this purpose.
++    #include <sdkddkver.h>
+     #include <windows.h>
+     #include <sysinfoapi.h>
+ #endif
+@@ -918,6 +929,15 @@
+ 
+ void Settings::resetDurationPosition()
+ {
++    // This used to be an empty stub - the "Reset Duration Position" button
++    // in Settings called it and emitted durationPositionReset() (which does
++    // move the on-screen clock back to (0,0) right away), but never actually
++    // saved that back to disk. So the next time the app started, dlgcdg.cpp's
++    // constructor read the OLD saved position back out of settings and the
++    // clock jumped right back to wherever it was stuck before. Persisting
++    // (0,0) here - matching the same default durationPosition() already
++    // falls back to - is what actually makes the Reset button stick.
++    settings->setValue("DurationPosition", QPoint(0,0));
+ }
+ 
+ void Settings::setRemainRtOffset(int offset)
+--- baseline-issues3/src/mainwindow.cpp	2026-08-12 20:56:26.618645599 -0500
++++ verify-issues3/src/mainwindow.cpp	2026-08-12 23:33:30.863453861 -0500
+@@ -54,6 +54,11 @@
+ 
+ #ifdef _MSC_VER
+ #define NOMINMAX
++// See the matching comment in settings.cpp - without this, an earlier Qt
++// header can leave windows.h's include guard already "satisfied" without
++// its architecture-detection macros actually having been set, and the
++// #include <Windows.h> below gets silently skipped as a no-op.
++#include <sdkddkver.h>
+ #include <Windows.h>
+ #include <timeapi.h>
+ #endif

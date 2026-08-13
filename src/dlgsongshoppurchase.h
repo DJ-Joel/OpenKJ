@@ -2,11 +2,11 @@
 #define DLGSONGSHOPPURCHASE_H
 
 #include <QDialog>
-#include "songshop.h"
 #include <QMessageBox>
 #include "dlgpurchaseprogress.h"
-#include <memory>
 #include "settings.h"
+#include "songshop.h"
+#include <memory>
 
 namespace Ui {
 class DlgSongShopPurchase;

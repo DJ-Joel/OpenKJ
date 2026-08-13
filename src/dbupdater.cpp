@@ -20,19 +20,19 @@
 
 #define SQL(...) #__VA_ARGS__
 #include "dbupdater.h"
-#include <array>
-#include <QSqlQuery>
-#include <QFileInfo>
+#include <QApplication>
 #include <QDir>
 #include <QDirIterator>
+#include <QFileInfo>
+#include <QSqlQuery>
 #include <QStandardPaths>
-#include <QApplication>
-#include "mzarchive.h"
 #include "karaokefileinfo.h"
+#include "mzarchive.h"
+#include <array>
 
-DbUpdater::DbUpdater(QObject *parent) :
-        QObject(parent) {
-}
+DbUpdater::DbUpdater(QObject *parent)
+    : QObject(parent)
+{}
 
 // Process files and do database update on the current directory.
 // Constraint: access the filesystem as little as possible to optimize performance for slow file access/network.
@@ -66,9 +66,11 @@ bool DbUpdater::process(const QList<QString> &paths, ProcessingOptions options)
     qInfo() << "Checking for new songs";
     int progressMax = MAX(diskEnumerator.count(), dbEnumerator.count());
 
-    QStringList newFilesOnDisk; newFilesOnDisk.reserve(20000);
+    QStringList newFilesOnDisk;
+    newFilesOnDisk.reserve(20000);
     QVector<DbSongRecord> filesMissingOnDisk;
-    bool keepTrackOfMissing = options.testFlag(FixMovedFiles) || options.testFlag(PrepareForRemovalOfMissing);
+    bool keepTrackOfMissing = options.testFlag(FixMovedFiles)
+                              || options.testFlag(PrepareForRemovalOfMissing);
 
     int run = 0;
     do {
@@ -80,10 +82,10 @@ bool DbUpdater::process(const QList<QString> &paths, ProcessingOptions options)
 
         if (run > 0) {
             if (diskEnumerator.IsValid && dbEnumerator.IsValid) {
-                comp_result = QString::compare(diskEnumerator.CurrentFile, dbEnumerator.CurrentRecord.path);
-            }
-            else {
-                comp_result = (int)(dbEnumerator.IsValid) - (int)(diskEnumerator.IsValid);
+                comp_result = QString::compare(diskEnumerator.CurrentFile,
+                                               dbEnumerator.CurrentRecord.path);
+            } else {
+                comp_result = (int) (dbEnumerator.IsValid) - (int) (diskEnumerator.IsValid);
             }
 
             if (comp_result < 0) {
@@ -113,9 +115,7 @@ bool DbUpdater::process(const QList<QString> &paths, ProcessingOptions options)
             emit progressChanged(run, progressMax);
             QApplication::processEvents();
         }
-    }
-    while (diskEnumerator.IsValid || dbEnumerator.IsValid);
-
+    } while (diskEnumerator.IsValid || dbEnumerator.IsValid);
 
     if (options.testFlag(FixMovedFiles) && !newFilesOnDisk.empty() && !filesMissingOnDisk.empty()) {
         fixMissingFiles(filesMissingOnDisk, newFilesOnDisk);
@@ -125,7 +125,7 @@ bool DbUpdater::process(const QList<QString> &paths, ProcessingOptions options)
 
     if (options.testFlag(PrepareForRemovalOfMissing)) {
         m_missingFilesSongIds.reserve(filesMissingOnDisk.size());
-        foreach(const auto &rec, filesMissingOnDisk) {
+        foreach (const auto &rec, filesMissingOnDisk) {
             m_missingFilesSongIds.append(rec.id);
         }
     }
@@ -138,24 +138,22 @@ void DbUpdater::addFilesToDatabase(const QList<QString> &files)
     if (files.empty())
         return;
 
-    emit stateChanged("Adding new files to database...")    ;
+    emit stateChanged("Adding new files to database...");
 
     QSqlQuery query;
     query.exec("PRAGMA synchronous=OFF");
     query.exec("PRAGMA cache_size=500000");
     query.exec("PRAGMA temp_store=2");
     query.exec("BEGIN TRANSACTION");
-    query.prepare(SQL(
-            INSERT INTO dbSongs (discid, artist, title, path, filename, duration, searchstring)
-            VALUES(:discid, :artist, :title, :path, :filename, :duration, :searchstring)
-            ON CONFLICT(path) DO UPDATE SET
-                discid = :discid,
-                artist = :artist,
-                title = :title,
-                filename = :filename,
-                duration = :duration,
-                searchstring = :searchstring
-           ));
+    query.prepare(
+        SQL(INSERT INTO dbSongs(discid, artist, title, path, filename, duration, searchstring)
+                VALUES( : discid, : artist, : title, : path, : filename, : duration, : searchstring)
+                    ON CONFLICT(path) DO UPDATE SET discid = : discid,
+            artist = : artist,
+            title = : title,
+            filename = : filename,
+            duration = : duration,
+            searchstring = : searchstring));
 
     MzArchive archive;
     KaraokeFileInfo parser(this);
@@ -167,8 +165,8 @@ void DbUpdater::addFilesToDatabase(const QList<QString> &files)
         int duration{-2};
         fileInfo.setFile(filePath);
 #ifdef Q_OS_WIN
-        if (filePath.contains("*") || filePath.contains("?") || filePath.contains("<") || filePath.contains(">") || filePath.contains("|"))
-        {
+        if (filePath.contains("*") || filePath.contains("?") || filePath.contains("<")
+            || filePath.contains(">") || filePath.contains("|")) {
             // illegal character
             m_errors.append("Illegal character in filename: " + filePath);
             emit progressMessage("Illegal character in filename: " + filePath);
@@ -190,13 +188,17 @@ void DbUpdater::addFilesToDatabase(const QList<QString> &files)
         query.bindValue(":discid", parser.getSongId());
         query.bindValue(":artist", parser.getArtist());
         // If metadata parse wasn't successful, just put the filename in the title field
-        query.bindValue(":title", (parser.parsedSuccessfully()) ? parser.getTitle() : fileInfo.completeBaseName());
+        query.bindValue(":title",
+                        (parser.parsedSuccessfully()) ? parser.getTitle()
+                                                      : fileInfo.completeBaseName());
         query.bindValue(":path", filePath);
         query.bindValue(":filename", fileInfo.completeBaseName());
         query.bindValue(":duration", duration);
         // searchString contains the metadata plus the basename to work around people's libraries that are
         // misnamed and don't import properly or who use media tags and have bad tags.
-        query.bindValue(":searchstring", fileInfo.completeBaseName() + " " + parser.getArtist() + " " + parser.getTitle() + " " + parser.getSongId());
+        query.bindValue(":searchstring",
+                        fileInfo.completeBaseName() + " " + parser.getArtist() + " "
+                            + parser.getTitle() + " " + parser.getSongId());
         query.exec();
         if (shouldUpdateGui()) {
             emit progressChanged(loops, files.length());
@@ -229,7 +231,7 @@ void DbUpdater::removeMissingFilesFromDatabase()
     query.exec("BEGIN TRANSACTION");
     query.prepare("DELETE FROM dbSongs WHERE [songid] = :id");
 
-    foreach(const int id, m_missingFilesSongIds) {
+    foreach (const int id, m_missingFilesSongIds) {
         query.bindValue(":id", id);
         query.exec();
     }
@@ -242,8 +244,8 @@ void DbUpdater::removeMissingFilesFromDatabase()
 }
 
 // Finds all potential supported karaoke files in a given directory
-void DbUpdater::DiskEnumerator::findKaraokeFilesOnDisk() {
-
+void DbUpdater::DiskEnumerator::findKaraokeFilesOnDisk()
+{
     emit m_parent.progressChanged(0, 0);
 
     // cdg and zip files
@@ -253,7 +255,7 @@ void DbUpdater::DiskEnumerator::findKaraokeFilesOnDisk() {
     karaoke_files.reserve(200000);
     audio_files.reserve(200000);
 
-    foreach(auto path, m_parent.m_paths ) {
+    foreach (auto path, m_parent.m_paths) {
         emit m_parent.stateChanged("Finding karaoke files in " + path);
         QApplication::processEvents();
 
@@ -265,20 +267,23 @@ void DbUpdater::DiskEnumerator::findKaraokeFilesOnDisk() {
             if (!iterator.fileInfo().isDir()) {
                 const std::string ext = iterator.fileInfo().suffix().toLower().toStdString();
 
-                if (std::binary_search(m_parent.karaoke_file_extensions.begin(), m_parent.karaoke_file_extensions.end(), ext)) {
+                if (std::binary_search(m_parent.karaoke_file_extensions.begin(),
+                                       m_parent.karaoke_file_extensions.end(),
+                                       ext)) {
                     karaoke_files.append(iterator.filePath());
                     foundInPath++;
-                }
-                else if (std::binary_search(m_parent.audio_file_extensions.begin(), m_parent.audio_file_extensions.end(), ext)) {
+                } else if (std::binary_search(m_parent.audio_file_extensions.begin(),
+                                              m_parent.audio_file_extensions.end(),
+                                              ext)) {
                     const QString filePath = iterator.filePath();
                     audio_files.append(filePath.left(filePath.lastIndexOf('.')));
                 }
             }
             if (m_parent.shouldUpdateGui()) {
                 emit m_parent.stateChanged(QString("Scanning %1\n    %2 found, %3 total...")
-                                  .arg(path)
-                                  .arg(foundInPath)
-                                  .arg(karaoke_files.length()));
+                                               .arg(path)
+                                               .arg(foundInPath)
+                                               .arg(karaoke_files.length()));
                 QApplication::processEvents();
             }
         }
@@ -301,19 +306,21 @@ void DbUpdater::DiskEnumerator::readNextDiskFile()
     bool invalid_file_found;
     do {
         m_i_kar++;
-        CurrentFile = m_i_kar < m_karaokeFilesOnDisk.size() ? m_karaokeFilesOnDisk.at(m_i_kar) : nullptr;
+        CurrentFile = m_i_kar < m_karaokeFilesOnDisk.size() ? m_karaokeFilesOnDisk.at(m_i_kar)
+                                                            : nullptr;
 
         if (CurrentFile != nullptr && CurrentFile.endsWith(".cdg", Qt::CaseInsensitive)) {
-
             // File type is "cdg" and is only valid if there is an audio file with the same filename.
             // Look for an entry with the same filename in the list of audio files.
             invalid_file_found = true;
             // QStringRef was removed in Qt 6; QStringView is its replacement
             // for this simple "view into part of a string" use.
-            const QStringView disk_path_without_ext = QStringView(CurrentFile).sliced(0, CurrentFile.length() - 4);
+            const QStringView disk_path_without_ext = QStringView(CurrentFile)
+                                                          .sliced(0, CurrentFile.length() - 4);
 
             while (m_i_aud < m_audioFilesOnDisk.size()) {
-                int comp_result_audio = disk_path_without_ext.compare(m_audioFilesOnDisk.at(m_i_aud));
+                int comp_result_audio = disk_path_without_ext.compare(
+                    m_audioFilesOnDisk.at(m_i_aud));
                 if (comp_result_audio == 0) {
                     // match found!
                     invalid_file_found = false;
@@ -328,8 +335,7 @@ void DbUpdater::DiskEnumerator::readNextDiskFile()
                 // keep looking - advance to the next audio file in the list
                 m_i_aud++;
             }
-        }
-        else {
+        } else {
             invalid_file_found = false;
         }
 
@@ -340,16 +346,18 @@ void DbUpdater::DiskEnumerator::readNextDiskFile()
 void DbUpdater::DbEnumerator::prepareQuery(bool limitToPaths)
 {
     if (!limitToPaths) {
-        m_dbSongs.prepare("SELECT songid, path, CASE discid WHEN '!!DROPPED!!' THEN 1 ELSE 0 END FROM dbsongs ORDER BY path");
-    }
-    else {
+        m_dbSongs.prepare("SELECT songid, path, CASE discid WHEN '!!DROPPED!!' THEN 1 ELSE 0 END "
+                          "FROM dbsongs ORDER BY path");
+    } else {
         QStringList sql_path_filter;
-        for(int i = 0; i < m_parent.m_paths.size(); i++) {
+        for (int i = 0; i < m_parent.m_paths.size(); i++) {
             sql_path_filter.append(QString("path LIKE :pathfilter%1").arg(i));
         }
 
-        m_dbSongs.prepare("SELECT songid, path, CASE discid WHEN '!!DROPPED!!' THEN 1 ELSE 0 END FROM dbsongs WHERE " + sql_path_filter.join(" OR ") + " ORDER BY path");
-        for(int i = 0; i < m_parent.m_paths.size(); i++) {
+        m_dbSongs.prepare("SELECT songid, path, CASE discid WHEN '!!DROPPED!!' THEN 1 ELSE 0 END "
+                          "FROM dbsongs WHERE "
+                          + sql_path_filter.join(" OR ") + " ORDER BY path");
+        for (int i = 0; i < m_parent.m_paths.size(); i++) {
             auto key = QString(":pathfilter%1").arg(i);
             m_dbSongs.bindValue(key, m_parent.m_paths[i] + "%");
         }
@@ -358,9 +366,8 @@ void DbUpdater::DbEnumerator::prepareQuery(bool limitToPaths)
 
     // trick to do count in SQlite:
     m_count = 0;
-    if(m_dbSongs.last())
-    {
-        m_count =  m_dbSongs.at() + 1;
+    if (m_dbSongs.last()) {
+        m_count = m_dbSongs.at() + 1;
         m_dbSongs.first();
         m_dbSongs.previous();
     }
@@ -369,11 +376,9 @@ void DbUpdater::DbEnumerator::prepareQuery(bool limitToPaths)
 void DbUpdater::DbEnumerator::readNextRecord()
 {
     if ((IsValid = m_dbSongs.next())) {
-        CurrentRecord = DbSongRecord {
-            .id =        m_dbSongs.value(0).toInt(),
-            .isDropped = m_dbSongs.value(2).toBool(),
-            .path =      m_dbSongs.value(1).toString()
-        };
+        CurrentRecord = DbSongRecord{.id = m_dbSongs.value(0).toInt(),
+                                     .isDropped = m_dbSongs.value(2).toBool(),
+                                     .path = m_dbSongs.value(1).toString()};
     }
 }
 
@@ -383,20 +388,17 @@ void DbUpdater::setPaths(const QList<QString> &paths)
     //  * Ensure ending separator
     //  * Remove any subpath as parent paths are scanned recursively
     m_paths = QStringList();
-    foreach(auto path, paths) {
-        m_paths << (path.endsWith("/")
-                ? path
-                : path + "/");
+    foreach (auto path, paths) {
+        m_paths << (path.endsWith("/") ? path : path + "/");
     }
 
     m_paths.sort();
 
-    int i=1;
+    int i = 1;
     while (i < m_paths.length()) {
-        if (m_paths[i].startsWith(m_paths[i-1]) && m_paths[i].length() > m_paths[i-1].length()) {
+        if (m_paths[i].startsWith(m_paths[i - 1]) && m_paths[i].length() > m_paths[i - 1].length()) {
             m_paths.removeAt(i);
-        }
-        else {
+        } else {
             i++;
         }
     }
@@ -406,8 +408,9 @@ void DbUpdater::setPaths(const QList<QString> &paths)
 // currently missing to determine if they've just been moved or their case has just changed.  For any that have
 // been determined to have moved, the existing db entry is updated with the new path
 // and the entry is removed from the provided existing files list.
-void DbUpdater::fixMissingFiles(QVector<DbSongRecord> &filesMissingOnDisk, QStringList &newFilesOnDisk) {
-
+void DbUpdater::fixMissingFiles(QVector<DbSongRecord> &filesMissingOnDisk,
+                                QStringList &newFilesOnDisk)
+{
     emit stateChanged("Detecting and updating missing or moved files...");
 
     int count{0};
@@ -433,10 +436,17 @@ void DbUpdater::fixMissingFiles(QVector<DbSongRecord> &filesMissingOnDisk, QStri
     }
 
     // Sort the list case insensitive
-    auto caseInsensitiveSort = [](const QPair<QStringView, int> &a, const QString &b) -> bool { return a.first.compare(b, Qt::CaseInsensitive) < 0; };
-    auto caseInsensitiveSortStringView = [](const QPair<QStringView, int> &a, const QPair<QStringView, int> &b) -> bool { return a.first.compare(b.first, Qt::CaseInsensitive) < 0; };
+    auto caseInsensitiveSort = [](const QPair<QStringView, int> &a, const QString &b) -> bool {
+        return a.first.compare(b, Qt::CaseInsensitive) < 0;
+    };
+    auto caseInsensitiveSortStringView = [](const QPair<QStringView, int> &a,
+                                            const QPair<QStringView, int> &b) -> bool {
+        return a.first.compare(b.first, Qt::CaseInsensitive) < 0;
+    };
 
-    std::sort(filesOnDiskFilenamesOnlySorted.begin(), filesOnDiskFilenamesOnlySorted.end(), caseInsensitiveSortStringView);
+    std::sort(filesOnDiskFilenamesOnlySorted.begin(),
+              filesOnDiskFilenamesOnlySorted.end(),
+              caseInsensitiveSortStringView);
 
     // Copy records that are still missing to a new list instead of removing them from filesMissingOnDisk. It's faster that way.
     QVector<DbSongRecord> filesMissingOnDisk_still;
@@ -444,8 +454,7 @@ void DbUpdater::fixMissingFiles(QVector<DbSongRecord> &filesMissingOnDisk, QStri
     query.exec("BEGIN TRANSACTION");
     query.prepare("UPDATE dbsongs SET path = :newpath WHERE songid = :id");
 
-    foreach(auto missingFile, filesMissingOnDisk) {
-
+    foreach (auto missingFile, filesMissingOnDisk) {
         emit progressMessage("Looking for matches to missing db song: " + missingFile.path + "...");
         qInfo() << "Looking for match for missing file: " << missingFile.path;
 
@@ -453,13 +462,17 @@ void DbUpdater::fixMissingFiles(QVector<DbSongRecord> &filesMissingOnDisk, QStri
 
         bool matchFound = false;
         auto filenameWithoutPath = QFileInfo(missingFile.path).fileName();
-        auto const lb = std::lower_bound(filesOnDiskFilenamesOnlySorted.begin(), filesOnDiskFilenamesOnlySorted.end(), filenameWithoutPath, caseInsensitiveSort);
+        auto const lb = std::lower_bound(filesOnDiskFilenamesOnlySorted.begin(),
+                                         filesOnDiskFilenamesOnlySorted.end(),
+                                         filenameWithoutPath,
+                                         caseInsensitiveSort);
         // std::lower_bound returns end() when nothing in the list matches -
         // dereferencing that unconditionally is undefined behavior. This is
         // exactly the case a rename on a network drive can hit: the old
         // filename disappears before DirectoryMonitor's rescan has picked up
         // the new one as a "new file", so nothing here matches at all yet.
-        if (lb != filesOnDiskFilenamesOnlySorted.end() && lb->first.compare(filenameWithoutPath, Qt::CaseInsensitive) == 0) {
+        if (lb != filesOnDiskFilenamesOnlySorted.end()
+            && lb->first.compare(filenameWithoutPath, Qt::CaseInsensitive) == 0) {
             const QString &matchedFullPath = newFilesOnDiskCopy.at(lb->second);
             query.bindValue(":newpath", matchedFullPath);
             query.bindValue(":id", missingFile.id);
@@ -472,8 +485,7 @@ void DbUpdater::fixMissingFiles(QVector<DbSongRecord> &filesMissingOnDisk, QStri
 
                 newFilesOnDisk.removeOne(matchedFullPath);
                 matchFound = true;
-            }
-            else {
+            } else {
                 qInfo() << "Error updating database: " << query.lastError();
             }
         }
@@ -504,7 +516,7 @@ bool DbUpdater::shouldUpdateGui()
 }
 
 // Returns a list of errors encountered while processing
-QStringList DbUpdater::getErrors() {
+QStringList DbUpdater::getErrors()
+{
     return m_errors;
 }
-

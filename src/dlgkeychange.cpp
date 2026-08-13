@@ -21,9 +21,9 @@
 #include "dlgkeychange.h"
 #include "ui_dlgkeychange.h"
 
-DlgKeyChange::DlgKeyChange(TableModelQueueSongs *queueModel, QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DlgKeyChange)
+DlgKeyChange::DlgKeyChange(TableModelQueueSongs *queueModel, QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::DlgKeyChange)
 {
     qModel = queueModel;
     m_activeSong = -1;

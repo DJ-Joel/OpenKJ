@@ -8,6 +8,7 @@ class SoundFxButton : public QPushButton
 {
 private:
     QVariant m_data;
+
 public:
     SoundFxButton() = default;
     SoundFxButton(const QVariant &data, const QString &label);

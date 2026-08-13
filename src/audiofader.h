@@ -31,7 +31,7 @@ class AudioFader : public QObject
     Q_OBJECT
 public:
     explicit AudioFader(QObject *parent = nullptr);
-    enum FaderState{FadedIn=0,FadingIn,FadedOut,FadingOut};
+    enum FaderState { FadedIn = 0, FadingIn, FadedOut, FadingOut };
     [[nodiscard]] static std::string stateToStr(FaderState state);
     void setVolumeElement(GstElement *volumeElement);
     void setObjName(const QString &name);
@@ -64,6 +64,5 @@ public slots:
 private slots:
     void timerTimeout();
 };
-
 
 #endif // AUDIOFADER_H

@@ -1,16 +1,17 @@
 #include "ytdlpdownloader.h"
-#include "spdlogqstringformatter.h"
-#include <QFileInfo>
-#include <QStringList>
-#include <QStandardPaths>
 #include <QDir>
-#include <QUuid>
 #include <QFile>
+#include <QFileInfo>
 #include <QIODevice>
-#include <QTextStream>
 #include <QProcessEnvironment>
+#include <QStandardPaths>
+#include <QStringList>
+#include <QTextStream>
+#include <QUuid>
+#include "spdlogqstringformatter.h"
 
-YtDlpDownloader::YtDlpDownloader(QObject *parent) : QObject(parent)
+YtDlpDownloader::YtDlpDownloader(QObject *parent)
+    : QObject(parent)
 {
     m_logger = spdlog::get("logger");
 }
@@ -27,8 +28,7 @@ bool YtDlpDownloader::isRunning() const
 
 void YtDlpDownloader::cancel()
 {
-    if (m_process && m_process->state() != QProcess::NotRunning)
-    {
+    if (m_process && m_process->state() != QProcess::NotRunning) {
         m_logger->info("{} Cancelling in-progress download", m_loggingPrefix);
         m_cancelled = true;
         m_process->kill();
@@ -37,26 +37,32 @@ void YtDlpDownloader::cancel()
     m_process.reset();
 }
 
-void YtDlpDownloader::download(const QString &ytDlpPath, const QString &url, const QString &outputPathNoExt)
+void YtDlpDownloader::download(const QString &ytDlpPath,
+                               const QString &url,
+                               const QString &outputPathNoExt)
 {
-    if (isRunning())
-    {
-        m_logger->warn("{} download() called while a download is already running, ignoring", m_loggingPrefix);
+    if (isRunning()) {
+        m_logger->warn("{} download() called while a download is already running, ignoring",
+                       m_loggingPrefix);
         return;
     }
 
-    if (ytDlpPath.trimmed().isEmpty() || !QFileInfo::exists(ytDlpPath))
-    {
-        m_logger->error("{} yt-dlp path is not configured or does not exist: {}", m_loggingPrefix, ytDlpPath.toStdString());
-        emit failed("yt-dlp path is not configured or does not exist. Set it in Settings -> External.");
+    if (ytDlpPath.trimmed().isEmpty() || !QFileInfo::exists(ytDlpPath)) {
+        m_logger->error("{} yt-dlp path is not configured or does not exist: {}",
+                        m_loggingPrefix,
+                        ytDlpPath.toStdString());
+        emit failed(
+            "yt-dlp path is not configured or does not exist. Set it in Settings -> External.");
         return;
     }
 
     QDir outputDir = QFileInfo(outputPathNoExt).dir();
-    if (!outputDir.exists())
-    {
-        m_logger->error("{} Download folder does not exist: {}", m_loggingPrefix, outputDir.absolutePath().toStdString());
-        emit failed("The configured download folder does not exist. Set one in Settings -> External.");
+    if (!outputDir.exists()) {
+        m_logger->error("{} Download folder does not exist: {}",
+                        m_loggingPrefix,
+                        outputDir.absolutePath().toStdString());
+        emit failed(
+            "The configured download folder does not exist. Set one in Settings -> External.");
         return;
     }
 
@@ -71,17 +77,28 @@ void YtDlpDownloader::download(const QString &ytDlpPath, const QString &url, con
 
     m_cancelled = false;
     m_process = std::make_unique<QProcess>();
-    connect(m_process.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            this, &YtDlpDownloader::processFinished);
+    connect(m_process.get(),
+            QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this,
+            &YtDlpDownloader::processFinished);
     connect(m_process.get(), &QProcess::errorOccurred, this, &YtDlpDownloader::processErrorOccurred);
-    connect(m_process.get(), &QProcess::readyReadStandardOutput, this, &YtDlpDownloader::readyReadStandardOutput);
+    connect(m_process.get(),
+            &QProcess::readyReadStandardOutput,
+            this,
+            &YtDlpDownloader::readyReadStandardOutput);
 
-    QStringList args {
+    QStringList args{
         "--no-playlist",
-        "-f", "best[ext=mp4]/best",
-        "-o", outputPathNoExt + ".%(ext)s",
-        "--print-to-file", "after_move:filepath", m_filePathTempFile,
-        "--print-to-file", "after_move:%(duration)s", m_durationTempFile,
+        "-f",
+        "best[ext=mp4]/best",
+        "-o",
+        outputPathNoExt + ".%(ext)s",
+        "--print-to-file",
+        "after_move:filepath",
+        m_filePathTempFile,
+        "--print-to-file",
+        "after_move:%(duration)s",
+        m_durationTempFile,
     };
     // Appended rather than built into the literal above so a signed-in
     // cookie source (Settings -> External) works around YouTube requiring
@@ -109,8 +126,7 @@ void YtDlpDownloader::readyReadStandardOutput()
         return;
     QString output = QString::fromUtf8(m_process->readAllStandardOutput());
     QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-    for (const QString &line : lines)
-    {
+    for (const QString &line : lines) {
         QString trimmed = line.trimmed();
         if (!trimmed.isEmpty())
             emit progress(trimmed);
@@ -132,32 +148,35 @@ void YtDlpDownloader::processFinished(int exitCode, QProcess::ExitStatus exitSta
     if (!m_process)
         return;
 
-    if (m_cancelled)
-    {
-        m_logger->info("{} yt-dlp process finished after being cancelled - not reporting as a failure", m_loggingPrefix);
+    if (m_cancelled) {
+        m_logger
+            ->info("{} yt-dlp process finished after being cancelled - not reporting as a failure",
+                   m_loggingPrefix);
         return;
     }
 
     QString stdErr = QString::fromUtf8(m_process->readAllStandardError());
 
-    if (exitStatus != QProcess::NormalExit || exitCode != 0)
-    {
-        m_logger->error("{} yt-dlp exited with code {}: {}", m_loggingPrefix, exitCode, stdErr.toStdString());
-        emit failed(stdErr.trimmed().isEmpty() ? QString("yt-dlp exited with code %1").arg(exitCode) : stdErr.trimmed());
+    if (exitStatus != QProcess::NormalExit || exitCode != 0) {
+        m_logger->error("{} yt-dlp exited with code {}: {}",
+                        m_loggingPrefix,
+                        exitCode,
+                        stdErr.toStdString());
+        emit failed(stdErr.trimmed().isEmpty() ? QString("yt-dlp exited with code %1").arg(exitCode)
+                                               : stdErr.trimmed());
         return;
     }
 
-    if (!QFile::exists(m_filePathTempFile))
-    {
-        m_logger->error("{} yt-dlp exited successfully but reported no final file path", m_loggingPrefix);
+    if (!QFile::exists(m_filePathTempFile)) {
+        m_logger->error("{} yt-dlp exited successfully but reported no final file path",
+                        m_loggingPrefix);
         emit failed("Download finished but yt-dlp didn't report where the file was saved.");
         return;
     }
 
     QFile filePathFile(m_filePathTempFile);
     QString finalFilePath;
-    if (filePathFile.open(QIODevice::ReadOnly | QIODevice::Text))
-    {
+    if (filePathFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         finalFilePath = QString::fromUtf8(filePathFile.readAll()).trimmed();
         // yt-dlp reports the path using Windows' native backslashes. Qt's
         // own file scanning (DbUpdater, via QDirIterator) consistently uses
@@ -173,11 +192,9 @@ void YtDlpDownloader::processFinished(int exitCode, QProcess::ExitStatus exitSta
     QFile::remove(m_filePathTempFile);
 
     int durationSecs = 0;
-    if (QFile::exists(m_durationTempFile))
-    {
+    if (QFile::exists(m_durationTempFile)) {
         QFile durationFile(m_durationTempFile);
-        if (durationFile.open(QIODevice::ReadOnly | QIODevice::Text))
-        {
+        if (durationFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
             QString durationStr = QString::fromUtf8(durationFile.readAll()).trimmed();
             bool ok = false;
             double durationDouble = durationStr.toDouble(&ok);
@@ -188,9 +205,10 @@ void YtDlpDownloader::processFinished(int exitCode, QProcess::ExitStatus exitSta
         QFile::remove(m_durationTempFile);
     }
 
-    if (finalFilePath.isEmpty() || !QFile::exists(finalFilePath))
-    {
-        m_logger->error("{} Reported final file path doesn't exist: {}", m_loggingPrefix, finalFilePath.toStdString());
+    if (finalFilePath.isEmpty() || !QFile::exists(finalFilePath)) {
+        m_logger->error("{} Reported final file path doesn't exist: {}",
+                        m_loggingPrefix,
+                        finalFilePath.toStdString());
         emit failed("Download finished but the resulting file couldn't be found.");
         return;
     }

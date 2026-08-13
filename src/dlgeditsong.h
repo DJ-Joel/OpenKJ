@@ -12,7 +12,12 @@ class DlgEditSong : public QDialog
     Q_OBJECT
 
 public:
-    explicit DlgEditSong(QString artist, QString title, QString songId, bool showSongId = true, bool allowRename = true, QWidget *parent = 0);
+    explicit DlgEditSong(QString artist,
+                         QString title,
+                         QString songId,
+                         bool showSongId = true,
+                         bool allowRename = true,
+                         QWidget *parent = 0);
     ~DlgEditSong();
     QString artist();
     QString title();

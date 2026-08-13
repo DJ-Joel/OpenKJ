@@ -24,48 +24,32 @@
 #include <QObject>
 #include <QStringList>
 #include <QtSql>
-#include "src/models/tablemodelkaraokesourcedirs.h"
 #include "settings.h"
+#include "src/models/tablemodelkaraokesourcedirs.h"
 #include <array>
-
 
 class DbUpdater : public QObject
 {
     Q_OBJECT
 
 private:
-
-    struct DbSongRecord {
-       int id{-1};
-       bool isDropped{false};
-       QString path;
+    struct DbSongRecord
+    {
+        int id{-1};
+        bool isDropped{false};
+        QString path;
     };
 
     // file extension list must be sorted and in lower case:
-    const std::array<std::string, 9> karaoke_file_extensions {
-        "avi",
-        "cdg",
-        "m4v",
-        "mkv",
-        "mp4",
-        "mpeg",
-        "mpg",
-        "wmv",
-        "zip"
-    };
+    const std::array<std::string, 9>
+        karaoke_file_extensions{"avi", "cdg", "m4v", "mkv", "mp4", "mpeg", "mpg", "wmv", "zip"};
 
-    std::array<std::string, 5> audio_file_extensions {
-        "flac",
-        "mov",
-        "mp3",
-        "ogg",
-        "wav"
-    };
+    std::array<std::string, 5> audio_file_extensions{"flac", "mov", "mp3", "ogg", "wav"};
 
     class DiskEnumerator
     {
     private:
-        DbUpdater& m_parent;
+        DbUpdater &m_parent;
         QStringList m_karaokeFilesOnDisk;
         QStringList m_audioFilesOnDisk;
         int m_i_kar{-1};
@@ -74,24 +58,35 @@ private:
     public:
         bool IsValid{false};
         QString CurrentFile;
-        explicit DiskEnumerator(DbUpdater& parent) : m_parent(parent) { reset(); }
+        explicit DiskEnumerator(DbUpdater &parent)
+            : m_parent(parent)
+        {
+            reset();
+        }
         void findKaraokeFilesOnDisk();
         void readNextDiskFile();
-        void reset() { m_i_kar = -1; m_i_aud = 0; IsValid = false; }
+        void reset()
+        {
+            m_i_kar = -1;
+            m_i_aud = 0;
+            IsValid = false;
+        }
         int count() { return m_karaokeFilesOnDisk.length(); }
     };
 
     class DbEnumerator
     {
     private:
-        DbUpdater& m_parent;
+        DbUpdater &m_parent;
         QSqlQuery m_dbSongs;
         int m_count{0};
 
     public:
         bool IsValid = false;
         DbSongRecord CurrentRecord;
-        explicit DbEnumerator(DbUpdater& parent) : m_parent(parent) {}
+        explicit DbEnumerator(DbUpdater &parent)
+            : m_parent(parent)
+        {}
         void prepareQuery(bool limitToPaths);
         void readNextRecord();
         [[nodiscard]] int count() const { return m_count; }
@@ -108,13 +103,11 @@ private:
     bool shouldUpdateGui();
 
 public:
-
-    enum ProcessingOption
-    {
-        None                          = 0x0,
-        FixMovedFiles                 = 0x01,
-        FixMovedFilesSearchInWholeDB  = FixMovedFiles | 0x02,
-        PrepareForRemovalOfMissing    = 0x04
+    enum ProcessingOption {
+        None = 0x0,
+        FixMovedFiles = 0x01,
+        FixMovedFilesSearchInWholeDB = FixMovedFiles | 0x02,
+        PrepareForRemovalOfMissing = 0x04
     };
     Q_DECLARE_FLAGS(ProcessingOptions, ProcessingOption)
 
@@ -131,7 +124,6 @@ signals:
     void progressMessage(const QString &msg);
     void stateChanged(QString state);
     void progressChanged(int progress, int max);
-
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(DbUpdater::ProcessingOptions)

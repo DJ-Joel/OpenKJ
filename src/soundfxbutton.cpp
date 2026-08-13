@@ -1,7 +1,8 @@
 #include "soundfxbutton.h"
 #include <QMouseEvent>
 
-SoundFxButton::SoundFxButton(const QVariant &data, const QString &label) {
+SoundFxButton::SoundFxButton(const QVariant &data, const QString &label)
+{
     setButtonData(data);
     setText(label);
 }
@@ -13,12 +14,9 @@ void SoundFxButton::setButtonData(const QVariant &data)
 
 void SoundFxButton::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::RightButton)
-    {
+    if (event->button() == Qt::RightButton) {
         emit customContextMenuRequested(event->pos());
         return;
     }
     QAbstractButton::mouseReleaseEvent(event);
 }
-
-

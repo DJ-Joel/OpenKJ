@@ -4,11 +4,11 @@
 #include <QObject>
 #include <QStringList>
 #include <QTimer>
-#include <gst/gst.h>
-#include <gst/gstdevicemonitor.h>
-#include <gst/gstdevice.h>
-#include <gst/gstplugin.h>
 #include "settings.h"
+#include <gst/gst.h>
+#include <gst/gstdevice.h>
+#include <gst/gstdevicemonitor.h>
+#include <gst/gstplugin.h>
 #include <spdlog/logger.h>
 
 class AudioRecorder : public QObject
@@ -29,7 +29,7 @@ private:
     GstElement *m_audioRate{nullptr};
     GstElement *m_autoAudioSrc{nullptr};
     GstBus *m_bus{nullptr};
-    QList<GstDevice*> m_inputDevices;
+    QList<GstDevice *> m_inputDevices;
     QStringList m_inputDeviceNames;
     QStringList m_codecs{"MPEG 2 Layer 3 (mp3)", "OGG Vorbis", "WAV/PCM"};
     QStringList m_fileExtensions{".mp3", ".ogg", ".wav"};
@@ -48,14 +48,13 @@ public:
     ~AudioRecorder() override;
     QStringList getDeviceList();
     QStringList getCodecs();
-    void setOutputFile(const QString& filename);
+    void setOutputFile(const QString &filename);
     void setInputDevice(int inputDeviceId);
-    void record(const QString& filename);
+    void record(const QString &filename);
     void stop();
     void pause();
     void unpause();
     void setCurrentCodec(int value);
-
 };
 
 #endif // AUDIORECORDER_H

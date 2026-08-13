@@ -14,10 +14,12 @@
 #include <QString>
 #include <spdlog/fmt/fmt.h>
 
-template <>
-struct fmt::formatter<QString> : fmt::formatter<std::string> {
-    template <typename FormatContext>
-    auto format(const QString &s, FormatContext &ctx) const {
+template<>
+struct fmt::formatter<QString> : fmt::formatter<std::string>
+{
+    template<typename FormatContext>
+    auto format(const QString &s, FormatContext &ctx) const
+    {
         return fmt::formatter<std::string>::format(s.toStdString(), ctx);
     }
 };

@@ -58,6 +58,16 @@ DlgSettings::DlgSettings(MediaBackend &AudioBackend, MediaBackend &BmAudioBacken
 #ifdef Q_OS_MACOS
     ui->checkBoxHardwareAccel->setHidden(true);
 #endif
+#ifdef Q_OS_WIN
+    // TEMPORARY: grayed out until the GStreamer Direct3D crash (see
+    // Settings::hardwareAccelEnabled()) is fixed upstream, so it can't be
+    // turned back on by accident. Remove this block once that's resolved.
+    ui->checkBoxHardwareAccel->setEnabled(false);
+    ui->checkBoxHardwareAccel->setToolTip(
+        "Temporarily disabled: hardware-accelerated video can cause "
+        "playback to stop unexpectedly on Windows due to a bug in "
+        "GStreamer. This will be re-enabled once that's fixed.");
+#endif
     ui->comboBoxConsoleLogLevel->addItems(
             {
                     "Disabled",

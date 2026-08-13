@@ -17,24 +17,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <algorithm>
 #include <QApplication>
 #include <QDir>
-#include "mainwindow.h"
-#include "spdlogqstringformatter.h"
-#include <QStyleFactory>
+#include <QMessageBox>
 #include <QSplashScreen>
 #include <QStringList>
-#include <QMessageBox>
-#include "settings.h"
+#include <QStyleFactory>
 #include "idledetect.h"
-#include "runguard/runguard.h"
+#include "mainwindow.h"
 #include "okjversion.h"
+#include "runguard/runguard.h"
+#include "settings.h"
+#include "spdlogqstringformatter.h"
+#include <algorithm>
+#include <spdlog/async.h>
+#include <spdlog/async_logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/async_logger.h>
-#include <spdlog/async.h>
-
 
 Settings settings;
 IdleDetect *filter;
@@ -43,8 +42,8 @@ IdleDetect *filter;
 //      It's currently only global for use by the QDebug callback
 std::shared_ptr<spdlog::async_logger> logger;
 
-
-void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
     bool loggingEnabled = settings.logEnabled();
     std::string logMsg = msg.toStdString();
     if (context.function) {
@@ -53,39 +52,45 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
         logMsg.append("]");
     }
     switch (type) {
-        case QtDebugMsg:
-            if (!loggingEnabled)
-                return;
-            logger->debug(logMsg);
-            break;
-        case QtInfoMsg:
-            logger->info(logMsg);
-            break;
-        case QtWarningMsg:
-            logger->warn(logMsg);
-            break;
-        case QtCriticalMsg:
-            logger->critical(logMsg);
-            break;
-        case QtFatalMsg:
-            logger->critical(logMsg);
-          //  abort();
+    case QtDebugMsg:
+        if (!loggingEnabled)
+            return;
+        logger->debug(logMsg);
+        break;
+    case QtInfoMsg:
+        logger->info(logMsg);
+        break;
+    case QtWarningMsg:
+        logger->warn(logMsg);
+        break;
+    case QtCriticalMsg:
+        logger->critical(logMsg);
+        break;
+    case QtFatalMsg:
+        logger->critical(logMsg);
+        //  abort();
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     QString logDir = settings.logDir();
     QDir dir;
     QString logFilePath;
-    QString filename = "openkj-debug-" + QDateTime::currentDateTime().toString("yyyy-MM-dd") + ".log";
+    QString filename = "openkj-debug-" + QDateTime::currentDateTime().toString("yyyy-MM-dd")
+                       + ".log";
     dir.mkpath(logDir);
     logFilePath = logDir + QDir::separator() + filename;
 
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.toStdString(), false);
+    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.toStdString(),
+                                                                         false);
     spdlog::init_thread_pool(8192, 2);
     std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
-    logger = std::make_shared<spdlog::async_logger>("logger", sinks.begin(), sinks.end(), spdlog::thread_pool(),
+    logger = std::make_shared<spdlog::async_logger>("logger",
+                                                    sinks.begin(),
+                                                    sinks.end(),
+                                                    spdlog::thread_pool(),
                                                     spdlog::async_overflow_policy::block);
     spdlog::register_logger(logger);
     logger->set_level(spdlog::level::trace);
@@ -96,48 +101,48 @@ int main(int argc, char *argv[]) {
     auto fileLogLevel = settings.getFileLogLevel();
 
     switch (consoleLogLevel) {
-        case Settings::LOG_LEVEL_CRITICAL:
-            console_sink->set_level(spdlog::level::critical);
-            break;
-        case Settings::LOG_LEVEL_ERROR:
-            console_sink->set_level(spdlog::level::err);
-            break;
-        case Settings::LOG_LEVEL_WARNING:
-            console_sink->set_level(spdlog::level::warn);
-            break;
-        case Settings::LOG_LEVEL_INFO:
-            console_sink->set_level(spdlog::level::info);
-            break;
-        case Settings::LOG_LEVEL_DEBUG:
-            console_sink->set_level(spdlog::level::debug);
-            break;
-        case Settings::LOG_LEVEL_TRACE:
-            console_sink->set_level(spdlog::level::trace);
-            break;
-        default:
-            console_sink->set_level(spdlog::level::off);
+    case Settings::LOG_LEVEL_CRITICAL:
+        console_sink->set_level(spdlog::level::critical);
+        break;
+    case Settings::LOG_LEVEL_ERROR:
+        console_sink->set_level(spdlog::level::err);
+        break;
+    case Settings::LOG_LEVEL_WARNING:
+        console_sink->set_level(spdlog::level::warn);
+        break;
+    case Settings::LOG_LEVEL_INFO:
+        console_sink->set_level(spdlog::level::info);
+        break;
+    case Settings::LOG_LEVEL_DEBUG:
+        console_sink->set_level(spdlog::level::debug);
+        break;
+    case Settings::LOG_LEVEL_TRACE:
+        console_sink->set_level(spdlog::level::trace);
+        break;
+    default:
+        console_sink->set_level(spdlog::level::off);
     }
     switch (fileLogLevel) {
-        case Settings::LOG_LEVEL_CRITICAL:
-            file_sink->set_level(spdlog::level::critical);
-            break;
-        case Settings::LOG_LEVEL_ERROR:
-            file_sink->set_level(spdlog::level::err);
-            break;
-        case Settings::LOG_LEVEL_WARNING:
-            file_sink->set_level(spdlog::level::warn);
-            break;
-        case Settings::LOG_LEVEL_INFO:
-            file_sink->set_level(spdlog::level::info);
-            break;
-        case Settings::LOG_LEVEL_DEBUG:
-            file_sink->set_level(spdlog::level::debug);
-            break;
-        case Settings::LOG_LEVEL_TRACE:
-            file_sink->set_level(spdlog::level::trace);
-            break;
-        default:
-            file_sink->set_level(spdlog::level::off);
+    case Settings::LOG_LEVEL_CRITICAL:
+        file_sink->set_level(spdlog::level::critical);
+        break;
+    case Settings::LOG_LEVEL_ERROR:
+        file_sink->set_level(spdlog::level::err);
+        break;
+    case Settings::LOG_LEVEL_WARNING:
+        file_sink->set_level(spdlog::level::warn);
+        break;
+    case Settings::LOG_LEVEL_INFO:
+        file_sink->set_level(spdlog::level::info);
+        break;
+    case Settings::LOG_LEVEL_DEBUG:
+        file_sink->set_level(spdlog::level::debug);
+        break;
+    case Settings::LOG_LEVEL_TRACE:
+        file_sink->set_level(spdlog::level::trace);
+        break;
+    default:
+        file_sink->set_level(spdlog::level::off);
     }
     if (file_sink->level() > console_sink->level())
         logger->set_level(file_sink->level());
@@ -149,7 +154,6 @@ int main(int argc, char *argv[]) {
     file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
 
     logger->info("OpenKJ version {} starting up", OKJ_VERSION_STRING);
-
 
     //QLoggingCategory::setFilterRules("*.debug=true");
     qInstallMessageHandler(myMessageOutput);
@@ -168,12 +172,24 @@ int main(int argc, char *argv[]) {
     QString appDir = QCoreApplication::applicationDirPath();
     qInfo() << "Application dir: " << appDir;
     appDir.remove(appDir.length() - 5, 5);
-    qputenv("GST_PLUGIN_SYSTEM_PATH", QString(appDir + "Frameworks/GStreamer.framework/Versions/Current/lib/gstreamer-1.0").toLocal8Bit());
-    qputenv("GST_PLUGIN_SCANNER", QString(appDir + "Frameworks/GStreamer.framework/Versions/Current/libexec/gstreamer-1.0/gst-plugin-scanner").toLocal8Bit());
-    qputenv("GTK_PATH", QString(appDir + "Frameworks/GStreamer.framework/Versions/Current/").toLocal8Bit());
-    qputenv("GIO_EXTRA_MODULES", QString(appDir + "Frameworks/GStreamer.framework/Versions/Current/lib/gio/modules").toLocal8Bit());
+    qputenv("GST_PLUGIN_SYSTEM_PATH",
+            QString(appDir + "Frameworks/GStreamer.framework/Versions/Current/lib/gstreamer-1.0")
+                .toLocal8Bit());
+    qputenv("GST_PLUGIN_SCANNER",
+            QString(appDir
+                    + "Frameworks/GStreamer.framework/Versions/Current/libexec/gstreamer-1.0/"
+                      "gst-plugin-scanner")
+                .toLocal8Bit());
+    qputenv("GTK_PATH",
+            QString(appDir + "Frameworks/GStreamer.framework/Versions/Current/").toLocal8Bit());
+    qputenv("GIO_EXTRA_MODULES",
+            QString(appDir + "Frameworks/GStreamer.framework/Versions/Current/lib/gio/modules")
+                .toLocal8Bit());
     qWarning() << "MacOS detected, changed GST env vars to point to the bundled framework";
-    qWarning() << qgetenv("GST_PLUGIN_SYSTEM_PATH") << endl << qgetenv("GST_PLUGIN_SCANNER") << endl << qgetenv("GTK_PATH") << endl << qgetenv("GIO_EXTRA_MODULES") << endl;
+    qWarning() << qgetenv("GST_PLUGIN_SYSTEM_PATH") << endl
+               << qgetenv("GST_PLUGIN_SCANNER") << endl
+               << qgetenv("GTK_PATH") << endl
+               << qgetenv("GIO_EXTRA_MODULES") << endl;
 #endif
 
 #ifdef Q_OS_WIN
@@ -198,7 +214,6 @@ int main(int argc, char *argv[]) {
     qputenv("GIO_EXTRA_MODULES", gioModuleDir.toLocal8Bit());
     qInfo() << "Windows detected, set GIO_EXTRA_MODULES to" << gioModuleDir;
 #endif
-
 
     a.installEventFilter(filter);
     // Only set a default if the user/environment hasn't already set one -
@@ -237,10 +252,10 @@ int main(int argc, char *argv[]) {
     } else if (settings.theme() == 2) {
         QApplication::setStyle(QStyleFactory::create("Fusion"));
     }
-//    else
-//    {
-//
-//    }
+    //    else
+    //    {
+    //
+    //    }
     QApplication::setFont(settings.applicationFont(), "QWidget");
     QApplication::setFont(settings.applicationFont(), "QMenu");
     QApplication::setFont(settings.applicationFont(), "QAction");
@@ -255,8 +270,8 @@ int main(int argc, char *argv[]) {
         if (!guard.tryToRun()) {
             QMessageBox msgBox;
             msgBox.setText("OpenKJ is already running!");
-            msgBox.setInformativeText(
-                    "In order to protect the database, you can only run one instance of OpenKJ at a time.\nExiting now.");
+            msgBox.setInformativeText("In order to protect the database, you can only run one "
+                                      "instance of OpenKJ at a time.\nExiting now.");
             msgBox.setIcon(QMessageBox::Critical);
             msgBox.exec();
             return 1;

@@ -1,15 +1,16 @@
 #include "dlgaddstreamsong.h"
-#include "ui_dlgaddstreamsong.h"
 #include <QApplication>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QProcess>
 #include <QProcessEnvironment>
-#include <QFileInfo>
+#include "ui_dlgaddstreamsong.h"
 
-DlgAddStreamSong::DlgAddStreamSong(QString singerName, QWidget *parent) :
-        QDialog(parent),
-        ui(new Ui::DlgAddStreamSong),
-        m_singerName(std::move(singerName)) {
+DlgAddStreamSong::DlgAddStreamSong(QString singerName, QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::DlgAddStreamSong)
+    , m_singerName(std::move(singerName))
+{
     ui->setupUi(this);
     setWindowTitle("Add stream song for " + m_singerName);
     ui->lblLookupResult->setText("");
@@ -21,23 +22,28 @@ DlgAddStreamSong::DlgAddStreamSong(QString singerName, QWidget *parent) :
     }
 }
 
-DlgAddStreamSong::~DlgAddStreamSong() {
+DlgAddStreamSong::~DlgAddStreamSong()
+{
     delete ui;
 }
 
-QString DlgAddStreamSong::artist() const {
+QString DlgAddStreamSong::artist() const
+{
     return ui->lineEditArtist->text().trimmed();
 }
 
-QString DlgAddStreamSong::title() const {
+QString DlgAddStreamSong::title() const
+{
     return ui->lineEditTitle->text().trimmed();
 }
 
-QString DlgAddStreamSong::url() const {
+QString DlgAddStreamSong::url() const
+{
     return ui->lineEditUrl->text().trimmed();
 }
 
-void DlgAddStreamSong::on_btnLookup_clicked() {
+void DlgAddStreamSong::on_btnLookup_clicked()
+{
     QString url = ui->lineEditUrl->text().trimmed();
     if (url.isEmpty()) {
         ui->lblLookupResult->setText("Enter a URL first.");
@@ -81,12 +87,13 @@ void DlgAddStreamSong::on_btnLookup_clicked() {
     }
     if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
         QString err = QString::fromUtf8(process.readAllStandardError()).trimmed();
-        ui->lblLookupResult->setText(err.isEmpty() ? "Lookup failed." : "Lookup failed: " + err.left(120));
+        ui->lblLookupResult->setText(err.isEmpty() ? "Lookup failed."
+                                                   : "Lookup failed: " + err.left(120));
         return;
     }
 
     QStringList lines = QString::fromUtf8(process.readAllStandardOutput())
-            .split('\n', Qt::SkipEmptyParts);
+                            .split('\n', Qt::SkipEmptyParts);
     if (lines.isEmpty()) {
         ui->lblLookupResult->setText("yt-dlp returned nothing.");
         return;
@@ -101,24 +108,29 @@ void DlgAddStreamSong::on_btnLookup_clicked() {
     if (m_duration > 0) {
         int mins = m_duration / 60;
         int secs = m_duration % 60;
-        ui->lblLookupResult->setText(QString("Found (%1:%2)").arg(mins).arg(secs, 2, 10, QChar('0')));
+        ui->lblLookupResult->setText(
+            QString("Found (%1:%2)").arg(mins).arg(secs, 2, 10, QChar('0')));
     } else {
         ui->lblLookupResult->setText("Found, but no duration reported.");
     }
 }
 
-void DlgAddStreamSong::on_buttonBox_accepted() {
+void DlgAddStreamSong::on_buttonBox_accepted()
+{
     if (url().isEmpty()) {
         QMessageBox::warning(this, "URL required", "A URL is required to add a stream song.");
         return;
     }
     if (title().isEmpty()) {
-        QMessageBox::warning(this, "Title required", "A title is required so the song can be identified in the rotation.");
+        QMessageBox::warning(this,
+                             "Title required",
+                             "A title is required so the song can be identified in the rotation.");
         return;
     }
     accept();
 }
 
-void DlgAddStreamSong::on_buttonBox_rejected() {
+void DlgAddStreamSong::on_buttonBox_rejected()
+{
     reject();
 }

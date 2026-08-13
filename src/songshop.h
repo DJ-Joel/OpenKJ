@@ -6,29 +6,30 @@
 #include <QObject>
 #include <QUrl>
 #include "settings.h"
-#include <spdlog/spdlog.h>
 #include <spdlog/async_logger.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
-std::ostream& operator<<(std::ostream& os, const QString& s);
+std::ostream &operator<<(std::ostream &os, const QString &s);
 
 class ShopSong
 {
 public:
-    operator QString() const { return QString("Artist: " + artist + " Title: " + title + " SongId: " + songid + " Vendor: " + vendor + " Price: " + QString("%1").arg(price)); }
+    operator QString() const
+    {
+        return QString("Artist: " + artist + " Title: " + title + " SongId: " + songid
+                       + " Vendor: " + vendor + " Price: " + QString("%1").arg(price));
+    }
     QString artist;
     QString title;
     QString songid;
     QString vendor;
     int type;
     double price;
-    bool operator == (const ShopSong r) const;
+    bool operator==(const ShopSong r) const;
 };
 
-
 typedef QList<ShopSong> ShopSongs;
-
-
 
 class SongShop : public QObject
 {
@@ -70,8 +71,8 @@ signals:
 public slots:
 
 private slots:
-    void onSslErrors(QNetworkReply * reply, QList<QSslError> errors);
-    void onNetworkReply(QNetworkReply* reply);
+    void onSslErrors(QNetworkReply *reply, QList<QSslError> errors);
+    void onNetworkReply(QNetworkReply *reply);
     void onDownloadProgress(qint64 received, qint64 total);
 };
 

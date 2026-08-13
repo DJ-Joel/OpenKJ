@@ -1,17 +1,18 @@
 #ifndef DLGADDSINGER_H
 #define DLGADDSINGER_H
 
-#include <memory>
 #include <QDialog>
-#include <src/models/tablemodelrotation.h>
 #include "settings.h"
+#include <memory>
+#include <src/models/tablemodelrotation.h>
 
 namespace Ui {
-    class DlgAddSinger;
+class DlgAddSinger;
 }
 
-class DlgAddSinger : public QDialog {
-Q_OBJECT
+class DlgAddSinger : public QDialog
+{
+    Q_OBJECT
 
 public:
     explicit DlgAddSinger(TableModelRotation &rotationModel, QWidget *parent = nullptr);
