@@ -458,13 +458,33 @@ void DlgCdg::showEvent(QShowEvent *event)
     if (!m_fullscreenStateRestoredThisShow)
     {
         m_fullscreenStateRestoredThisShow = true;
-        if (m_settings.cdgWindowFullscreen())
+        // m_fullScreen needs to reflect the restored state right away, not
+        // only once the delayed showFullScreen() below actually runs. It
+        // was only being set inside code the user's own button/double-click
+        // triggers, never here - so if the singer window opened into a
+        // saved "fullscreen" state, m_fullScreen still read whatever it was
+        // left at from construction (or an earlier session) until the timer
+        // fired 100ms later. Clicking the Fullscreen/Make Windowed button
+        // during that 100ms gap read/updated the stale value, and then the
+        // delayed showFullScreen() below stomped over it without knowing a
+        // click had happened - that's what made the first fullscreen click
+        // appear to do nothing, and the next click do the opposite of what
+        // its label said.
+        m_fullScreen = m_settings.cdgWindowFullscreen();
+        if (m_fullScreen)
         {
             this->showNormal();
+            ui->btnToggleFullscreen->setText("Make Windowed");
             QTimer::singleShot(100, [&] () {
-                ui->btnToggleFullscreen->setText("Make Windowed");
-                this->showFullScreen();
-                cdgOffsetsChanged();
+                // Only actually go fullscreen if nothing changed m_fullScreen
+                // in the 100ms since we decided to restore it (e.g. the user
+                // clicking the button in the meantime) - otherwise this would
+                // undo their click.
+                if (m_fullScreen)
+                {
+                    this->showFullScreen();
+                    cdgOffsetsChanged();
+                }
             });
         }
         else
