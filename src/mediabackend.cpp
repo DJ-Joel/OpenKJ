@@ -24,6 +24,7 @@
 #include <cmath>
 #include <QFile>
 #include <QIODevice>
+#include <QRegularExpression>
 #include <gst/audio/streamvolume.h>
 #include <gst/gstdebugutils.h>
 #include "softwarerendervideosink.h"
@@ -606,21 +607,60 @@ void MediaBackend::gstBusFunc(GstMessage *message)
             }
             else if (QString(err->message) == "Output window was closed" && m_currentState == GST_STATE_PLAYING)
             {
-                // The video sink's D3D11 output window handle went stale
-                // mid-playback (seen consistently in Windows testing - not
-                // yet root-caused). Left alone, this stalls playback until
-                // the "playback appears hung" watchdog gives up 5 seconds
-                // later and ends the song early. As a best-effort recovery,
-                // try re-binding a fresh window handle and nudging the
-                // pipeline with the same flushing seek setPosition() below
-                // already uses for normal seeking, since that's a known-
-                // working way to kick a stalled GStreamer pipeline back into
-                // motion. This is a mitigation, not a confirmed fix for why
-                // the window handle goes stale in the first place.
-                m_logger->warn("{} Attempting automatic recovery from output window loss", m_loggingPrefix);
-                resetVideoSinks();
-                forceVideoExpose();
-                setPosition(m_lastPosition);
+                // This same message fires in two very different situations,
+                // and they need opposite handling:
+                //  1. The singer window is still supposed to be showing, but
+                //     its output window handle went stale on its own - a
+                //     real problem worth trying to recover from.
+                //  2. The user just hid the singer window on purpose (e.g.
+                //     pressing Escape) - which hides that window's video
+                //     widget - GStreamer reports the exact same "window was
+                //     closed" message for that, but there's nothing to
+                //     recover here, it's supposed to be gone. The earlier
+                //     version of this fix didn't tell those two cases apart
+                //     and tried to force a re-expose/reseek even when the
+                //     window had been deliberately hidden, which is what
+                //     was making playback stop when Escape was pressed.
+                //
+                // The debug string names which specific sink hit the error
+                // (e.g. "GstD3D11VideoSink:videoSink1"), and each sink's
+                // index lines up with the widget it was built from in
+                // setVideoOutputWidgets() (videoSink1 = surfaces[0], etc.),
+                // so we can check whether THAT widget is still supposed to
+                // be visible before trying to recover it.
+                QString debugStr(debug);
+                static const QRegularExpression sinkNameRe("videoSink(\\d+)");
+                auto match = sinkNameRe.match(debugStr);
+                bool affectedSinkStillVisible = false;
+                bool identifiedSink = false;
+                if (match.hasMatch())
+                {
+                    int sinkIndex = match.captured(1).toInt() - 1;
+                    if (sinkIndex >= 0 && sinkIndex < static_cast<int>(m_videoSinks.size()))
+                    {
+                        identifiedSink = true;
+                        affectedSinkStillVisible = m_videoSinks[sinkIndex].surface->isVisible();
+                    }
+                }
+                if (identifiedSink && !affectedSinkStillVisible)
+                {
+                    m_logger->debug("{} Output window closed for a sink whose widget is hidden - assuming intentional, skipping recovery", m_loggingPrefix);
+                }
+                else
+                {
+                    // Either we confirmed the widget behind this sink is
+                    // still supposed to be visible, or we couldn't identify
+                    // which sink it was - in that second case, err on the
+                    // side of attempting recovery like before, since doing
+                    // nothing means the song silently dies 5 seconds later
+                    // anyway once the "playback appears hung" watchdog gives
+                    // up. This is still a best-effort mitigation, not a
+                    // confirmed fix for why the window handle goes stale.
+                    m_logger->warn("{} Attempting automatic recovery from output window loss", m_loggingPrefix);
+                    resetVideoSinks();
+                    forceVideoExpose();
+                    setPosition(m_lastPosition);
+                }
             }
             g_error_free(err);
             g_free(debug);

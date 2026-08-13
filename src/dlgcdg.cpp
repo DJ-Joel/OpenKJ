@@ -185,6 +185,13 @@ void DlgCdg::mouseDoubleClickEvent([[maybe_unused]]QMouseEvent *e)
         showFullScreen();
     else
         showNormal();
+    // The Fullscreen/Make Windowed button used to only get its text set
+    // once, inside showEvent() - neither this double-click toggle nor the
+    // button's own click handler below ever updated it afterward. That left
+    // the label frozen after the very first fullscreen change, so from then
+    // on it always described the OPPOSITE of what the window actually was -
+    // this is what made the button look like it was working backwards.
+    ui->btnToggleFullscreen->setText(m_fullScreen ? "Make Windowed" : "Make Fullscreen");
     cdgOffsetsChanged();
     m_settings.setCdgWindowFullscreen(m_fullScreen);
     // Only persist geometry while windowed. Saving it while fullscreen
@@ -376,6 +383,11 @@ void DlgCdg::btnToggleFullscreenClicked()
     }
     else
         showNormal();
+    // See the matching comment in mouseDoubleClickEvent() above - this
+    // button's label was never actually updated after a click, only by
+    // showEvent() the next time the window was shown, so it went stale
+    // and read backwards after the first press.
+    ui->btnToggleFullscreen->setText(m_fullScreen ? "Make Windowed" : "Make Fullscreen");
     m_settings.setCdgWindowFullscreen(m_fullScreen);
     // See the matching comment in mouseDoubleClickEvent() above - saving
     // geometry while fullscreen is what was making this window come back
