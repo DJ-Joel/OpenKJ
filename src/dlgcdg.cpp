@@ -404,26 +404,28 @@ void DlgCdg::showEvent(QShowEvent *event)
     QDialog::showEvent(event);
     m_settings.restoreWindowState(this);
     m_settings.setShowCdgWindow(true);
-    // showNormal()/showFullScreen() below can cause Qt to deliver another
-    // show event to this same window before this one has finished being
-    // handled. Without this guard, that re-entry runs this whole block
-    // again, which schedules another showFullScreen(), which triggers
-    // another show event - an infinite loop that eventually crashes with a
-    // stack overflow instead of just showing the window.
-    if (m_settings.cdgWindowFullscreen() && !m_restoringFullscreenOnShow)
+    // Only restore the last-known fullscreen state once per hide->show
+    // session (the flag is reset in hideEvent() below). Without this, a
+    // later, legitimate showFullScreen()/showNormal() call from elsewhere -
+    // like the "Fullscreen"/"Make Windowed" button - can re-deliver a show
+    // event here and re-run this block, undoing whatever that button just
+    // did (this is what broke the fullscreen button after the previous
+    // fix's narrower re-entrancy guard let this second call through).
+    if (!m_fullscreenStateRestoredThisShow)
     {
-        m_restoringFullscreenOnShow = true;
-        this->showNormal();
-        QTimer::singleShot(100, [&] () {
-            ui->btnToggleFullscreen->setText("Make Windowed");
-            this->showFullScreen();
-            cdgOffsetsChanged();
-            m_restoringFullscreenOnShow = false;
-        });
-
+        m_fullscreenStateRestoredThisShow = true;
+        if (m_settings.cdgWindowFullscreen())
+        {
+            this->showNormal();
+            QTimer::singleShot(100, [&] () {
+                ui->btnToggleFullscreen->setText("Make Windowed");
+                this->showFullScreen();
+                cdgOffsetsChanged();
+            });
+        }
+        else
+            ui->btnToggleFullscreen->setText("Make Fullscreen");
     }
-    else if (!m_settings.cdgWindowFullscreen())
-        ui->btnToggleFullscreen->setText("Make Fullscreen");
     emit visibilityChanged(true);
 }
 
@@ -431,6 +433,9 @@ void DlgCdg::hideEvent(QHideEvent *event)
 {
     m_settings.saveWindowState(this);
     QWidget::hideEvent(event);
+    // Reset so the next time this window is shown, showEvent() correctly
+    // restores its last-known fullscreen state again.
+    m_fullscreenStateRestoredThisShow = false;
     // Pressing Escape on this window calls QDialog::reject(), which hides
     // the window directly without ever going through closeEvent() above -
     // that's a documented Qt behavior, not a bug in this file. Emitting
@@ -453,8 +458,16 @@ TransparentWidget::~TransparentWidget()
 
 void TransparentWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    this->move(event->globalPos() + m_startPoint);
-    m_settings.setDurationPosition(this->pos());
+    // Dragging this widget used to move it live via move(), but that leaves
+    // behind visible trail artifacts where it overlaps the karaoke video
+    // display underneath - the video display is drawn by GStreamer directly
+    // onto its own native window area rather than through Qt's normal
+    // widget painting, so Qt has no way to know it needs to repaint the
+    // spot this widget just vacated. Dragging is disabled entirely instead
+    // of trying to repaint around a video overlay. The widget's position is
+    // still restored from Settings on startup, and can be changed by
+    // editing that saved position directly if it's ever needed.
+    QWidget::mouseMoveEvent(event);
 }
 
 void TransparentWidget::moveEvent(QMoveEvent *event)
@@ -464,9 +477,8 @@ void TransparentWidget::moveEvent(QMoveEvent *event)
 }
 
 void TransparentWidget::mousePressEvent(QMouseEvent *event) {
-    if (event->button() == Qt::LeftButton) {
-        m_startPoint = frameGeometry().topLeft() - event->globalPos();
-    }
+    // Dragging is disabled - see mouseMoveEvent() above.
+    QWidget::mousePressEvent(event);
 }
 
 void TransparentWidget::setString(const QString &string) const {
