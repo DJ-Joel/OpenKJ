@@ -394,7 +394,9 @@ void DlgCdg::closeEvent([[maybe_unused]]QCloseEvent *event)
     this->hide();
     m_settings.setShowCdgWindow(false);
     event->ignore();
-    emit visibilityChanged(false);
+    // hide() above delivers a hide event synchronously before this line
+    // even runs, and that now emits visibilityChanged(false) itself (see
+    // hideEvent() below) - so nothing further to do here.
 }
 
 void DlgCdg::showEvent(QShowEvent *event)
@@ -429,6 +431,14 @@ void DlgCdg::hideEvent(QHideEvent *event)
 {
     m_settings.saveWindowState(this);
     QWidget::hideEvent(event);
+    // Pressing Escape on this window calls QDialog::reject(), which hides
+    // the window directly without ever going through closeEvent() above -
+    // that's a documented Qt behavior, not a bug in this file. Emitting
+    // here instead means the main window's toggle button gets told the
+    // singer window closed no matter how it closed (Escape key, the X
+    // button, or a call to hide() from elsewhere), instead of only when
+    // closeEvent() specifically runs.
+    emit visibilityChanged(false);
 }
 
 void DlgCdg::setSlideshowInterval(int secs) {
