@@ -604,6 +604,24 @@ void MediaBackend::gstBusFunc(GstMessage *message)
                 emit audioError("Unable to play " + player + " file, missing gstreamer plugin");
                 stop(true);
             }
+            else if (QString(err->message) == "Output window was closed" && m_currentState == GST_STATE_PLAYING)
+            {
+                // The video sink's D3D11 output window handle went stale
+                // mid-playback (seen consistently in Windows testing - not
+                // yet root-caused). Left alone, this stalls playback until
+                // the "playback appears hung" watchdog gives up 5 seconds
+                // later and ends the song early. As a best-effort recovery,
+                // try re-binding a fresh window handle and nudging the
+                // pipeline with the same flushing seek setPosition() below
+                // already uses for normal seeking, since that's a known-
+                // working way to kick a stalled GStreamer pipeline back into
+                // motion. This is a mitigation, not a confirmed fix for why
+                // the window handle goes stale in the first place.
+                m_logger->warn("{} Attempting automatic recovery from output window loss", m_loggingPrefix);
+                resetVideoSinks();
+                forceVideoExpose();
+                setPosition(m_lastPosition);
+            }
             g_error_free(err);
             g_free(debug);
             break;

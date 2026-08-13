@@ -918,6 +918,15 @@ void Settings::setDurationPosition(const QPoint pos)
 
 void Settings::resetDurationPosition()
 {
+    // This used to be an empty stub - the "Reset Duration Position" button
+    // in Settings called it and emitted durationPositionReset() (which does
+    // move the on-screen clock back to (0,0) right away), but never actually
+    // saved that back to disk. So the next time the app started, dlgcdg.cpp's
+    // constructor read the OLD saved position back out of settings and the
+    // clock jumped right back to wherever it was stuck before. Persisting
+    // (0,0) here - matching the same default durationPosition() already
+    // falls back to - is what actually makes the Reset button stick.
+    settings->setValue("DurationPosition", QPoint(0,0));
 }
 
 void Settings::setRemainRtOffset(int offset)

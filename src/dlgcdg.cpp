@@ -187,7 +187,13 @@ void DlgCdg::mouseDoubleClickEvent([[maybe_unused]]QMouseEvent *e)
         showNormal();
     cdgOffsetsChanged();
     m_settings.setCdgWindowFullscreen(m_fullScreen);
-    m_settings.saveWindowState(this);
+    // Only persist geometry while windowed. Saving it while fullscreen
+    // records the fullscreen-sized rectangle as the window's "normal"
+    // geometry, so the next time it's shown windowed it comes back
+    // oversized - bigger than the monitor, with its edges off-screen and
+    // no way to grab them to resize it back down.
+    if (!m_fullScreen)
+        m_settings.saveWindowState(this);
     // QDesktopWidget was removed in Qt 6 - QScreen is the modern
     // replacement. screens().indexOf(...) reproduces the same "index of
     // the screen this window is mostly on" value QDesktopWidget::screenNumber()
@@ -371,7 +377,12 @@ void DlgCdg::btnToggleFullscreenClicked()
     else
         showNormal();
     m_settings.setCdgWindowFullscreen(m_fullScreen);
-    m_settings.saveWindowState(this);
+    // See the matching comment in mouseDoubleClickEvent() above - saving
+    // geometry while fullscreen is what was making this window come back
+    // oversized (bigger than the monitor, unreachable edges) the next time
+    // it was shown windowed.
+    if (!m_fullScreen)
+        m_settings.saveWindowState(this);
     // QDesktopWidget was removed in Qt 6 - QScreen is the modern
     // replacement. screens().indexOf(...) reproduces the same "index of
     // the screen this window is mostly on" value QDesktopWidget::screenNumber()
@@ -403,6 +414,27 @@ void DlgCdg::showEvent(QShowEvent *event)
 {
     QDialog::showEvent(event);
     m_settings.restoreWindowState(this);
+    // Repair any geometry that was already saved bad by an earlier version
+    // of this code (before the fullscreen-save guards above existed) - if
+    // the restored size/position doesn't fit on the screen it's opening on,
+    // it means the window would be too big and/or partly off-screen with no
+    // way to grab its edges to fix it. Fall back to a reasonable windowed
+    // size centered on that screen instead.
+    if (!isFullScreen())
+    {
+        const QRect avail = this->screen() ? this->screen()->availableGeometry()
+                                            : QGuiApplication::primaryScreen()->availableGeometry();
+        const QRect geo = this->geometry();
+        const bool tooBig = geo.width() > avail.width() || geo.height() > avail.height();
+        const bool offScreen = !avail.intersects(geo);
+        if (tooBig || offScreen)
+        {
+            QSize fallbackSize(qMin(avail.width(), 800), qMin(avail.height(), 600));
+            QRect fallback(QPoint(0, 0), fallbackSize);
+            fallback.moveCenter(avail.center());
+            this->setGeometry(fallback);
+        }
+    }
     m_settings.setShowCdgWindow(true);
     // Only restore the last-known fullscreen state once per hide->show
     // session (the flag is reset in hideEvent() below). Without this, a
@@ -431,7 +463,13 @@ void DlgCdg::showEvent(QShowEvent *event)
 
 void DlgCdg::hideEvent(QHideEvent *event)
 {
-    m_settings.saveWindowState(this);
+    // Same reasoning as the fullscreen-toggle handlers above: if this
+    // window happens to get hidden (Escape, the X button, etc.) while it's
+    // still fullscreen, saving geometry here would persist the fullscreen
+    // size as the "normal" size and the window would come back oversized
+    // next time.
+    if (!isFullScreen())
+        m_settings.saveWindowState(this);
     QWidget::hideEvent(event);
     // Reset so the next time this window is shown, showEvent() correctly
     // restores its last-known fullscreen state again.
