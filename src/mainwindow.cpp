@@ -871,7 +871,11 @@ void MainWindow::setupConnections() {
            ui->tableViewHistory->resizeColumnsToContents();
        }
     });
-    connect(cdgWindow.get(), &DlgCdg::visibilityChanged, ui->btnToggleCdgWindow, &QPushButton::setChecked);
+    // Queued so the button's check-state update happens on the next
+    // event-loop pass instead of synchronously inside the emit above. This
+    // guarantees the toggled()->setVisible()->visibilityChanged()->setChecked()
+    // round trip can never grow the call stack, even if it were to loop.
+    connect(cdgWindow.get(), &DlgCdg::visibilityChanged, ui->btnToggleCdgWindow, &QPushButton::setChecked, Qt::QueuedConnection);
     connect(ui->comboBoxHistoryDblClick, QOverload<int>::of(&QComboBox::currentIndexChanged), &m_settings,
             &Settings::setHistoryDblClickAction);
     connect(&m_rotModel, &TableModelRotation::songDroppedOnSinger, this, &MainWindow::songDroppedOnSinger);

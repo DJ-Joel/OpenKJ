@@ -402,19 +402,26 @@ void DlgCdg::showEvent(QShowEvent *event)
     QDialog::showEvent(event);
     m_settings.restoreWindowState(this);
     m_settings.setShowCdgWindow(true);
-    if (m_settings.cdgWindowFullscreen())
+    // showNormal()/showFullScreen() below can cause Qt to deliver another
+    // show event to this same window before this one has finished being
+    // handled. Without this guard, that re-entry runs this whole block
+    // again, which schedules another showFullScreen(), which triggers
+    // another show event - an infinite loop that eventually crashes with a
+    // stack overflow instead of just showing the window.
+    if (m_settings.cdgWindowFullscreen() && !m_restoringFullscreenOnShow)
     {
+        m_restoringFullscreenOnShow = true;
         this->showNormal();
         QTimer::singleShot(100, [&] () {
             ui->btnToggleFullscreen->setText("Make Windowed");
             this->showFullScreen();
             cdgOffsetsChanged();
+            m_restoringFullscreenOnShow = false;
         });
 
     }
-    else
+    else if (!m_settings.cdgWindowFullscreen())
         ui->btnToggleFullscreen->setText("Make Fullscreen");
-    QDialog::showEvent(event);
     emit visibilityChanged(true);
 }
 

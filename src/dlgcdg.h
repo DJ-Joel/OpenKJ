@@ -88,6 +88,13 @@ private:
     // when the height actually changed, not on every redundant resize
     // callback Qt may fire for a single logical resize.
     int m_lastAppliedDisplayHeight{-1};
+    // Guards the fullscreen-restore block in showEvent() below. Entering
+    // fullscreen calls showNormal() then, on a timer, showFullScreen() -
+    // both of which can themselves cause Qt to re-deliver a show event to
+    // this same window. Without this guard, that re-delivery re-enters the
+    // same block, which schedules another showFullScreen(), which triggers
+    // another show event, forever.
+    bool m_restoringFullscreenOnShow{false};
 
 public:
     explicit DlgCdg(MediaBackend &KaraokeBackend, MediaBackend &BreakBackend, QWidget *parent = nullptr,
