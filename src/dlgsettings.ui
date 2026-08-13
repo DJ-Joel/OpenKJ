@@ -9,10 +9,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>803</width>
+    <width>1050</width>
     <height>522</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>1050</width>
+    <height>0</height>
+   </size>
+  </property>
+  <!-- Widened from 803 to 1050 - at 803 the tab bar couldn't fit all ten
+       tabs (Singer Accounts and part of Other were scrolled off, needing
+       the little left/right arrow buttons to reach them), and content
+       rows with a growing text field plus buttons at the end - e.g. the
+       Background Image row on the Video tab - pushed those buttons past
+       the visible edge. minimumSize (not just the default geometry width)
+       is set too, so the window can't be restored narrower than this even
+       from an old saved size in settings. -->
   <property name="windowTitle">
    <string>OpenKJ Settings</string>
   </property>
