@@ -92,7 +92,7 @@ QVariant TableModelRequests::data(const QModelIndex &index, int role) const {
                     return QString::number(m_requests.at(index.row()).key());
             case TIMESTAMP:
                 QDateTime ts;
-                ts.setTime_t(m_requests.at(index.row()).timeStamp());
+                ts.setSecsSinceEpoch(m_requests.at(index.row()).timeStamp());
                 return ts.toString("M-d-yy h:mm ap");
         }
     }
