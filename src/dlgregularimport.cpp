@@ -22,6 +22,7 @@
 #include "ui_dlgregularimport.h"
 #include <QFileDialog>
 #include <QFile>
+#include <QIODevice>
 #include <QStandardPaths>
 #include <QMessageBox>
 #include <QSqlQuery>

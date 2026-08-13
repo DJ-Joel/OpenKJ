@@ -1,6 +1,7 @@
 #include "tablemodelbreaksongs.h"
 
 #include <QDataStream>
+#include <QIODevice>
 #include <QMimeData>
 #include <QSqlQuery>
 #include <QString>

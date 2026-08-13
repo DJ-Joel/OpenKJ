@@ -29,6 +29,7 @@
 #include <QFileDialog>
 #include <QDir>
 #include <QFile>
+#include <QIODevice>
 #include <QFileInfo>
 #include <QStandardPaths>
 #include <QTextStream>

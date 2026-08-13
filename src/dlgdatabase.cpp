@@ -22,6 +22,7 @@
 #include "ui_dlgdatabase.h"
 #include <QDebug>
 #include <QFile>
+#include <QIODevice>
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QSqlQuery>

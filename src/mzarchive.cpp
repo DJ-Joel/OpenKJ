@@ -22,6 +22,7 @@
 #include "mzarchive.h"
 #include "spdlogqstringformatter.h"
 #include <QFile>
+#include <QIODevice>
 #include <QDir>
 #include <QBuffer>
 #include <QTemporaryDir>

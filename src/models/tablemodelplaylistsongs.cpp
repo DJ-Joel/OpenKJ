@@ -2,6 +2,7 @@
 #include "spdlogqstringformatter.h"
 
 #include <QDataStream>
+#include <QIODevice>
 #include <QFileInfo>
 #include <QPainter>
 #include <QSqlQuery>

@@ -2,6 +2,7 @@
 #include "spdlogqstringformatter.h"
 
 #include <QFile>
+#include <QIODevice>
 #include <QPainter>
 #include <QFontMetrics>
 #include <QResizeEvent>

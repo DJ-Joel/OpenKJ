@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QUuid>
 #include <QFile>
+#include <QIODevice>
 #include <QTextStream>
 #include <QProcessEnvironment>
 

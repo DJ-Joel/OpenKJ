@@ -7,6 +7,7 @@
 #include <QCryptographicHash>
 #include <QEventLoop>
 #include <QFile>
+#include <QIODevice>
 #include <QFileInfo>
 #include <QDir>
 
@@ -95,7 +96,7 @@ void SongShop::downloadFile(const QString &url, const QString &destFn) {
     connect(reply, &QNetworkReply::downloadProgress, this, &SongShop::onDownloadProgress);
     loop.exec();
     QUrl aUrl(url);
-    QFileInfo fileInfo = aUrl.path();
+    QFileInfo fileInfo(aUrl.path());
     QFile file(destPath);
     file.open(QIODevice::WriteOnly);
     file.write(reply->readAll());

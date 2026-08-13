@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "simplecrypt.h"
 #include <QByteArray>
+#include <QIODevice>
 #include <QtDebug>
 #include <QtGlobal>
 #include <QDateTime>

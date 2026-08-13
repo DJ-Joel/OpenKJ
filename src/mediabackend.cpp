@@ -23,6 +23,7 @@
 #include <QApplication>
 #include <cmath>
 #include <QFile>
+#include <QIODevice>
 #include <gst/audio/streamvolume.h>
 #include <gst/gstdebugutils.h>
 #include "softwarerendervideosink.h"
