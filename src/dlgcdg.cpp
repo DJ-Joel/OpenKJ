@@ -426,28 +426,29 @@ void DlgCdg::showEvent(QShowEvent *event)
 {
     QDialog::showEvent(event);
     m_settings.restoreWindowState(this);
-    // Repair any geometry that was already saved bad by an earlier version
-    // of this code (before the fullscreen-save guards above existed) - if
-    // the restored size/position doesn't fit on the screen it's opening on,
-    // it means the window would be too big and/or partly off-screen with no
-    // way to grab its edges to fix it. Fall back to a reasonable windowed
-    // size centered on that screen instead.
-    if (!isFullScreen())
-    {
-        const QRect avail = this->screen() ? this->screen()->availableGeometry()
-                                            : QGuiApplication::primaryScreen()->availableGeometry();
-        const QRect geo = this->geometry();
-        const bool tooBig = geo.width() > avail.width() || geo.height() > avail.height();
-        const bool offScreen = !avail.intersects(geo);
-        if (tooBig || offScreen)
-        {
-            QSize fallbackSize(qMin(avail.width(), 800), qMin(avail.height(), 600));
-            QRect fallback(QPoint(0, 0), fallbackSize);
-            fallback.moveCenter(avail.center());
-            this->setGeometry(fallback);
-        }
-    }
-    m_settings.setShowCdgWindow(true);
+
+    // Figure out whether we're about to (re-)enter fullscreen THIS show
+    // cycle before doing anything geometry-related below. This used to run
+    // after the geometry-repair block instead, which meant that block was
+    // deciding whether to clamp the window's size based on isFullScreen() -
+    // Qt's CURRENT state, before showFullScreen() below has even been
+    // requested yet - rather than what the window is actually about to
+    // become. If a saved "fullscreen" preference meant this window was
+    // about to be sent fullscreen via the delayed call below, this code
+    // would still see isFullScreen() == false at that moment and force the
+    // window down to an 800x600 windowed rectangle right as it was also
+    // being told to go fullscreen - leaving Qt's fullscreen flag set (so
+    // the window drew with no title bar/border, since true fullscreen
+    // windows never have one) while the actual on-screen rectangle was
+    // whatever the clamp had just forced it to. That's what made the
+    // window look small and border-less with no edges to grab, and made
+    // the Fullscreen/Make Windowed button (which was still going by the
+    // correct m_fullScreen/settings value) look like it was working
+    // backwards - clicking "Make Windowed" while already stuck in this
+    // half-fullscreen state was the first thing to actually call
+    // showNormal() cleanly, which is why it looked like it flipped to
+    // fullscreen-sized instead of shrinking.
+    bool aboutToGoFullscreen = false;
     // Only restore the last-known fullscreen state once per hide->show
     // session (the flag is reset in hideEvent() below). Without this, a
     // later, legitimate showFullScreen()/showNormal() call from elsewhere -
@@ -471,6 +472,7 @@ void DlgCdg::showEvent(QShowEvent *event)
         // appear to do nothing, and the next click do the opposite of what
         // its label said.
         m_fullScreen = m_settings.cdgWindowFullscreen();
+        aboutToGoFullscreen = m_fullScreen;
         if (m_fullScreen)
         {
             this->showNormal();
@@ -490,6 +492,30 @@ void DlgCdg::showEvent(QShowEvent *event)
         else
             ui->btnToggleFullscreen->setText("Make Fullscreen");
     }
+
+    // Repair any geometry that was already saved bad by an earlier version
+    // of this code (before the fullscreen-save guards above existed) - if
+    // the restored size/position doesn't fit on the screen it's opening on,
+    // it means the window would be too big and/or partly off-screen with no
+    // way to grab its edges to fix it. Fall back to a reasonable windowed
+    // size centered on that screen instead. Skipped entirely if we're about
+    // to be fullscreen this cycle - see the long comment above.
+    if (!isFullScreen() && !aboutToGoFullscreen)
+    {
+        const QRect avail = this->screen() ? this->screen()->availableGeometry()
+                                            : QGuiApplication::primaryScreen()->availableGeometry();
+        const QRect geo = this->geometry();
+        const bool tooBig = geo.width() > avail.width() || geo.height() > avail.height();
+        const bool offScreen = !avail.intersects(geo);
+        if (tooBig || offScreen)
+        {
+            QSize fallbackSize(qMin(avail.width(), 800), qMin(avail.height(), 600));
+            QRect fallback(QPoint(0, 0), fallbackSize);
+            fallback.moveCenter(avail.center());
+            this->setGeometry(fallback);
+        }
+    }
+    m_settings.setShowCdgWindow(true);
     emit visibilityChanged(true);
 }
 
