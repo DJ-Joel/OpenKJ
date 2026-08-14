@@ -682,7 +682,16 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->lblTempo->hide();
     }
     ui->videoPreview->setFillOnPaint(true);
-    cdgWindow = std::make_unique<DlgCdg>(m_mediaBackendKar, m_mediaBackendBm, nullptr, Qt::Window);
+    // Explicitly request minimize/maximize/close buttons (not just plain
+    // Qt::Window) - this is what reliably tells Windows to give the singer
+    // window a normal resizable frame with draggable edges in windowed
+    // mode. Without these hints, some Qt/Windows combinations treat a
+    // QDialog-based window as fixed-size by default even though nothing in
+    // its layout actually requires a fixed size, which was leaving no way
+    // to shrink the window back down by hand once it had been made large
+    // (e.g. from being maximized or made fullscreen previously).
+    cdgWindow = std::make_unique<DlgCdg>(m_mediaBackendKar, m_mediaBackendBm, nullptr,
+        Qt::Window | Qt::WindowMinimizeButtonHint | Qt::WindowMaximizeButtonHint | Qt::WindowCloseButtonHint);
     ui->tableViewDB->hideColumn(TableModelKaraokeSongs::COL_ID);
     ui->tableViewDB->hideColumn(TableModelKaraokeSongs::COL_FILENAME);
     ui->tableViewQueue->hideColumn(TableModelQueueSongs::COL_ID);
